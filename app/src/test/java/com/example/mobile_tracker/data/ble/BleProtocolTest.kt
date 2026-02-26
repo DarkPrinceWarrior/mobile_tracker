@@ -1,13 +1,16 @@
 package com.example.mobile_tracker.data.ble
 
 import android.bluetooth.le.ScanResult
+import android.util.Base64
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -27,6 +30,14 @@ class BleProtocolTest {
         scanner = mockk(relaxed = true)
         gattClient = mockk(relaxed = true)
         protocol = BleProtocol(scanner, gattClient)
+
+        mockkStatic(Base64::class)
+        every {
+            Base64.encodeToString(any(), any())
+        } answers {
+            java.util.Base64.getEncoder()
+                .encodeToString(firstArg())
+        }
     }
 
     // region findDevice
@@ -237,7 +248,7 @@ class BleProtocolTest {
             }
 
             // Отправляем чанки в канал параллельно
-            kotlinx.coroutines.launch {
+            launch {
                 for (chunk in chunks) {
                     channel.send(chunk)
                 }
@@ -278,7 +289,7 @@ class BleProtocolTest {
             } returns Unit
 
             // Отправляем только 2 из 10 чанков
-            kotlinx.coroutines.launch {
+            launch {
                 repeat(2) { i ->
                     val buf = ByteBuffer.allocate(6)
                     buf.order(ByteOrder.BIG_ENDIAN)

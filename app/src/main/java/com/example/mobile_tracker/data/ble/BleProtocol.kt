@@ -103,6 +103,10 @@ class BleProtocol(
                 "Scan timeout: device not found in " +
                     "${BleConstants.SCAN_TIMEOUT_MS}ms",
             )
+        } catch (e: NoSuchElementException) {
+            throw BleException.ScanTimeout(
+                "No matching device found",
+            )
         }
     }
 

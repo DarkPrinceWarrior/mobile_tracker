@@ -383,9 +383,19 @@ class BindingRepositoryTest {
             coEvery {
                 bindingApi.createBinding(any())
             } returns httpResponse
+            val call = mockk<io.ktor.client.call.HttpClientCall>(
+                relaxed = true,
+            )
             coEvery {
-                httpResponse.call
-            } returns mockk(relaxed = true)
+                call.bodyNullable(any())
+            } returns BindingResponse(
+                id = 100L,
+                deviceId = unsynced.deviceId,
+                employeeId = unsynced.employeeId,
+                siteId = unsynced.siteId,
+                shiftDate = unsynced.shiftDate,
+            )
+            every { httpResponse.call } returns call
 
             val result = repository.syncUnsynced()
 
