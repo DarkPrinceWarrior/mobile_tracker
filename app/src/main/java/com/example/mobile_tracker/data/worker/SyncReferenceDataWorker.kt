@@ -28,7 +28,7 @@ class SyncReferenceDataWorker(
     override suspend fun doWork(): Result {
         Timber.d("SyncReferenceDataWorker started")
 
-        val userPrefs = prefs.preferencesFlow.first()
+        val userPrefs = prefs.userPreferences.first()
         if (!userPrefs.isLoggedIn) {
             Timber.d("Not logged in, skipping sync")
             return Result.success()

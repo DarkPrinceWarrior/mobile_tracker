@@ -76,7 +76,7 @@ class DeviceListViewModel(
                         allDevices,
                         _state.value.filterStatus,
                         _state.value.searchQuery,
-                    )
+                    ) ?: allDevices
                     _state.update {
                         it.copy(
                             devices = filtered,
