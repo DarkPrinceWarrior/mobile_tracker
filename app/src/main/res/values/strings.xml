@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">Контроль подрядчиков</string>
+
+    <!-- Login -->
+    <string name="login_title">Вход оператора</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_password_label">Пароль</string>
+    <string name="login_button">Войти</string>
+    <string name="login_error_empty">Введите email и пароль</string>
+    <string name="login_error_credentials">Неверный email или пароль</string>
+    <string name="login_error_blocked">Аккаунт заблокирован. Обратитесь к администратору.</string>
+    <string name="login_error_server">Сервер недоступен. Попробуйте позже.</string>
+    <string name="login_error_network">Нет подключения к серверу. Проверьте интернет.</string>
+    <string name="login_show_password">Показать пароль</string>
+    <string name="login_hide_password">Скрыть пароль</string>
+
+    <!-- Context Selection -->
+    <string name="context_title">Выбор контекста работы</string>
+    <string name="context_site_label">Площадка</string>
+    <string name="context_site_hint">Выберите площадку</string>
+    <string name="context_date_label">Дата смены</string>
+    <string name="context_date_hint">ГГГГ-ММ-ДД</string>
+    <string name="context_shift_label">Тип смены</string>
+    <string name="context_shift_day">Дневная</string>
+    <string name="context_shift_night">Ночная</string>
+    <string name="context_start_button">Начать работу</string>
+    <string name="context_error_no_site">Выберите площадку</string>
+
+    <!-- Home / Tabs -->
+    <string name="tab_issue">Выдача</string>
+    <string name="tab_return">Возврат</string>
+    <string name="tab_upload">Выгрузка</string>
+    <string name="tab_log">Журнал</string>
+    <string name="tab_more">Ещё</string>
+    <string name="home_section_wip">Раздел в разработке</string>
+
+    <!-- General -->
+    <string name="action_logout">Выход</string>
+    <string name="error_unknown">Произошла неизвестная ошибка</string>
+    <string name="label_loading">Загрузка…</string>
+</resources>

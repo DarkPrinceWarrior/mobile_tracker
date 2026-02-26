@@ -1,0 +1,785 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "c3f1e42d0a4ba9ebb0bba4ac294a3667",
+    "entities": [
+      {
+        "tableName": "employees",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `full_name` TEXT NOT NULL, `company_id` TEXT, `company_name` TEXT, `position` TEXT, `pass_number` TEXT, `personnel_number` TEXT, `brigade_id` TEXT, `brigade_name` TEXT, `site_id` TEXT, `status` TEXT NOT NULL, `synced_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullName",
+            "columnName": "full_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "companyId",
+            "columnName": "company_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "companyName",
+            "columnName": "company_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "passNumber",
+            "columnName": "pass_number",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "personnelNumber",
+            "columnName": "personnel_number",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "brigadeId",
+            "columnName": "brigade_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "brigadeName",
+            "columnName": "brigade_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "siteId",
+            "columnName": "site_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncedAt",
+            "columnName": "synced_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_employees_personnel_number",
+            "unique": true,
+            "columnNames": [
+              "personnel_number"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_employees_personnel_number` ON `${TABLE_NAME}` (`personnel_number`)"
+          },
+          {
+            "name": "index_employees_pass_number",
+            "unique": false,
+            "columnNames": [
+              "pass_number"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_employees_pass_number` ON `${TABLE_NAME}` (`pass_number`)"
+          },
+          {
+            "name": "index_employees_site_id",
+            "unique": false,
+            "columnNames": [
+              "site_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_employees_site_id` ON `${TABLE_NAME}` (`site_id`)"
+          },
+          {
+            "name": "index_employees_full_name",
+            "unique": false,
+            "columnNames": [
+              "full_name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_employees_full_name` ON `${TABLE_NAME}` (`full_name`)"
+          }
+        ]
+      },
+      {
+        "tableName": "devices",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`device_id` TEXT NOT NULL, `serial_number` TEXT, `model` TEXT, `status` TEXT NOT NULL, `charge_status` TEXT NOT NULL, `employee_id` TEXT, `employee_name` TEXT, `site_id` TEXT, `last_sync_at` TEXT, `local_status` TEXT NOT NULL, `synced_at` INTEGER NOT NULL, PRIMARY KEY(`device_id`))",
+        "fields": [
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serialNumber",
+            "columnName": "serial_number",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chargeStatus",
+            "columnName": "charge_status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "employeeId",
+            "columnName": "employee_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "employeeName",
+            "columnName": "employee_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "siteId",
+            "columnName": "site_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncAt",
+            "columnName": "last_sync_at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "localStatus",
+            "columnName": "local_status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncedAt",
+            "columnName": "synced_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "device_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_devices_site_id",
+            "unique": false,
+            "columnNames": [
+              "site_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_devices_site_id` ON `${TABLE_NAME}` (`site_id`)"
+          },
+          {
+            "name": "index_devices_local_status",
+            "unique": false,
+            "columnNames": [
+              "local_status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_devices_local_status` ON `${TABLE_NAME}` (`local_status`)"
+          },
+          {
+            "name": "index_devices_employee_id",
+            "unique": false,
+            "columnNames": [
+              "employee_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_devices_employee_id` ON `${TABLE_NAME}` (`employee_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "bindings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `server_id` INTEGER, `device_id` TEXT NOT NULL, `employee_id` TEXT NOT NULL, `employee_name` TEXT NOT NULL, `site_id` TEXT NOT NULL, `shift_date` TEXT NOT NULL, `shift_type` TEXT NOT NULL, `bound_at` INTEGER NOT NULL, `unbound_at` INTEGER, `status` TEXT NOT NULL, `data_uploaded` INTEGER NOT NULL, `is_synced` INTEGER NOT NULL, `created_at` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "employeeId",
+            "columnName": "employee_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "employeeName",
+            "columnName": "employee_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "siteId",
+            "columnName": "site_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shiftDate",
+            "columnName": "shift_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shiftType",
+            "columnName": "shift_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "boundAt",
+            "columnName": "bound_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unboundAt",
+            "columnName": "unbound_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataUploaded",
+            "columnName": "data_uploaded",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isSynced",
+            "columnName": "is_synced",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_bindings_device_id_status",
+            "unique": false,
+            "columnNames": [
+              "device_id",
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_bindings_device_id_status` ON `${TABLE_NAME}` (`device_id`, `status`)"
+          },
+          {
+            "name": "index_bindings_employee_id_shift_date",
+            "unique": false,
+            "columnNames": [
+              "employee_id",
+              "shift_date"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_bindings_employee_id_shift_date` ON `${TABLE_NAME}` (`employee_id`, `shift_date`)"
+          },
+          {
+            "name": "index_bindings_site_id_shift_date",
+            "unique": false,
+            "columnNames": [
+              "site_id",
+              "shift_date"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_bindings_site_id_shift_date` ON `${TABLE_NAME}` (`site_id`, `shift_date`)"
+          },
+          {
+            "name": "index_bindings_is_synced",
+            "unique": false,
+            "columnNames": [
+              "is_synced"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_bindings_is_synced` ON `${TABLE_NAME}` (`is_synced`)"
+          }
+        ]
+      },
+      {
+        "tableName": "packet_queue",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`packet_id` TEXT NOT NULL, `device_id` TEXT NOT NULL, `employee_id` TEXT, `binding_id` INTEGER, `site_id` TEXT NOT NULL, `shift_start_ts` INTEGER NOT NULL, `shift_end_ts` INTEGER NOT NULL, `schema_version` INTEGER NOT NULL, `payload_enc` TEXT NOT NULL, `payload_key_enc` TEXT NOT NULL, `iv` TEXT NOT NULL, `payload_hash` TEXT NOT NULL, `payload_size_bytes` INTEGER, `status` TEXT NOT NULL, `attempt` INTEGER NOT NULL, `last_error` TEXT, `server_status` TEXT, `created_at` INTEGER NOT NULL, `uploaded_at` INTEGER, PRIMARY KEY(`packet_id`))",
+        "fields": [
+          {
+            "fieldPath": "packetId",
+            "columnName": "packet_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "employeeId",
+            "columnName": "employee_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "bindingId",
+            "columnName": "binding_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "siteId",
+            "columnName": "site_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shiftStartTs",
+            "columnName": "shift_start_ts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shiftEndTs",
+            "columnName": "shift_end_ts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schema_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadEnc",
+            "columnName": "payload_enc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadKeyEnc",
+            "columnName": "payload_key_enc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "iv",
+            "columnName": "iv",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadHash",
+            "columnName": "payload_hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadSizeBytes",
+            "columnName": "payload_size_bytes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempt",
+            "columnName": "attempt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "last_error",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "serverStatus",
+            "columnName": "server_status",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadedAt",
+            "columnName": "uploaded_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "packet_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_packet_queue_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_packet_queue_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "index_packet_queue_device_id",
+            "unique": false,
+            "columnNames": [
+              "device_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_packet_queue_device_id` ON `${TABLE_NAME}` (`device_id`)"
+          },
+          {
+            "name": "index_packet_queue_site_id",
+            "unique": false,
+            "columnNames": [
+              "site_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_packet_queue_site_id` ON `${TABLE_NAME}` (`site_id`)"
+          },
+          {
+            "name": "index_packet_queue_created_at",
+            "unique": false,
+            "columnNames": [
+              "created_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_packet_queue_created_at` ON `${TABLE_NAME}` (`created_at`)"
+          }
+        ]
+      },
+      {
+        "tableName": "operation_log",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` TEXT NOT NULL, `device_id` TEXT, `employee_id` TEXT, `employee_name` TEXT, `site_id` TEXT NOT NULL, `shift_date` TEXT NOT NULL, `details` TEXT, `status` TEXT NOT NULL, `error_message` TEXT, `is_synced` INTEGER NOT NULL, `created_at` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "employeeId",
+            "columnName": "employee_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "employeeName",
+            "columnName": "employee_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "siteId",
+            "columnName": "site_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shiftDate",
+            "columnName": "shift_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "details",
+            "columnName": "details",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "errorMessage",
+            "columnName": "error_message",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isSynced",
+            "columnName": "is_synced",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_operation_log_site_id_shift_date",
+            "unique": false,
+            "columnNames": [
+              "site_id",
+              "shift_date"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_operation_log_site_id_shift_date` ON `${TABLE_NAME}` (`site_id`, `shift_date`)"
+          },
+          {
+            "name": "index_operation_log_type",
+            "unique": false,
+            "columnNames": [
+              "type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_operation_log_type` ON `${TABLE_NAME}` (`type`)"
+          },
+          {
+            "name": "index_operation_log_device_id",
+            "unique": false,
+            "columnNames": [
+              "device_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_operation_log_device_id` ON `${TABLE_NAME}` (`device_id`)"
+          },
+          {
+            "name": "index_operation_log_employee_id",
+            "unique": false,
+            "columnNames": [
+              "employee_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_operation_log_employee_id` ON `${TABLE_NAME}` (`employee_id`)"
+          },
+          {
+            "name": "index_operation_log_created_at",
+            "unique": false,
+            "columnNames": [
+              "created_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_operation_log_created_at` ON `${TABLE_NAME}` (`created_at`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sites",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `address` TEXT, `timezone` TEXT NOT NULL, `status` TEXT NOT NULL, `synced_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "address",
+            "columnName": "address",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "timezone",
+            "columnName": "timezone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncedAt",
+            "columnName": "synced_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "shift_context",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `site_id` TEXT NOT NULL, `site_name` TEXT NOT NULL, `shift_date` TEXT NOT NULL, `shift_type` TEXT NOT NULL, `operator_id` TEXT NOT NULL, `operator_name` TEXT NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "siteId",
+            "columnName": "site_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "siteName",
+            "columnName": "site_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shiftDate",
+            "columnName": "shift_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shiftType",
+            "columnName": "shift_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operatorId",
+            "columnName": "operator_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operatorName",
+            "columnName": "operator_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "downtime_reasons",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `synced_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncedAt",
+            "columnName": "synced_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c3f1e42d0a4ba9ebb0bba4ac294a3667')"
+    ]
+  }
+}
