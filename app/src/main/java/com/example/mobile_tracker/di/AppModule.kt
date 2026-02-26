@@ -2,7 +2,10 @@ package com.example.mobile_tracker.di
 
 import com.example.mobile_tracker.data.local.datastore.UserPreferencesManager
 import com.example.mobile_tracker.data.local.secure.SecureStorage
+import com.example.mobile_tracker.data.repository.BindingRepository
 import com.example.mobile_tracker.data.repository.ReferenceRepository
+import com.example.mobile_tracker.presentation.binding.issue.IssueViewModel
+import com.example.mobile_tracker.presentation.binding.return_device.ReturnViewModel
 import com.example.mobile_tracker.presentation.context_selection.ContextSelectionViewModel
 import com.example.mobile_tracker.presentation.devices.DeviceListViewModel
 import com.example.mobile_tracker.presentation.employees.EmployeeSearchViewModel
@@ -20,6 +23,11 @@ val appModule = module {
             get(), get(), get(), get(), get(),
         )
     }
+    single {
+        BindingRepository(
+            get(), get(), get(), get(),
+        )
+    }
 
     viewModel { LoginViewModel(get(), get(), get()) }
     viewModel {
@@ -31,5 +39,11 @@ val appModule = module {
     }
     viewModel {
         EmployeeSearchViewModel(get(), get(), get())
+    }
+    viewModel {
+        IssueViewModel(get(), get(), get(), get())
+    }
+    viewModel {
+        ReturnViewModel(get(), get(), get(), get())
     }
 }

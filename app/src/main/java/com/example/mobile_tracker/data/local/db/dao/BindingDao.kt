@@ -46,6 +46,11 @@ interface BindingDao {
         empId: String,
     ): BindingEntity?
 
+    @Query(
+        "SELECT * FROM bindings WHERE id = :id LIMIT 1",
+    )
+    suspend fun findActiveByIdSync(id: Long): BindingEntity?
+
     @Insert
     suspend fun insert(binding: BindingEntity): Long
 

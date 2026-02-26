@@ -18,4 +18,10 @@ sealed interface Route {
 
     @Serializable
     data object EmployeeSearch : Route
+
+    @Serializable
+    data object Issue : Route
+
+    @Serializable
+    data object Return : Route
 }

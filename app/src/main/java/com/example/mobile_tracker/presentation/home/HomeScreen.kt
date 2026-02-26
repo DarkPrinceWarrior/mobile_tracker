@@ -55,6 +55,8 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onNavigateToDevices: () -> Unit = {},
     onNavigateToEmployees: () -> Unit = {},
+    onNavigateToIssue: () -> Unit = {},
+    onNavigateToReturn: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -148,6 +150,38 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Поиск сотрудника")
+                    }
+                }
+                0 -> {
+                    Text(
+                        text = "Выдача часов",
+                        style = MaterialTheme.typography
+                            .headlineMedium,
+                    )
+                    Spacer(
+                        modifier = Modifier.height(16.dp),
+                    )
+                    Button(
+                        onClick = onNavigateToIssue,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Перейти к выдаче")
+                    }
+                }
+                1 -> {
+                    Text(
+                        text = "Возврат часов",
+                        style = MaterialTheme.typography
+                            .headlineMedium,
+                    )
+                    Spacer(
+                        modifier = Modifier.height(16.dp),
+                    )
+                    Button(
+                        onClick = onNavigateToReturn,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Перейти к возврату")
                     }
                 }
                 else -> {

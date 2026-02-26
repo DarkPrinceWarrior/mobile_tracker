@@ -96,63 +96,65 @@
 
 ---
 
-## Итерация M3 — Выдача и возврат часов 🔲
+## Итерация M3 — Выдача и возврат часов �
 
-**Статус:** Не начата  
+**Статус:** В процессе  
 **Оценка:** 1-2 недели  
 **Критерий:** Оператор выдаёт и принимает часы, привязки синхронизируются с сервером.
 
 ### План задач
 
-#### 3.1. Data Layer — API и DTO
-- [ ] Создать `BindingDto.kt` — DTO для привязок (CreateBindingRequest, BindingResponse, ReturnBindingRequest)
-- [ ] Создать `BindingApi.kt` — API привязок: POST create, POST return, GET by site
-- [ ] Создать `BindingRepository.kt` — логика создания/возврата привязок, оффлайн-очередь, синхронизация
+#### 3.1. Data Layer — DTO и API
+- [x] Создать `BindingDto.kt` — DTO для привязок (CreateBindingRequest, BindingResponse, ReturnBindingRequest)
+- [x] Создать `BindingApi.kt` — API привязок: POST create, PUT close, GET by site
+- [x] Создать `BindingRepository.kt` — логика создания/возврата привязок, оффлайн-очередь, синхронизация
 
 #### 3.2. Data Layer — WorkManager
-- [ ] Создать `SyncBindingsWorker.kt` — фоновая синхронизация привязок (отправка оффлайн-привязок на сервер)
+- [x] Создать `SyncBindingsWorker.kt` — фоновая синхронизация привязок (отправка оффлайн-привязок на сервер)
 
 #### 3.3. Domain Layer
-- [ ] Обновить `DeviceBinding` — добавить поля для оффлайн-статуса (pendingSync, syncError)
-- [ ] Создать use-case или Repository-методы: `issueDevice()`, `returnDevice()`, `getActiveBindings()`
+- [x] Обновить `DeviceBinding` — поля уже есть (isSynced)
+- [x] Создать Repository-методы: `issueDevice()`, `returnDevice()`, `observeActiveBindings()`
+- [x] Добавить `BindingEntity.toDomain()` маппер в `Mappers.kt`
 
 #### 3.4. Presentation — Экран выдачи (IssueScreen)
-- [ ] Создать `IssueContract.kt` — State/Intent/Effect для выдачи
-- [ ] Создать `IssueViewModel.kt` — логика: поиск сотрудника → выбор часов → валидация → подтверждение
-- [ ] Создать `IssueScreen.kt` — UI: шаги выдачи (идентификация сотрудника → назначение устройства → подтверждение)
-- [ ] Реализовать идентификацию сотрудника: по табельному номеру, по ФИО (переиспользовать EmployeeSearch), по RFID-пропуску
-- [ ] Реализовать выбор устройства: список свободных часов на площадке, выбор из списка
-- [ ] Реализовать подтверждение: summary-карточка, кнопка "Выдать"
+- [x] Создать `IssueContract.kt` — State/Intent/Effect для выдачи
+- [x] Создать `IssueViewModel.kt` — логика: поиск сотрудника → выбор часов → валидация → подтверждение
+- [x] Создать `IssueScreen.kt` — UI: шаги выдачи (идентификация сотрудника → назначение устройства → подтверждение)
+- [x] Реализовать идентификацию сотрудника: по табельному номеру, по ФИО
+- [x] Реализовать выбор устройства: список свободных часов на площадке, выбор из списка
+- [x] Реализовать подтверждение: summary-карточка, кнопка "Выдать"
+- [ ] Реализовать идентификацию по RFID-пропуску (требует BLE интеграции)
 
 #### 3.5. Presentation — Экран возврата (ReturnScreen)
-- [ ] Создать `ReturnContract.kt` — State/Intent/Effect для возврата
-- [ ] Создать `ReturnViewModel.kt` — логика: список выданных → выбор → причина простоя → возврат
-- [ ] Создать `ReturnScreen.kt` — UI: список выданных часов, кнопка возврата, выбор причины простоя (опционально)
+- [x] Создать `ReturnContract.kt` — State/Intent/Effect для возврата
+- [x] Создать `ReturnViewModel.kt` — логика: список выданных → выбор → возврат + "Потеряны"
+- [x] Создать `ReturnScreen.kt` — UI: список выданных часов, кнопка возврата, предупреждение о невыгруженных данных
 
 #### 3.6. Валидации
-- [ ] Проверка: часы свободны (localStatus == "available") перед выдачей
-- [ ] Проверка: сотрудник не имеет активной привязки (один сотрудник — одни часы)
-- [ ] Проверка: часы активны (status == "active"), не неисправны / не разряжены
-- [ ] Отображение ошибок валидации в UI
+- [x] Проверка: часы свободны (localStatus == "available") перед выдачей
+- [x] Проверка: сотрудник не имеет активной привязки (один сотрудник — одни часы)
+- [x] Проверка: часы активны (status == "active"), не неисправны / не разряжены
+- [x] Отображение ошибок валидации в UI
 
 #### 3.7. Журнал операций
-- [ ] Обновить `OperationLogDao` — добавить запись операций выдачи/возврата
-- [ ] Запись в журнал при каждой выдаче/возврате (тип, время, оператор, сотрудник, устройство)
+- [x] Запись в журнал при каждой выдаче/возврате через `OperationLogDao` (тип, время, сотрудник, устройство)
 
 #### 3.8. Оффлайн-привязки
-- [ ] Сохранение привязки локально (BindingEntity + DeviceEntity.localStatus) при отсутствии сети
-- [ ] Флаг `pendingSync` в BindingEntity для неотправленных привязок
-- [ ] Автоматическая синхронизация при появлении сети (SyncBindingsWorker)
+- [x] Сохранение привязки локально (BindingEntity + DeviceEntity.localStatus) при отсутствии сети
+- [x] Флаг `isSynced` в BindingEntity для неотправленных привязок
+- [x] Автоматическая синхронизация (SyncBindingsWorker)
+- [ ] Регистрация SyncBindingsWorker в WorkManager при старте приложения
 - [ ] Индикация неотправленных привязок в UI
 
 #### 3.9. Навигация и DI
-- [ ] Добавить Route.Issue, Route.Return в навигацию
-- [ ] Обновить AppNavGraph — composable для IssueScreen, ReturnScreen
-- [ ] Обновить HomeScreen — табы "Выдача" и "Возврат" ведут на соответствующие экраны
-- [ ] Обновить DI: BindingApi, BindingRepository, IssueViewModel, ReturnViewModel
+- [x] Добавить Route.Issue, Route.Return в навигацию
+- [x] Обновить AppNavGraph — composable для IssueScreen, ReturnScreen
+- [x] Обновить HomeScreen — табы "Выдача" и "Возврат" ведут на соответствующие экраны
+- [x] Обновить DI: BindingApi, BindingRepository, IssueViewModel, ReturnViewModel
 
 #### 3.10. Строковые ресурсы
-- [ ] Обновить `strings.xml` — строки для экранов выдачи и возврата
+- [x] Обновить `strings.xml` — строки для экранов выдачи и возврата
 
 #### 3.11. Тесты
 - [ ] Unit-тесты: BindingRepository (создание, возврат, валидация, оффлайн)

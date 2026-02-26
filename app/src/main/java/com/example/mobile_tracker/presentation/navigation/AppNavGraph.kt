@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.mobile_tracker.presentation.binding.issue.IssueScreen
+import com.example.mobile_tracker.presentation.binding.return_device.ReturnScreen
 import com.example.mobile_tracker.presentation.context_selection.ContextSelectionScreen
 import com.example.mobile_tracker.presentation.devices.DeviceListScreen
 import com.example.mobile_tracker.presentation.employees.EmployeeSearchScreen
@@ -54,6 +56,12 @@ fun AppNavGraph(
                 onNavigateToEmployees = {
                     navController.navigate(Route.EmployeeSearch)
                 },
+                onNavigateToIssue = {
+                    navController.navigate(Route.Issue)
+                },
+                onNavigateToReturn = {
+                    navController.navigate(Route.Return)
+                },
             )
         }
 
@@ -63,6 +71,14 @@ fun AppNavGraph(
 
         composable<Route.EmployeeSearch> {
             EmployeeSearchScreen()
+        }
+
+        composable<Route.Issue> {
+            IssueScreen()
+        }
+
+        composable<Route.Return> {
+            ReturnScreen()
         }
     }
 }

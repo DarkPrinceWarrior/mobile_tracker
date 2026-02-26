@@ -68,8 +68,52 @@
     <string name="more_devices">Часы на площадке</string>
     <string name="more_employees">Поиск сотрудника</string>
 
+    <!-- M3: Issue -->
+    <string name="issue_title">Выдача часов</string>
+    <string name="issue_step_employee">1. Сотрудник</string>
+    <string name="issue_step_device">2. Часы</string>
+    <string name="issue_step_confirm">3. Выдача</string>
+    <string name="issue_personnel_label">Табельный номер</string>
+    <string name="issue_name_label">Поиск по ФИО</string>
+    <string name="issue_confirm_title">Подтверждение выдачи</string>
+    <string name="issue_confirm_employee">Сотрудник</string>
+    <string name="issue_confirm_device">Часы</string>
+    <string name="issue_button">Выдать часы</string>
+    <string name="issue_success">Часы выданы</string>
+    <string name="issue_no_devices">Нет свободных часов</string>
+    <string name="issue_no_devices_site">Нет свободных часов на площадке</string>
+    <string name="issue_employee_not_found">Сотрудник не найден</string>
+    <string name="issue_device_busy">Часы уже выданы</string>
+    <string name="issue_employee_has_device">Сотрудник уже имеет часы</string>
+    <string name="issue_device_unavailable">Часы недоступны</string>
+    <string name="issue_navigate">Перейти к выдаче</string>
+    <string name="issue_select_device">Выберите часы (%d свободных)</string>
+    <string name="issue_next">Далее</string>
+
+    <!-- M3: Return -->
+    <string name="return_title">Возврат часов</string>
+    <string name="return_issued_count">Выданных: %d</string>
+    <string name="return_empty">Нет выданных часов</string>
+    <string name="return_button">Принять часы</string>
+    <string name="return_mark_lost">Потеряны</string>
+    <string name="return_success">Часы возвращены</string>
+    <string name="return_navigate">Перейти к возврату</string>
+    <string name="return_data_not_uploaded_title">Данные не выгружены</string>
+    <string name="return_data_not_uploaded_message">Данные с часов ещё не выгружены. Продолжить возврат без выгрузки?</string>
+    <string name="return_continue">Продолжить</string>
+    <string name="return_cancel">Отмена</string>
+    <string name="return_issued_at">Выдано: %s</string>
+    <string name="return_data_uploaded">Данные выгружены</string>
+    <string name="return_data_pending">Данные не выгружены</string>
+
+    <!-- M3: Binding sync -->
+    <string name="binding_pending_sync">Ожидает синхронизации</string>
+    <string name="binding_synced">Синхронизировано</string>
+
     <!-- General -->
     <string name="action_logout">Выход</string>
     <string name="error_unknown">Произошла неизвестная ошибка</string>
     <string name="label_loading">Загрузка…</string>
+    <string name="action_back">Назад</string>
+    <string name="action_search">Найти</string>
 </resources>

@@ -1,10 +1,12 @@
 package com.example.mobile_tracker.data.remote.dto
 
+import com.example.mobile_tracker.data.local.db.entity.BindingEntity
 import com.example.mobile_tracker.data.local.db.entity.DeviceEntity
 import com.example.mobile_tracker.data.local.db.entity.DowntimeReasonEntity
 import com.example.mobile_tracker.data.local.db.entity.EmployeeEntity
 import com.example.mobile_tracker.data.local.db.entity.SiteEntity
 import com.example.mobile_tracker.domain.model.Device
+import com.example.mobile_tracker.domain.model.DeviceBinding
 import com.example.mobile_tracker.domain.model.Employee
 import com.example.mobile_tracker.domain.model.Site
 
@@ -91,4 +93,22 @@ fun DowntimeReasonDto.toEntity(
         id = id,
         name = name,
         syncedAt = syncedAt,
+    )
+
+fun BindingEntity.toDomain(): DeviceBinding =
+    DeviceBinding(
+        id = id,
+        serverId = serverId,
+        deviceId = deviceId,
+        employeeId = employeeId,
+        employeeName = employeeName,
+        siteId = siteId,
+        shiftDate = shiftDate,
+        shiftType = shiftType,
+        boundAt = boundAt,
+        unboundAt = unboundAt,
+        status = status,
+        dataUploaded = dataUploaded,
+        isSynced = isSynced,
+        createdAt = createdAt,
     )
