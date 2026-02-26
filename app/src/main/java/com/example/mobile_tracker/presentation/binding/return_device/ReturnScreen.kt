@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.filled.Warning
@@ -254,6 +256,10 @@ private fun BindingCard(
                             .onSurfaceVariant,
                     )
                 }
+                SyncStatusIcon(
+                    isSynced = binding.isSynced,
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 DataStatusIcon(
                     dataUploaded = binding.dataUploaded,
                 )
@@ -290,6 +296,26 @@ private fun BindingCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SyncStatusIcon(isSynced: Boolean) {
+    if (isSynced) {
+        Icon(
+            Icons.Default.CloudDone,
+            contentDescription = "Синхронизировано",
+            tint = MaterialTheme.colorScheme
+                .onSurfaceVariant
+                .copy(alpha = 0.5f),
+        )
+    } else {
+        Icon(
+            Icons.Default.CloudOff,
+            contentDescription =
+                "Ожидает синхронизации",
+            tint = MaterialTheme.colorScheme.tertiary,
+        )
     }
 }
 

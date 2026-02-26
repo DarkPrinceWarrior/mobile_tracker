@@ -2,6 +2,7 @@ package com.example.mobile_tracker
 
 import android.app.Application
 import androidx.work.WorkManager
+import com.example.mobile_tracker.data.worker.SyncBindingsWorker
 import com.example.mobile_tracker.data.worker.SyncReferenceDataWorker
 import com.example.mobile_tracker.di.appModule
 import com.example.mobile_tracker.di.databaseModule
@@ -29,8 +30,14 @@ class App : Application() {
             )
         }
 
+        val workManager = WorkManager.getInstance(this)
+
         SyncReferenceDataWorker.enqueuePeriodicSync(
-            WorkManager.getInstance(this),
+            workManager,
+        )
+
+        SyncBindingsWorker.enqueuePeriodicSync(
+            workManager,
         )
     }
 }
