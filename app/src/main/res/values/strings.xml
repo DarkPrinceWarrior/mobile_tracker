@@ -34,6 +34,40 @@
     <string name="tab_more">Ещё</string>
     <string name="home_section_wip">Раздел в разработке</string>
 
+    <!-- M2: Devices -->
+    <string name="devices_title">Часы на площадке</string>
+    <string name="devices_search_hint">Поиск по ID или серийному №</string>
+    <string name="devices_filter_all">Все</string>
+    <string name="devices_filter_available">Свободны</string>
+    <string name="devices_filter_issued">Выданы</string>
+    <string name="devices_status_available">Свободен</string>
+    <string name="devices_status_issued">Выдан</string>
+    <string name="devices_status_discharged">Разряжен</string>
+    <string name="devices_status_faulty">Неисправен</string>
+    <string name="devices_empty">Нет часов для отображения</string>
+    <string name="devices_issued_to">Выдан: %s</string>
+    <string name="devices_serial">S/N: %s</string>
+
+    <!-- M2: Employees -->
+    <string name="employees_title">Поиск сотрудника</string>
+    <string name="employees_search_hint">Табельный номер или ФИО</string>
+    <string name="employees_found">Найдено: %d</string>
+    <string name="employees_empty">Сотрудники не найдены</string>
+    <string name="employees_personnel_number">Таб. №: %s</string>
+    <string name="employees_brigade">Бригада: %s</string>
+
+    <!-- M2: Sync -->
+    <string name="sync_action">Синхронизировать</string>
+    <string name="sync_refresh">Обновить</string>
+    <string name="sync_completed">Синхронизация завершена</string>
+    <string name="sync_error">Ошибка синхронизации</string>
+    <string name="context_not_selected">Контекст не выбран</string>
+
+    <!-- Home: More tab -->
+    <string name="more_title">Дополнительно</string>
+    <string name="more_devices">Часы на площадке</string>
+    <string name="more_employees">Поиск сотрудника</string>
+
     <!-- General -->
     <string name="action_logout">Выход</string>
     <string name="error_unknown">Произошла неизвестная ошибка</string>

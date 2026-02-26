@@ -2,7 +2,10 @@ package com.example.mobile_tracker.presentation.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -10,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Watch
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +53,8 @@ private val bottomNavItems = listOf(
 @Composable
 fun HomeScreen(
     onLogout: () -> Unit,
+    onNavigateToDevices: () -> Unit = {},
+    onNavigateToEmployees: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -118,21 +124,53 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            val tabTitle = bottomNavItems.getOrNull(selectedTab)
-                ?.title ?: ""
+            when (selectedTab) {
+                4 -> {
+                    Text(
+                        text = "Дополнительно",
+                        style = MaterialTheme.typography
+                            .headlineMedium,
+                    )
+                    Spacer(
+                        modifier = Modifier.height(16.dp),
+                    )
+                    Button(
+                        onClick = onNavigateToDevices,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Часы на площадке")
+                    }
+                    Spacer(
+                        modifier = Modifier.height(8.dp),
+                    )
+                    Button(
+                        onClick = onNavigateToEmployees,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Поиск сотрудника")
+                    }
+                }
+                else -> {
+                    val tabTitle = bottomNavItems
+                        .getOrNull(selectedTab)
+                        ?.title ?: ""
 
-            Text(
-                text = tabTitle,
-                style = MaterialTheme.typography.headlineMedium,
-            )
-
-            Text(
-                text = "Раздел в разработке",
-                style = MaterialTheme.typography.bodyLarge,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+                    Text(
+                        text = tabTitle,
+                        style = MaterialTheme.typography
+                            .headlineMedium,
+                    )
+                    Text(
+                        text = "Раздел в разработке",
+                        style = MaterialTheme.typography
+                            .bodyLarge,
+                        color = MaterialTheme.colorScheme
+                            .onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(top = 8.dp),
+                    )
+                }
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobile_tracker.data.local.datastore.UserPreferencesManager
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
 import com.example.mobile_tracker.data.local.db.entity.ShiftContextEntity
+import com.example.mobile_tracker.data.repository.ReferenceRepository
 import com.example.mobile_tracker.domain.model.Site
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ import java.time.format.DateTimeFormatter
 class ContextSelectionViewModel(
     private val shiftContextDao: ShiftContextDao,
     private val preferencesManager: UserPreferencesManager,
+    private val referenceRepository: ReferenceRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ContextSelectionState())
@@ -111,6 +113,11 @@ class ContextSelectionViewModel(
             )
 
             _state.update { it.copy(isLoading = false) }
+
+            launch {
+                referenceRepository.syncAll(site.id)
+            }
+
             _effect.send(ContextSelectionEffect.NavigateToHome)
         }
     }

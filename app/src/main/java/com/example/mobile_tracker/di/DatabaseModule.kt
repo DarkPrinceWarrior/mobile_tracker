@@ -21,4 +21,5 @@ val databaseModule = module {
     single { get<AppDatabase>().operationLogDao() }
     single { get<AppDatabase>().siteDao() }
     single { get<AppDatabase>().shiftContextDao() }
+    single { get<AppDatabase>().downtimeReasonDao() }
 }

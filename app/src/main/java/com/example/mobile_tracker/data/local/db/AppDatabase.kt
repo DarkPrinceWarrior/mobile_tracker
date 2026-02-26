@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.DeviceDao
+import com.example.mobile_tracker.data.local.db.dao.DowntimeReasonDao
 import com.example.mobile_tracker.data.local.db.dao.EmployeeDao
 import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.dao.PacketQueueDao
@@ -42,4 +43,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun operationLogDao(): OperationLogDao
     abstract fun siteDao(): SiteDao
     abstract fun shiftContextDao(): ShiftContextDao
+    abstract fun downtimeReasonDao(): DowntimeReasonDao
 }

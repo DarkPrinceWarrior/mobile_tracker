@@ -1,6 +1,8 @@
 package com.example.mobile_tracker
 
 import android.app.Application
+import androidx.work.WorkManager
+import com.example.mobile_tracker.data.worker.SyncReferenceDataWorker
 import com.example.mobile_tracker.di.appModule
 import com.example.mobile_tracker.di.databaseModule
 import com.example.mobile_tracker.di.networkModule
@@ -26,5 +28,9 @@ class App : Application() {
                 databaseModule,
             )
         }
+
+        SyncReferenceDataWorker.enqueuePeriodicSync(
+            WorkManager.getInstance(this),
+        )
     }
 }

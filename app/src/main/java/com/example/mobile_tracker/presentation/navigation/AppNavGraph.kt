@@ -5,6 +5,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.mobile_tracker.presentation.context_selection.ContextSelectionScreen
+import com.example.mobile_tracker.presentation.devices.DeviceListScreen
+import com.example.mobile_tracker.presentation.employees.EmployeeSearchScreen
 import com.example.mobile_tracker.presentation.home.HomeScreen
 import com.example.mobile_tracker.presentation.login.LoginScreen
 
@@ -46,7 +48,21 @@ fun AppNavGraph(
                         popUpTo(Route.Home) { inclusive = true }
                     }
                 },
+                onNavigateToDevices = {
+                    navController.navigate(Route.DeviceList)
+                },
+                onNavigateToEmployees = {
+                    navController.navigate(Route.EmployeeSearch)
+                },
             )
+        }
+
+        composable<Route.DeviceList> {
+            DeviceListScreen()
+        }
+
+        composable<Route.EmployeeSearch> {
+            EmployeeSearchScreen()
         }
     }
 }
