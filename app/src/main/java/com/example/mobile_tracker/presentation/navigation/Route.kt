@@ -32,4 +32,10 @@ sealed interface Route {
         val employeeName: String? = null,
         val bindingId: Long? = null,
     ) : Route
+
+    @Serializable
+    data object Journal : Route
+
+    @Serializable
+    data object Summary : Route
 }

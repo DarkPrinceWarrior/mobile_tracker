@@ -110,6 +110,31 @@
     <string name="binding_pending_sync">Ожидает синхронизации</string>
     <string name="binding_synced">Синхронизировано</string>
 
+    <!-- M5: Journal -->
+    <string name="journal_title">Журнал операций</string>
+    <string name="journal_navigate">Открыть журнал</string>
+    <string name="journal_search_hint">Сотрудник или устройство</string>
+    <string name="journal_filter_all">Все</string>
+    <string name="journal_empty">Нет записей в журнале</string>
+
+    <!-- M5: Summary -->
+    <string name="summary_title">Сводка по смене</string>
+    <string name="summary_subtitle">%1$s · %2$s</string>
+    <string name="summary_issued">Выдано часов</string>
+    <string name="summary_returned">Возвращено</string>
+    <string name="summary_not_returned">Не возвращено</string>
+    <string name="summary_data_uploaded">Данные выгружены</string>
+    <string name="summary_pending_packets">В очереди на отправку</string>
+    <string name="summary_error_packets">Ошибки выгрузки</string>
+    <string name="summary_unsynced">Не синхронизировано</string>
+
+    <!-- M5: Offline -->
+    <string name="offline_banner">Нет подключения к интернету</string>
+    <string name="offline_pending_count">Пакетов в очереди: %d</string>
+
+    <!-- M5: More tab -->
+    <string name="more_summary">Сводка по смене</string>
+
     <!-- General -->
     <string name="action_logout">Выход</string>
     <string name="error_unknown">Произошла неизвестная ошибка</string>

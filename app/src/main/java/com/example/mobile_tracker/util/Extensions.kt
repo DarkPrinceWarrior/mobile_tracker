@@ -29,3 +29,11 @@ fun Long.toFormattedDateTime(
 
 fun LocalDate.toIsoString(): String =
     format(DateTimeFormatter.ISO_LOCAL_DATE)
+
+fun formatTimestamp(
+    millis: Long,
+    pattern: String = "HH:mm:ss",
+    zone: ZoneId = ZoneId.systemDefault(),
+): String = millis.toLocalDateTime(zone).format(
+    DateTimeFormatter.ofPattern(pattern),
+)

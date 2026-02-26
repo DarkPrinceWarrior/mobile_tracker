@@ -15,7 +15,10 @@ import com.example.mobile_tracker.presentation.devices.DeviceListViewModel
 import com.example.mobile_tracker.presentation.employees.EmployeeSearchViewModel
 import com.example.mobile_tracker.presentation.home.HomeViewModel
 import com.example.mobile_tracker.presentation.login.LoginViewModel
+import com.example.mobile_tracker.presentation.journal.JournalViewModel
+import com.example.mobile_tracker.presentation.summary.SummaryViewModel
 import com.example.mobile_tracker.presentation.upload.UploadViewModel
+import com.example.mobile_tracker.util.NetworkMonitor
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -48,7 +51,9 @@ val appModule = module {
     viewModel {
         ContextSelectionViewModel(get(), get(), get())
     }
-    viewModel { HomeViewModel(get()) }
+    single { NetworkMonitor(androidContext()) }
+
+    viewModel { HomeViewModel(get(), get(), get()) }
     viewModel {
         DeviceListViewModel(get(), get(), get())
     }
@@ -64,4 +69,6 @@ val appModule = module {
     viewModel {
         UploadViewModel(get(), get(), get(), get())
     }
+    viewModel { JournalViewModel(get(), get()) }
+    viewModel { SummaryViewModel(get(), get(), get()) }
 }

@@ -225,10 +225,52 @@
 
 ---
 
-## Предстоящие итерации
+## M5 — Журнал, Сводка, Оффлайн-индикация ✅
 
-### M5 — Журнал, оффлайн-индикация (1-2 недели)
-JournalScreen с фильтрами, баннер оффлайн, счётчик неотправленных пакетов.
+### 5.1. JournalScreen
+- [x] `JournalContract.kt` — State/Intent/Effect для журнала операций
+- [x] `JournalViewModel.kt` — загрузка и фильтрация из OperationLogDao (по типу, статусу, поиску)
+- [x] `JournalScreen.kt` — UI: фильтры (FilterChip/FlowRow), LazyColumn, Pull-to-refresh, поиск
+- [x] Unit-тесты: JournalViewModelTest (загрузка, фильтрация по типу/статусу, поиск)
+
+### 5.2. SummaryScreen
+- [x] `SummaryContract.kt` — State для метрик смены
+- [x] `SummaryViewModel.kt` — подсчёт метрик из BindingDao, PacketQueueDao (combine Flow)
+- [x] `SummaryScreen.kt` — UI: карточки метрик (выдано, возвращено, не возвращено, выгружено, очередь, ошибки, не синхр.)
+- [x] Unit-тесты: SummaryViewModelTest (метрики, контекст, пустые данные)
+
+### 5.3. Оффлайн-индикация
+- [x] Баннер «Нет подключения к интернету» в HomeScreen (AnimatedVisibility)
+- [x] Badge-счётчик неотправленных пакетов в TopBar HomeScreen
+- [x] HomeViewModel расширен: isOnline (NetworkMonitor), pendingPacketsCount (PacketQueueDao)
+
+### 5.4. Навигация и DI
+- [x] `Route.Journal`, `Route.Summary` — добавлены в Route.kt
+- [x] `AppNavGraph.kt` — composable для JournalScreen и SummaryScreen
+- [x] `HomeScreen.kt` — вкладка «Журнал» → навигация на JournalScreen, «Ещё» → кнопка «Сводка по смене»
+- [x] `AppModule.kt` — зарегистрированы NetworkMonitor, JournalViewModel, SummaryViewModel
+- [x] `HomeViewModel` — обновлён конструктор (3 зависимости)
+
+### 5.5. Строковые ресурсы
+- [x] `strings.xml` — добавлены строки для журнала, сводки, оффлайн-индикации
+
+### 5.6. Вспомогательные
+- [x] `Extensions.kt` — добавлена функция `formatTimestamp()`
+
+### Файлы (ключевые)
+
+| Файл | Назначение |
+|------|-----------|
+| `presentation/journal/JournalContract.kt` | MVI контракт журнала |
+| `presentation/journal/JournalViewModel.kt` | ViewModel журнала |
+| `presentation/journal/JournalScreen.kt` | Экран журнала операций |
+| `presentation/summary/SummaryContract.kt` | MVI контракт сводки |
+| `presentation/summary/SummaryViewModel.kt` | ViewModel сводки |
+| `presentation/summary/SummaryScreen.kt` | Экран сводки по смене |
+
+---
+
+## Предстоящие итерации
 
 ### M6 — Полировка, тестирование, CI/CD (1-2 недели)
 Тёмная тема, полевые тесты, performance, безопасность, CI/CD.

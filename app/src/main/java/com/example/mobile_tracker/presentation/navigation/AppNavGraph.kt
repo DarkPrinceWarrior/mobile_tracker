@@ -11,6 +11,8 @@ import com.example.mobile_tracker.presentation.devices.DeviceListScreen
 import com.example.mobile_tracker.presentation.employees.EmployeeSearchScreen
 import com.example.mobile_tracker.presentation.home.HomeScreen
 import com.example.mobile_tracker.presentation.login.LoginScreen
+import com.example.mobile_tracker.presentation.journal.JournalScreen
+import com.example.mobile_tracker.presentation.summary.SummaryScreen
 import com.example.mobile_tracker.presentation.upload.UploadScreen
 
 @Composable
@@ -63,6 +65,12 @@ fun AppNavGraph(
                 onNavigateToReturn = {
                     navController.navigate(Route.Return)
                 },
+                onNavigateToJournal = {
+                    navController.navigate(Route.Journal)
+                },
+                onNavigateToSummary = {
+                    navController.navigate(Route.Summary)
+                },
             )
         }
 
@@ -95,6 +103,14 @@ fun AppNavGraph(
                 ),
                 bindingId = route?.getLong("bindingId"),
             )
+        }
+
+        composable<Route.Journal> {
+            JournalScreen()
+        }
+
+        composable<Route.Summary> {
+            SummaryScreen()
         }
     }
 }
