@@ -161,13 +161,74 @@
 
 ---
 
+## Итерация M4 — Bluetooth и выгрузка данных ✅
+
+**Статус:** Завершена  
+**Критерий:** Оператор считывает данные с часов по BLE и отправляет на сервер.
+
+### Задачи
+
+#### 4.1. BLE — Константы и разрешения
+- [x] Создать `BleConstants.kt` — UUID сервиса и характеристик, таймауты, MTU
+- [x] Создать `BlePermissionManager.kt` — проверка BLE-разрешений (API 31+ / 29-30)
+- [x] Создать `BleException.kt` — sealed class ошибок BLE (NotConnected, ScanTimeout, GattError, IncompletePacket и др.)
+
+#### 4.2. BLE — Сканирование и GATT Client
+- [x] Создать `BleScanner.kt` — BLE-сканирование с фильтром по service UUID, callbackFlow
+- [x] Создать `GattClient.kt` — GATT-клиент: connect, discoverServices, requestMtu, read/write/notify через suspendCancellableCoroutine
+
+#### 4.3. BLE — Протокол обмена
+- [x] Создать `PacketMeta.kt` — @Serializable модель метаданных пакета
+- [x] Создать `BleProtocol.kt` — высокоуровневый протокол: findDevice, connectAndSetup, sendShiftContext, requestPacketMeta, readPacketChunks, sendAck/sendNack
+
+#### 4.4. Data Layer — Gateway API и DTO
+- [x] Создать `GatewayDto.kt` — UploadPacketRequest, GatewayDeviceInfo, UploadPacketResponse
+- [x] Создать `GatewayApi.kt` — POST /api/v1/gateway/packets с Idempotency-Key
+
+#### 4.5. Data Layer — Repository и Worker
+- [x] Создать `UploadRepository.kt` — enqueuePacket, tryUploadPacket (202/409), logUploadOperation, observeUnsent/pending/error
+- [x] Создать `SyncPacketsWorker.kt` — WorkManager: периодическая отправка pending-пакетов (15 мин, exponential backoff)
+
+#### 4.6. Presentation — Экран выгрузки
+- [x] Создать `UploadContract.kt` — UploadState (10 шагов), UploadIntent, UploadEffect
+- [x] Создать `UploadViewModel.kt` — MVI: полный цикл BLE→Room→Server с прогрессом
+- [x] Создать `UploadScreen.kt` — UI: Idle, Progress (LinearProgressIndicator + чанки %), Error (retry), Done (сервер/локально)
+
+#### 4.7. Навигация и DI
+- [x] Добавить Route.Upload (с параметрами deviceId, employeeId, bindingId)
+- [x] Обновить AppNavGraph — composable для UploadScreen
+- [x] Обновить AppModule — BleScanner (factory), GattClient (factory), BleProtocol (factory), UploadRepository, UploadViewModel
+- [x] Обновить NetworkModule — GatewayApi
+- [x] Обновить App.kt — регистрация SyncPacketsWorker
+
+#### 4.8. Тесты
+- [x] Unit-тесты: BleProtocol (findDevice, connectAndSetup, sendShiftContext, requestPacketMeta, readPacketChunks, sendAck, sendNack, disconnect)
+
+### Файлы (ключевые)
+
+| Файл | Назначение |
+|------|-----------|
+| `data/ble/BleConstants.kt` | UUID и настройки BLE |
+| `data/ble/BlePermissionManager.kt` | Runtime permissions |
+| `data/ble/BleException.kt` | Типы ошибок BLE |
+| `data/ble/BleScanner.kt` | BLE-сканирование |
+| `data/ble/GattClient.kt` | GATT-клиент |
+| `data/ble/PacketMeta.kt` | Метаданные пакета |
+| `data/ble/BleProtocol.kt` | Протокол обмена с часами |
+| `data/remote/dto/GatewayDto.kt` | DTO gateway API |
+| `data/remote/api/GatewayApi.kt` | Gateway API |
+| `data/repository/UploadRepository.kt` | Репозиторий выгрузки |
+| `data/worker/SyncPacketsWorker.kt` | WorkManager синхронизация пакетов |
+| `presentation/upload/UploadContract.kt` | MVI контракт |
+| `presentation/upload/UploadViewModel.kt` | ViewModel выгрузки |
+| `presentation/upload/UploadScreen.kt` | Экран выгрузки |
+
+---
+
 ## Предстоящие итерации
 
-### M4 — Bluetooth и выгрузка данных (2-3 недели)
-BLE Scanner, GATT Client, протокол обмена с часами, считывание пакетов, экран выгрузки.
+### M5 — Журнал, оффлайн-индикация (1-2 недели)
+JournalScreen с фильтрами, баннер оффлайн, счётчик неотправленных пакетов.
 
-### M5 — Отправка на сервер и оффлайн (1-2 недели)
-POST packets API, идемпотентность, SyncPacketsWorker, экспоненциальный backoff, индикация оффлайн.
-
-### M6 — Журнал, полировка, тестирование (1-2 недели)
-JournalScreen с фильтрами, тёмная тема, полевые тесты, performance, безопасность, CI/CD.
+### M6 — Полировка, тестирование, CI/CD (1-2 недели)
+Тёмная тема, полевые тесты, performance, безопасность, CI/CD.

@@ -24,4 +24,12 @@ sealed interface Route {
 
     @Serializable
     data object Return : Route
+
+    @Serializable
+    data class Upload(
+        val deviceId: String = "",
+        val employeeId: String? = null,
+        val employeeName: String? = null,
+        val bindingId: Long? = null,
+    ) : Route
 }

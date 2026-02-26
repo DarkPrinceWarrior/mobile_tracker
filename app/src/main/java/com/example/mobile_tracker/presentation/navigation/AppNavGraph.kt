@@ -11,6 +11,7 @@ import com.example.mobile_tracker.presentation.devices.DeviceListScreen
 import com.example.mobile_tracker.presentation.employees.EmployeeSearchScreen
 import com.example.mobile_tracker.presentation.home.HomeScreen
 import com.example.mobile_tracker.presentation.login.LoginScreen
+import com.example.mobile_tracker.presentation.upload.UploadScreen
 
 @Composable
 fun AppNavGraph(
@@ -79,6 +80,21 @@ fun AppNavGraph(
 
         composable<Route.Return> {
             ReturnScreen()
+        }
+
+        composable<Route.Upload> { backStackEntry ->
+            val route = backStackEntry.arguments
+            UploadScreen(
+                deviceId = route?.getString("deviceId")
+                    ?: "",
+                employeeId = route?.getString(
+                    "employeeId",
+                ),
+                employeeName = route?.getString(
+                    "employeeName",
+                ),
+                bindingId = route?.getLong("bindingId"),
+            )
         }
     }
 }
