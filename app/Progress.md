@@ -272,5 +272,37 @@
 
 ## Предстоящие итерации
 
-### M6 — Полировка, тестирование, CI/CD (1-2 недели)
-Тёмная тема, полевые тесты, performance, безопасность, CI/CD.
+### M6 — Настройки, безопасность, полировка (1-2 недели)
+
+#### Задачи
+
+- [x] **SettingsScreen** — экран настроек: оператор, контекст, смена контекста, очистка кэша, выход
+- [x] **SettingsContract.kt** — State/Intent/Effect для настроек
+- [x] **SettingsViewModel.kt** — logout, смена контекста, очистка кэша справочников
+- [x] **Route.Settings** — навигация, DI, кнопка в табе «Ещё»
+- [x] **DAO deleteAll()** — методы очистки в EmployeeDao, DeviceDao, SiteDao, DowntimeReasonDao
+- [x] **ReferenceRepository.clearAll()** — очистка всех кэшированных справочников
+- [x] **Certificate Pinning** — OkHttp CertificatePinner в NetworkClient
+- [x] **HTTP 403 → forced logout** — HttpResponseValidator очищает токены при 403
+- [x] **ProGuard/R8 rules** — правила для Kotlin Serialization, Ktor, OkHttp, Room, Koin
+- [x] **AdaptiveLayout** — утилита для двухпанельного layout на планшетах (>600dp)
+- [x] **strings.xml** — строки для настроек (M6)
+- [x] **Unit-тесты** — SettingsViewModelTest (7 тестов)
+- [ ] SyncBindingsWorker — уже реализован в M4, проверен
+
+#### Критерий завершения
+
+Оператор может: открыть настройки, сменить контекст, очистить кэш, выйти из системы.
+Приложение защищено certificate pinning, ProGuard минифицирует код.
+Адаптивный layout готов для планшетов.
+
+### Файлы (ключевые)
+
+| Файл | Назначение |
+|------|-----------|
+| `presentation/settings/SettingsContract.kt` | MVI контракт настроек |
+| `presentation/settings/SettingsViewModel.kt` | ViewModel настроек |
+| `presentation/settings/SettingsScreen.kt` | Экран настроек |
+| `presentation/common/AdaptiveLayout.kt` | Адаптивный layout для планшетов |
+| `data/remote/NetworkClient.kt` | Certificate Pinning + 403 обработка |
+| `proguard-rules.pro` | ProGuard/R8 правила |

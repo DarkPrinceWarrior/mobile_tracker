@@ -45,4 +45,7 @@ interface EmployeeDao {
 
     @Query("DELETE FROM employees WHERE synced_at < :before")
     suspend fun deleteStale(before: Long)
+
+    @Query("DELETE FROM employees")
+    suspend fun deleteAll()
 }

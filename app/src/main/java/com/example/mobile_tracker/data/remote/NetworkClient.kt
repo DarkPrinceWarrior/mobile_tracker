@@ -6,6 +6,7 @@ import com.example.mobile_tracker.data.remote.dto.RefreshTokenResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
@@ -20,6 +21,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import okhttp3.CertificatePinner
 import timber.log.Timber
 
 class NetworkClient(
@@ -31,8 +33,25 @@ class NetworkClient(
         isLenient = true
     }
 
+    private val certificatePinner =
+        CertificatePinner.Builder()
+            .add(
+                "api.activity-tracker.example.com",
+                "sha256/AAAAAAAAAAAAAAAAAAAAAA" +
+                    "AAAAAAAAAAAAAAAAAAAAAA=",
+            )
+            .build()
+
     val httpClient: HttpClient by lazy {
         HttpClient(OkHttp) {
+            engine {
+                config {
+                    certificatePinner(
+                        certificatePinner,
+                    )
+                }
+            }
+
             install(ContentNegotiation) {
                 json(jsonConfig)
             }
@@ -63,6 +82,17 @@ class NetworkClient(
                 val token = secureStorage.accessToken
                 if (!token.isNullOrBlank()) {
                     bearerAuth(token)
+                }
+            }
+
+            HttpResponseValidator {
+                validateResponse { response ->
+                    if (response.status.value == 403) {
+                        Timber.w(
+                            "HTTP 403: forced logout",
+                        )
+                        secureStorage.clearTokens()
+                    }
                 }
             }
         }

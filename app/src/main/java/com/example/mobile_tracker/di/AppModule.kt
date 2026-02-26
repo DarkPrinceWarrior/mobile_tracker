@@ -16,6 +16,7 @@ import com.example.mobile_tracker.presentation.employees.EmployeeSearchViewModel
 import com.example.mobile_tracker.presentation.home.HomeViewModel
 import com.example.mobile_tracker.presentation.login.LoginViewModel
 import com.example.mobile_tracker.presentation.journal.JournalViewModel
+import com.example.mobile_tracker.presentation.settings.SettingsViewModel
 import com.example.mobile_tracker.presentation.summary.SummaryViewModel
 import com.example.mobile_tracker.presentation.upload.UploadViewModel
 import com.example.mobile_tracker.util.NetworkMonitor
@@ -71,4 +72,10 @@ val appModule = module {
     }
     viewModel { JournalViewModel(get(), get()) }
     viewModel { SummaryViewModel(get(), get(), get()) }
+    viewModel {
+        SettingsViewModel(
+            get(), get(), get(), get(),
+            androidContext(),
+        )
+    }
 }

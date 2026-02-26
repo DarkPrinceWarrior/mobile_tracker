@@ -1,21 +1,49 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ── General ───────────────────────────────────────
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+-keepattributes *Annotation*
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ── Kotlin Serialization ─────────────────────────
+-keepattributes RuntimeVisibleAnnotations
+-keep class kotlinx.serialization.** { *; }
+-keepclassmembers class * {
+    @kotlinx.serialization.Serializable *;
+}
+-keep @kotlinx.serialization.Serializable class * { *; }
+-keepclassmembers @kotlinx.serialization.Serializable class * {
+    *** Companion;
+}
+-keepclasseswithmembers class * {
+    kotlinx.serialization.KSerializer serializer(...);
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ── DTO / Entity models ─────────────────────────
+-keep class com.example.mobile_tracker.data.remote.dto.** { *; }
+-keep class com.example.mobile_tracker.data.local.db.entity.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ── Ktor ─────────────────────────────────────────
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
+
+# ── OkHttp ───────────────────────────────────────
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keep class okhttp3.** { *; }
+
+# ── Room ─────────────────────────────────────────
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-dontwarn androidx.room.paging.**
+
+# ── Koin ─────────────────────────────────────────
+-keep class org.koin.** { *; }
+-dontwarn org.koin.**
+
+# ── Timber ───────────────────────────────────────
+-dontwarn timber.log.**
+
+# ── Coroutines ───────────────────────────────────
+-dontwarn kotlinx.coroutines.**
+
+# ── EncryptedSharedPreferences ───────────────────
+-keep class androidx.security.crypto.** { *; }

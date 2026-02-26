@@ -12,6 +12,7 @@ import com.example.mobile_tracker.presentation.employees.EmployeeSearchScreen
 import com.example.mobile_tracker.presentation.home.HomeScreen
 import com.example.mobile_tracker.presentation.login.LoginScreen
 import com.example.mobile_tracker.presentation.journal.JournalScreen
+import com.example.mobile_tracker.presentation.settings.SettingsScreen
 import com.example.mobile_tracker.presentation.summary.SummaryScreen
 import com.example.mobile_tracker.presentation.upload.UploadScreen
 
@@ -71,6 +72,9 @@ fun AppNavGraph(
                 onNavigateToSummary = {
                     navController.navigate(Route.Summary)
                 },
+                onNavigateToSettings = {
+                    navController.navigate(Route.Settings)
+                },
             )
         }
 
@@ -111,6 +115,25 @@ fun AppNavGraph(
 
         composable<Route.Summary> {
             SummaryScreen()
+        }
+
+        composable<Route.Settings> {
+            SettingsScreen(
+                onNavigateToLogin = {
+                    navController.navigate(Route.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToContextSelection = {
+                    navController.navigate(
+                        Route.ContextSelection,
+                    ) {
+                        popUpTo(Route.Home) {
+                            inclusive = true
+                        }
+                    }
+                },
+            )
         }
     }
 }

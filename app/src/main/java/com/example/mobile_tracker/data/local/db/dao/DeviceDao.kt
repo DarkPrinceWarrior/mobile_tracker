@@ -57,4 +57,7 @@ interface DeviceDao {
             "WHERE site_id = :siteId AND local_status = :status",
     )
     suspend fun countByStatus(siteId: String, status: String): Int
+
+    @Query("DELETE FROM devices")
+    suspend fun deleteAll()
 }

@@ -135,6 +135,22 @@
     <!-- M5: More tab -->
     <string name="more_summary">Сводка по смене</string>
 
+    <!-- M6: Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_operator">Оператор</string>
+    <string name="settings_current_context">Текущий контекст</string>
+    <string name="settings_change_context">Сменить контекст</string>
+    <string name="settings_change_context_desc">Выбрать другую площадку или смену</string>
+    <string name="settings_clear_cache">Очистить кэш</string>
+    <string name="settings_clear_cache_desc">Удалить кэшированные справочники</string>
+    <string name="settings_clear_cache_confirm">Кэш справочников будет удалён. При следующем входе данные загрузятся заново.</string>
+    <string name="settings_logout">Выход из системы</string>
+    <string name="settings_logout_desc">Выйти и очистить данные сессии</string>
+    <string name="settings_logout_confirm">Вы действительно хотите выйти? Несинхронизированные данные могут быть потеряны.</string>
+    <string name="settings_version">Версия %s</string>
+    <string name="settings_confirm">Подтвердить</string>
+    <string name="more_settings">Настройки</string>
+
     <!-- General -->
     <string name="action_logout">Выход</string>
     <string name="error_unknown">Произошла неизвестная ошибка</string>

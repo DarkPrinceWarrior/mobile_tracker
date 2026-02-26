@@ -105,6 +105,14 @@ class ReferenceRepository(
             Timber.d("Full reference sync complete")
         }
 
+    suspend fun clearAll() {
+        employeeDao.deleteAll()
+        deviceDao.deleteAll()
+        siteDao.deleteAll()
+        downtimeReasonDao.deleteAll()
+        Timber.d("Reference cache cleared")
+    }
+
     companion object {
         private const val STALE_THRESHOLD_MS =
             7L * 24 * 60 * 60 * 1000

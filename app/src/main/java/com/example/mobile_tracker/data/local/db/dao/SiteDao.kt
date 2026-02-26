@@ -20,4 +20,7 @@ interface SiteDao {
 
     @Upsert
     suspend fun upsertAll(sites: List<SiteEntity>)
+
+    @Query("DELETE FROM sites")
+    suspend fun deleteAll()
 }

@@ -25,4 +25,7 @@ interface DowntimeReasonDao {
             "WHERE synced_at < :before",
     )
     suspend fun deleteStale(before: Long)
+
+    @Query("DELETE FROM downtime_reasons")
+    suspend fun deleteAll()
 }

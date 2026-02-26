@@ -72,6 +72,7 @@ fun HomeScreen(
     onNavigateToReturn: () -> Unit = {},
     onNavigateToJournal: () -> Unit = {},
     onNavigateToSummary: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -341,6 +342,23 @@ fun HomeScreen(
                                 stringResource(
                                     R.string
                                         .more_summary,
+                                ),
+                            )
+                        }
+                        Spacer(
+                            modifier =
+                                Modifier.height(8.dp),
+                        )
+                        Button(
+                            onClick =
+                                onNavigateToSettings,
+                            modifier =
+                                Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                stringResource(
+                                    R.string
+                                        .more_settings,
                                 ),
                             )
                         }
