@@ -1,12 +1,12 @@
 package com.example.mobile_tracker.presentation.employees
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,11 +16,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,8 +28,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -39,27 +37,46 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.Employee
+import com.example.mobile_tracker.presentation.common.AppScreenScaffold
+import com.example.mobile_tracker.presentation.common.EmptyState
+import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.SearchField
+import com.example.mobile_tracker.presentation.common.StateCard
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmployeeSearchScreen(
+    onBack: (() -> Unit)? = null,
     viewModel: EmployeeSearchViewModel =
         koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
 
-    Scaffold(
+    AppScreenScaffold(
+        snackbarMessage = state.error,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        "Поиск сотрудника",
+                        stringResource(R.string.employees_title),
                         fontWeight = FontWeight.SemiBold,
                     )
+                },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                            )
+                        }
+                    }
                 },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
@@ -84,7 +101,7 @@ fun EmployeeSearchScreen(
                             Icon(
                                 Icons.Default.Refresh,
                                 contentDescription =
-                                    "Синхронизировать",
+                                    stringResource(R.string.sync_action),
                             )
                         }
                     }
@@ -94,42 +111,26 @@ fun EmployeeSearchScreen(
     ) { padding ->
         Column(
             modifier = Modifier
-                .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
         ) {
             Spacer(modifier = Modifier.height(4.dp))
 
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = {
-                    viewModel.onIntent(
-                        EmployeeSearchIntent
-                            .UpdateQuery(it),
-                    )
+            SearchField(
+                query = state.query,
+                onQueryChange = {
+                    viewModel.onIntent(EmployeeSearchIntent.UpdateQuery(it))
                 },
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.small,
-                placeholder = {
-                    Text(
-                        "Табельный номер или ФИО",
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme
-                            .onSurfaceVariant,
-                    )
-                },
-                singleLine = true,
+                placeholder = stringResource(R.string.employees_search_hint),
             )
 
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Найдено: ${state.totalCount}",
+                text = stringResource(
+                    R.string.employees_found,
+                    state.totalCount,
+                ),
                 style = MaterialTheme.typography
                     .labelMedium,
                 color = MaterialTheme.colorScheme
@@ -143,81 +144,18 @@ fun EmployeeSearchScreen(
 
             when {
                 state.isLoading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentAlignment =
-                            Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    LoadingState()
                 }
 
                 state.error != null -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentAlignment =
-                            Alignment.Center,
-                    ) {
-                        Card(
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor =
-                                        MaterialTheme
-                                            .colorScheme
-                                            .errorContainer,
-                                ),
-                        ) {
-                            Text(
-                                text = state.error ?: "",
-                                color = MaterialTheme
-                                    .colorScheme
-                                    .onErrorContainer,
-                                modifier = Modifier
-                                    .padding(16.dp),
-                            )
-                        }
-                    }
+                    StateCard(message = state.error.orEmpty())
                 }
 
                 state.results.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentAlignment =
-                            Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment =
-                                Alignment
-                                    .CenterHorizontally,
-                        ) {
-                            Icon(
-                                Icons.Default.People,
-                                contentDescription =
-                                    null,
-                                modifier = Modifier
-                                    .size(48.dp),
-                                tint = MaterialTheme
-                                    .colorScheme
-                                    .outlineVariant,
-                            )
-                            Spacer(
-                                modifier = Modifier
-                                    .height(8.dp),
-                            )
-                            Text(
-                                "Сотрудники не найдены",
-                                style = MaterialTheme
-                                    .typography
-                                    .bodyLarge,
-                                color = MaterialTheme
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                            )
-                        }
-                    }
+                    EmptyState(
+                        title = stringResource(R.string.employees_empty),
+                        icon = Icons.Default.People,
+                    )
                 }
 
                 else -> {
@@ -231,7 +169,17 @@ fun EmployeeSearchScreen(
                             state.results,
                             key = { it.id },
                         ) { employee ->
-                            EmployeeCard(employee)
+                            EmployeeCard(
+                                employee = employee,
+                                isSelected = state.selectedEmployeeId == employee.id,
+                                onClick = {
+                                    viewModel.onIntent(
+                                        EmployeeSearchIntent.SelectEmployee(
+                                            employee.id,
+                                        ),
+                                    )
+                                },
+                            )
                         }
                         item {
                             Spacer(
@@ -247,12 +195,21 @@ fun EmployeeSearchScreen(
 }
 
 @Composable
-private fun EmployeeCard(employee: Employee) {
+private fun EmployeeCard(
+    employee: Employee,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme
-                .surfaceContainerLow,
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
         ),
     ) {
         Row(

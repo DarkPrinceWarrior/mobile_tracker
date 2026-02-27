@@ -40,6 +40,12 @@ class DeviceListViewModel(
 
     fun onIntent(intent: DeviceListIntent) {
         when (intent) {
+            is DeviceListIntent.SelectDevice ->
+                _state.update {
+                    it.copy(
+                        selectedDeviceId = intent.deviceId,
+                    )
+                }
             is DeviceListIntent.FilterByStatus ->
                 applyFilter(intent.status)
             is DeviceListIntent.Search ->

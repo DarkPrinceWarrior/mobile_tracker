@@ -47,15 +47,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,25 +68,37 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
+import com.example.mobile_tracker.presentation.common.rememberIsTablet
 import org.koin.androidx.compose.koinViewModel
 
 private data class BottomNavItem(
-    val title: String,
+    val destination: HomeDestination,
+    val titleRes: Int,
     val icon: ImageVector,
 )
 
+enum class HomeDestination {
+    ISSUE,
+    RETURN,
+    UPLOAD,
+    JOURNAL,
+    MORE,
+}
+
 private val bottomNavItems = listOf(
-    BottomNavItem("Выдача", Icons.Default.Watch),
-    BottomNavItem("Возврат", Icons.Default.Replay),
+    BottomNavItem(HomeDestination.ISSUE, R.string.tab_issue, Icons.Default.Watch),
+    BottomNavItem(HomeDestination.RETURN, R.string.tab_return, Icons.Default.Replay),
     BottomNavItem(
-        "Выгрузка",
+        HomeDestination.UPLOAD,
+        R.string.tab_upload,
         Icons.Default.CloudUpload,
     ),
     BottomNavItem(
-        "Журнал",
+        HomeDestination.JOURNAL,
+        R.string.tab_log,
         Icons.AutoMirrored.Filled.List,
     ),
-    BottomNavItem("Ещё", Icons.Default.MoreHoriz),
+    BottomNavItem(HomeDestination.MORE, R.string.tab_more, Icons.Default.MoreHoriz),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,7 +116,10 @@ fun HomeScreen(
 ) {
     val state by viewModel.state
         .collectAsStateWithLifecycle()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedDestination by remember {
+        mutableStateOf(HomeDestination.ISSUE)
+    }
+    val isTablet = rememberIsTablet()
 
     Scaffold(
         topBar = {
@@ -171,94 +188,113 @@ fun HomeScreen(
                         Icon(
                             Icons.AutoMirrored
                                 .Filled.Logout,
-                            contentDescription = "Выход",
+                            contentDescription = stringResource(R.string.action_logout),
                         )
                     }
                 },
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme
-                    .colorScheme.surfaceContainer,
-                tonalElevation = 0.dp,
-            ) {
-                bottomNavItems.forEachIndexed {
-                        index,
-                        item,
-                    ->
-                    NavigationBarItem(
-                        selected =
-                            selectedTab == index,
-                        onClick = {
-                            selectedTab = index
-                        },
-                        icon = {
-                            Icon(
-                                item.icon,
-                                contentDescription =
-                                    item.title,
-                            )
-                        },
-                        label = { Text(item.title) },
-                    )
+            if (!isTablet) {
+                NavigationBar(
+                    containerColor = MaterialTheme
+                        .colorScheme.surfaceContainer,
+                    tonalElevation = 0.dp,
+                ) {
+                    bottomNavItems.forEach { item ->
+                        NavigationBarItem(
+                            selected = selectedDestination == item.destination,
+                            onClick = { selectedDestination = item.destination },
+                            icon = {
+                                Icon(
+                                    item.icon,
+                                    contentDescription = stringResource(item.titleRes),
+                                )
+                            },
+                            label = { Text(stringResource(item.titleRes)) },
+                        )
+                    }
                 }
             }
         },
     ) { padding ->
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            AnimatedVisibility(
-                visible = !state.isOnline,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
-            ) {
-                OfflineBanner()
+            if (isTablet) {
+                NavigationRail(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ) {
+                    bottomNavItems.forEach { item ->
+                        NavigationRailItem(
+                            selected = selectedDestination == item.destination,
+                            onClick = { selectedDestination = item.destination },
+                            icon = {
+                                Icon(
+                                    item.icon,
+                                    contentDescription = stringResource(item.titleRes),
+                                )
+                            },
+                            label = { Text(stringResource(item.titleRes)) },
+                        )
+                    }
+                }
             }
 
-            AnimatedContent(
-                targetState = selectedTab,
-                label = "tab_content",
-                transitionSpec = {
-                    fadeIn() togetherWith fadeOut()
-                },
-            ) { tab ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(
-                            rememberScrollState(),
-                        )
-                        .padding(20.dp),
-                    verticalArrangement =
-                        Arrangement.spacedBy(16.dp),
+            Column(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                AnimatedVisibility(
+                    visible = !state.isOnline,
+                    enter = expandVertically(),
+                    exit = shrinkVertically(),
                 ) {
-                    when (tab) {
-                        0 -> IssueTabContent(
-                            onNavigateToIssue,
-                        )
-                        1 -> ReturnTabContent(
-                            onNavigateToReturn,
-                        )
-                        2 -> UploadTabContent(
-                            onNavigateToDevices,
-                        )
-                        3 -> JournalTabContent(
-                            onNavigateToJournal,
-                        )
-                        4 -> MoreTabContent(
-                            onNavigateToDevices =
+                    OfflineBanner()
+                }
+
+                AnimatedContent(
+                    targetState = selectedDestination,
+                    label = "tab_content",
+                    transitionSpec = {
+                        fadeIn() togetherWith fadeOut()
+                    },
+                ) { destination ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(
+                                rememberScrollState(),
+                            )
+                            .padding(20.dp),
+                        verticalArrangement =
+                            Arrangement.spacedBy(16.dp),
+                    ) {
+                        when (destination) {
+                            HomeDestination.ISSUE -> IssueTabContent(
+                                onNavigateToIssue,
+                            )
+                            HomeDestination.RETURN -> ReturnTabContent(
+                                onNavigateToReturn,
+                            )
+                            HomeDestination.UPLOAD -> UploadTabContent(
                                 onNavigateToDevices,
-                            onNavigateToEmployees =
-                                onNavigateToEmployees,
-                            onNavigateToSummary =
-                                onNavigateToSummary,
-                            onNavigateToSettings =
-                                onNavigateToSettings,
-                        )
+                            )
+                            HomeDestination.JOURNAL -> JournalTabContent(
+                                onNavigateToJournal,
+                            )
+                            HomeDestination.MORE -> MoreTabContent(
+                                onNavigateToDevices =
+                                    onNavigateToDevices,
+                                onNavigateToEmployees =
+                                    onNavigateToEmployees,
+                                onNavigateToSummary =
+                                    onNavigateToSummary,
+                                onNavigateToSettings =
+                                    onNavigateToSettings,
+                            )
+                        }
                     }
                 }
             }

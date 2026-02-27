@@ -1,7 +1,7 @@
 package com.example.mobile_tracker.presentation.journal
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -23,14 +24,12 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -47,6 +46,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.data.local.db.entity.OperationLogEntity
+import com.example.mobile_tracker.presentation.common.AppScreenScaffold
+import com.example.mobile_tracker.presentation.common.EmptyState
+import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.SearchField
+import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.util.formatTimestamp
 import org.koin.androidx.compose.koinViewModel
 
@@ -56,11 +60,13 @@ import org.koin.androidx.compose.koinViewModel
 )
 @Composable
 fun JournalScreen(
+    onBack: (() -> Unit)? = null,
     viewModel: JournalViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Scaffold(
+    AppScreenScaffold(
+        snackbarMessage = state.error,
         topBar = {
             TopAppBar(
                 title = {
@@ -68,6 +74,16 @@ fun JournalScreen(
                         stringResource(R.string.journal_title),
                         fontWeight = FontWeight.SemiBold,
                     )
+                },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor =
@@ -92,22 +108,12 @@ fun JournalScreen(
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedTextField(
-                    value = state.searchQuery,
-                    onValueChange = {
-                        viewModel.onIntent(
-                            JournalIntent.SetSearchQuery(it),
-                        )
+                SearchField(
+                    query = state.searchQuery,
+                    onQueryChange = {
+                        viewModel.onIntent(JournalIntent.SetSearchQuery(it))
                     },
-                    label = {
-                        Text(
-                            stringResource(
-                                R.string.journal_search_hint,
-                            ),
-                        )
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = stringResource(R.string.journal_search_hint),
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -138,36 +144,19 @@ fun JournalScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 if (state.error != null) {
-                    Text(
-                        text = state.error!!,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
+                    StateCard(
+                        message = state.error!!,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                 }
 
                 if (state.isLoading && state.logs.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    LoadingState()
                 } else if (state.filteredLogs.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = stringResource(
-                                R.string.journal_empty,
-                            ),
-                            style = MaterialTheme.typography
-                                .bodyLarge,
-                            color = MaterialTheme.colorScheme
-                                .onSurfaceVariant,
-                        )
-                    }
+                    EmptyState(
+                        title = stringResource(R.string.journal_empty),
+                        icon = Icons.Default.SwapHoriz,
+                    )
                 } else {
                     LazyColumn(
                         verticalArrangement =
@@ -177,7 +166,15 @@ fun JournalScreen(
                             items = state.filteredLogs,
                             key = { it.id },
                         ) { log ->
-                            LogEntryCard(log = log)
+                            LogEntryCard(
+                                log = log,
+                                isSelected = state.selectedLogId == log.id,
+                                onClick = {
+                                    viewModel.onIntent(
+                                        JournalIntent.SelectLog(log.id),
+                                    )
+                                },
+                            )
                         }
                         item {
                             Spacer(
@@ -251,12 +248,21 @@ private fun StatusFilterRow(
 }
 
 @Composable
-private fun LogEntryCard(log: OperationLogEntity) {
+private fun LogEntryCard(
+    log: OperationLogEntity,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme
-                .surfaceContainerLow,
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
         ),
     ) {
         Row(

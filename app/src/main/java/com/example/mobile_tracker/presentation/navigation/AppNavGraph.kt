@@ -79,19 +79,27 @@ fun AppNavGraph(
         }
 
         composable<Route.DeviceList> {
-            DeviceListScreen()
+            DeviceListScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable<Route.EmployeeSearch> {
-            EmployeeSearchScreen()
+            EmployeeSearchScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable<Route.Issue> {
-            IssueScreen()
+            IssueScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable<Route.Return> {
-            ReturnScreen()
+            ReturnScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable<Route.Upload> { backStackEntry ->
@@ -106,19 +114,25 @@ fun AppNavGraph(
                     "employeeName",
                 ),
                 bindingId = route?.getLong("bindingId"),
+                onBack = { navController.popBackStack() },
             )
         }
 
         composable<Route.Journal> {
-            JournalScreen()
+            JournalScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable<Route.Summary> {
-            SummaryScreen()
+            SummaryScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable<Route.Settings> {
             SettingsScreen(
+                onBack = { navController.popBackStack() },
                 onNavigateToLogin = {
                     navController.navigate(Route.Login) {
                         popUpTo(0) { inclusive = true }

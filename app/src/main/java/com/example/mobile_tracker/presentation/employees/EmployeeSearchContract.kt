@@ -5,6 +5,7 @@ import com.example.mobile_tracker.domain.model.Employee
 data class EmployeeSearchState(
     val query: String = "",
     val results: List<Employee> = emptyList(),
+    val selectedEmployeeId: String? = null,
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
     val error: String? = null,
@@ -12,6 +13,10 @@ data class EmployeeSearchState(
 )
 
 sealed interface EmployeeSearchIntent {
+    data class SelectEmployee(
+        val employeeId: String,
+    ) : EmployeeSearchIntent
+
     data class UpdateQuery(
         val query: String,
     ) : EmployeeSearchIntent

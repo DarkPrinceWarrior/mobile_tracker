@@ -48,6 +48,12 @@ class EmployeeSearchViewModel(
 
     fun onIntent(intent: EmployeeSearchIntent) {
         when (intent) {
+            is EmployeeSearchIntent.SelectEmployee ->
+                _state.update {
+                    it.copy(
+                        selectedEmployeeId = intent.employeeId,
+                    )
+                }
             is EmployeeSearchIntent.UpdateQuery -> {
                 _state.update {
                     it.copy(query = intent.query)

@@ -5,6 +5,7 @@ import com.example.mobile_tracker.domain.model.DeviceBinding
 data class ReturnState(
     val activeBindings: List<DeviceBinding> = emptyList(),
     val selectedBinding: DeviceBinding? = null,
+    val selectedBindingId: Long? = null,
     val isLoading: Boolean = false,
     val isReturning: Boolean = false,
     val error: String? = null,

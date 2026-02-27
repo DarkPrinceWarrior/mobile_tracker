@@ -5,6 +5,7 @@ import com.example.mobile_tracker.data.local.db.entity.OperationLogEntity
 data class JournalState(
     val logs: List<OperationLogEntity> = emptyList(),
     val filteredLogs: List<OperationLogEntity> = emptyList(),
+    val selectedLogId: Long? = null,
     val isLoading: Boolean = true,
     val error: String? = null,
     val typeFilter: String? = null,
@@ -14,6 +15,7 @@ data class JournalState(
 )
 
 sealed interface JournalIntent {
+    data class SelectLog(val id: Long) : JournalIntent
     data class SetTypeFilter(val type: String?) : JournalIntent
     data class SetStatusFilter(val status: String?) :
         JournalIntent

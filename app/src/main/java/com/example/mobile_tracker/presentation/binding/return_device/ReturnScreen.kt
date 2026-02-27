@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
@@ -30,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -42,9 +44,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.DeviceBinding
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
@@ -54,6 +58,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReturnScreen(
+    onBack: (() -> Unit)? = null,
     viewModel: ReturnViewModel = koinViewModel(),
 ) {
     val state by
@@ -75,11 +80,18 @@ fun ReturnScreen(
                     ReturnIntent.DismissConfirmDialog,
                 )
             },
-            title = { Text("Данные не выгружены") },
+            title = {
+                Text(
+                    stringResource(
+                        R.string.return_data_not_uploaded_title,
+                    ),
+                )
+            },
             text = {
                 Text(
-                    "Данные с часов ещё не выгружены. " +
-                        "Продолжить возврат без выгрузки?",
+                    stringResource(
+                        R.string.return_data_not_uploaded_message,
+                    ),
                 )
             },
             confirmButton = {
@@ -91,7 +103,7 @@ fun ReturnScreen(
                         )
                     },
                 ) {
-                    Text("Продолжить")
+                    Text(stringResource(R.string.return_continue))
                 }
             },
             dismissButton = {
@@ -103,7 +115,7 @@ fun ReturnScreen(
                         )
                     },
                 ) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.return_cancel))
                 }
             },
         )
@@ -115,19 +127,31 @@ fun ReturnScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Возврат часов",
+                            text = stringResource(R.string.return_title),
                             fontWeight =
                                 FontWeight.SemiBold,
                         )
                         Text(
-                            text = "Выданных: " +
-                                "${state.activeBindings.size}",
+                            text = stringResource(
+                                R.string.return_issued_count,
+                                state.activeBindings.size,
+                            ),
                             style = MaterialTheme
                                 .typography.bodySmall,
                             color = MaterialTheme
                                 .colorScheme
                                 .onSurfaceVariant,
                         )
+                    }
+                },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                            )
+                        }
                     }
                 },
                 colors =
@@ -196,7 +220,7 @@ fun ReturnScreen(
                                 Modifier.height(8.dp),
                         )
                         Text(
-                            text = "Нет выданных часов",
+                            text = stringResource(R.string.return_empty),
                             style = MaterialTheme
                                 .typography.bodyLarge,
                             color = MaterialTheme
@@ -217,13 +241,10 @@ fun ReturnScreen(
                         BindingCard(
                             binding = binding,
                             isSelected =
-                                state.selectedBinding
-                                    ?.id == binding.id,
+                                state.selectedBindingId == binding.id,
                             isReturning =
                                 state.isReturning &&
-                                    state.selectedBinding
-                                        ?.id ==
-                                    binding.id,
+                                    state.selectedBindingId == binding.id,
                             onSelect = {
                                 viewModel.onIntent(
                                     ReturnIntent
@@ -316,8 +337,10 @@ private fun BindingCard(
                             .bodyMedium,
                     )
                     Text(
-                        text = "Выдано: " +
+                        text = stringResource(
+                            R.string.return_issued_at,
                             formatTime(binding.boundAt),
+                        ),
                         style = MaterialTheme.typography
                             .bodySmall,
                         color = MaterialTheme.colorScheme
@@ -352,14 +375,14 @@ private fun BindingCard(
                                     .width(20.dp),
                             )
                         } else {
-                            Text("Принять часы")
+                            Text(stringResource(R.string.return_button))
                         }
                     }
                     OutlinedButton(
                         onClick = onMarkLost,
                         enabled = !isReturning,
                     ) {
-                        Text("Потеряны")
+                        Text(stringResource(R.string.return_mark_lost))
                     }
                 }
             }
@@ -372,7 +395,7 @@ private fun SyncStatusIcon(isSynced: Boolean) {
     if (isSynced) {
         Icon(
             Icons.Default.CloudDone,
-            contentDescription = "Синхронизировано",
+            contentDescription = stringResource(R.string.binding_synced),
             tint = MaterialTheme.colorScheme
                 .onSurfaceVariant
                 .copy(alpha = 0.5f),
@@ -381,7 +404,7 @@ private fun SyncStatusIcon(isSynced: Boolean) {
         Icon(
             Icons.Default.CloudOff,
             contentDescription =
-                "Ожидает синхронизации",
+                stringResource(R.string.binding_pending_sync),
             tint = MaterialTheme.colorScheme.tertiary,
         )
     }
@@ -392,13 +415,13 @@ private fun DataStatusIcon(dataUploaded: Boolean) {
     if (dataUploaded) {
         Icon(
             Icons.Default.CheckCircle,
-            contentDescription = "Данные выгружены",
+            contentDescription = stringResource(R.string.return_data_uploaded),
             tint = MaterialTheme.colorScheme.primary,
         )
     } else {
         Icon(
             Icons.Default.Warning,
-            contentDescription = "Данные не выгружены",
+            contentDescription = stringResource(R.string.return_data_pending),
             tint = MaterialTheme.colorScheme.error,
         )
     }

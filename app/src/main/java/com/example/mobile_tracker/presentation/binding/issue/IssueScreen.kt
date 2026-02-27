@@ -44,12 +44,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.Device
 import com.example.mobile_tracker.domain.model.Employee
 import org.koin.androidx.compose.koinViewModel
@@ -57,6 +59,7 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IssueScreen(
+    onBack: (() -> Unit)? = null,
     viewModel: IssueViewModel = koinViewModel(),
 ) {
     val state by
@@ -76,14 +79,12 @@ fun IssueScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Выдача часов",
+                        stringResource(R.string.issue_title),
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
                 navigationIcon = {
-                    if (state.step !=
-                        IssueStep.IDENTIFY_EMPLOYEE
-                    ) {
+                    if (state.step != IssueStep.IDENTIFY_EMPLOYEE) {
                         IconButton(
                             onClick = {
                                 viewModel.onIntent(
@@ -95,7 +96,14 @@ fun IssueScreen(
                                 Icons.AutoMirrored
                                     .Filled.ArrowBack,
                                 contentDescription =
-                                    "Назад",
+                                    stringResource(R.string.action_back),
+                            )
+                        }
+                    } else if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
                             )
                         }
                     }
@@ -266,7 +274,7 @@ private fun IdentifyEmployeeContent(
                     IssueIntent.UpdatePersonnelQuery(it),
                 )
             },
-            label = { Text("Табельный номер") },
+            label = { Text(stringResource(R.string.issue_personnel_label)) },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
@@ -287,7 +295,7 @@ private fun IdentifyEmployeeContent(
                 ) {
                     Icon(
                         Icons.Default.Search,
-                        contentDescription = "Найти",
+                        contentDescription = stringResource(R.string.action_search),
                     )
                 }
             },
@@ -303,7 +311,7 @@ private fun IdentifyEmployeeContent(
                     IssueIntent.UpdateNameQuery(it),
                 )
             },
-            label = { Text("Поиск по ФИО") },
+            label = { Text(stringResource(R.string.issue_name_label)) },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(
                 imeAction = ImeAction.Search,
@@ -321,7 +329,7 @@ private fun IdentifyEmployeeContent(
                 ) {
                     Icon(
                         Icons.Default.Search,
-                        contentDescription = "Найти",
+                        contentDescription = stringResource(R.string.action_search),
                     )
                 }
             },
@@ -527,7 +535,7 @@ private fun SelectDeviceContent(
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Далее")
+                Text(stringResource(R.string.issue_next))
             }
         }
     }
@@ -623,7 +631,7 @@ private fun ConfirmContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Подтверждение выдачи",
+            text = stringResource(R.string.issue_confirm_title),
             style = MaterialTheme.typography.headlineSmall,
         )
 
@@ -640,7 +648,7 @@ private fun ConfirmContent(
                 modifier = Modifier.padding(16.dp),
             ) {
                 Text(
-                    text = "Сотрудник",
+                    text = stringResource(R.string.issue_confirm_employee),
                     style = MaterialTheme.typography
                         .labelMedium,
                     color = MaterialTheme.colorScheme
@@ -664,7 +672,7 @@ private fun ConfirmContent(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "Часы",
+                    text = stringResource(R.string.issue_confirm_device),
                     style = MaterialTheme.typography
                         .labelMedium,
                     color = MaterialTheme.colorScheme
@@ -719,7 +727,7 @@ private fun ConfirmContent(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Выдать часы",
+                    text = stringResource(R.string.issue_button),
                     style = MaterialTheme.typography
                         .titleMedium,
                 )

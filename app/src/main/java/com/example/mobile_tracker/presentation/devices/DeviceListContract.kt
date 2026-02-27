@@ -5,6 +5,7 @@ import com.example.mobile_tracker.domain.model.Device
 data class DeviceListState(
     val allDevices: List<Device> = emptyList(),
     val devices: List<Device> = emptyList(),
+    val selectedDeviceId: String? = null,
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
     val error: String? = null,
@@ -16,6 +17,10 @@ data class DeviceListState(
 )
 
 sealed interface DeviceListIntent {
+    data class SelectDevice(
+        val deviceId: String,
+    ) : DeviceListIntent
+
     data class FilterByStatus(
         val status: String?,
     ) : DeviceListIntent

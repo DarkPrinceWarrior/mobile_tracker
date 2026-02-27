@@ -97,6 +97,7 @@ class ReturnViewModel(
         _state.update {
             it.copy(
                 selectedBinding = binding,
+                selectedBindingId = binding.id,
                 error = null,
             )
         }
@@ -133,6 +134,7 @@ class ReturnViewModel(
                         it.copy(
                             isReturning = false,
                             selectedBinding = null,
+                            selectedBindingId = null,
                         )
                     }
                     _effect.emit(
@@ -166,6 +168,7 @@ class ReturnViewModel(
         _state.update {
             it.copy(
                 selectedBinding = null,
+                selectedBindingId = null,
                 error = null,
             )
         }
@@ -189,6 +192,7 @@ class ReturnViewModel(
                     it.copy(
                         isReturning = false,
                         selectedBinding = null,
+                        selectedBindingId = null,
                     )
                 }
             } catch (e: Exception) {

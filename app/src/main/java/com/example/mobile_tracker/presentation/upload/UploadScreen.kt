@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
@@ -26,11 +27,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,19 +44,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mobile_tracker.R
 import com.example.mobile_tracker.data.ble.BlePermissionManager
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun UploadScreen(
     deviceId: String = "",
     employeeId: String? = null,
     employeeName: String? = null,
     bindingId: Long? = null,
+    onBack: (() -> Unit)? = null,
     viewModel: UploadViewModel = koinViewModel(),
 ) {
     val state by viewModel.state
@@ -100,50 +110,72 @@ fun UploadScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        when (state.step) {
-            UploadStep.Idle -> _IdleContent(
-                deviceId = deviceId,
-                onStart = {
-                    if (BlePermissionManager
-                            .hasPermissions(context)
-                    ) {
-                        viewModel.onIntent(
-                            UploadIntent.StartUpload(
-                                deviceId = deviceId,
-                                employeeId = employeeId,
-                                employeeName = employeeName,
-                                bindingId = bindingId,
-                            ),
-                        )
-                    } else {
-                        permissionLauncher.launch(
-                            BlePermissionManager
-                                .requiredPermissions()
-                                .toTypedArray(),
-                        )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = stringResource(R.string.tab_upload)) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                            )
+                        }
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
             )
-            UploadStep.Error -> _ErrorContent(
-                error = state.error ?: "Неизвестная ошибка",
-                onRetry = {
-                    viewModel.onIntent(UploadIntent.Retry)
-                },
-                onCancel = {
-                    viewModel.onIntent(UploadIntent.Cancel)
-                },
-            )
-            UploadStep.Done -> _DoneContent(
-                isServerUploaded = state.isServerUploaded,
-                packetId = state.packetId,
-            )
-            else -> _ProgressContent(state = state)
+        },
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            when (state.step) {
+                UploadStep.Idle -> _IdleContent(
+                    deviceId = deviceId,
+                    onStart = {
+                        if (BlePermissionManager
+                                .hasPermissions(context)
+                        ) {
+                            viewModel.onIntent(
+                                UploadIntent.StartUpload(
+                                    deviceId = deviceId,
+                                    employeeId = employeeId,
+                                    employeeName = employeeName,
+                                    bindingId = bindingId,
+                                ),
+                            )
+                        } else {
+                            permissionLauncher.launch(
+                                BlePermissionManager
+                                    .requiredPermissions()
+                                    .toTypedArray(),
+                            )
+                        }
+                    },
+                )
+                UploadStep.Error -> _ErrorContent(
+                    error = state.error ?: "Неизвестная ошибка",
+                    onRetry = {
+                        viewModel.onIntent(UploadIntent.Retry)
+                    },
+                    onCancel = {
+                        viewModel.onIntent(UploadIntent.Cancel)
+                    },
+                )
+                UploadStep.Done -> _DoneContent(
+                    isServerUploaded = state.isServerUploaded,
+                    packetId = state.packetId,
+                )
+                else -> _ProgressContent(state = state)
+            }
         }
     }
 }

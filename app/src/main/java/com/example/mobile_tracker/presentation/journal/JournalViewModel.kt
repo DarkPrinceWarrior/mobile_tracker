@@ -36,6 +36,10 @@ class JournalViewModel(
 
     fun onIntent(intent: JournalIntent) {
         when (intent) {
+            is JournalIntent.SelectLog ->
+                _state.update {
+                    it.copy(selectedLogId = intent.id)
+                }
             is JournalIntent.SetTypeFilter ->
                 setTypeFilter(intent.type)
             is JournalIntent.SetStatusFilter ->
