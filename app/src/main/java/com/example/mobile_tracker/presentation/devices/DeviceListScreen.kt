@@ -286,6 +286,33 @@ private fun DeviceCard(device: Device) {
                         color = Color.Gray,
                     )
                 }
+                val chargeLabel = when (
+                    device.chargeStatus
+                ) {
+                    "charged" -> "🔋 Заряжен"
+                    "low" -> "🪫 Низкий заряд"
+                    "critical" -> "⚠️ Критический"
+                    "charging" -> "⚡ Заряжается"
+                    else -> null
+                }
+                chargeLabel?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme
+                            .typography.bodySmall,
+                        color = when (
+                            device.chargeStatus
+                        ) {
+                            "charged" ->
+                                Color(0xFF4CAF50)
+                            "low" ->
+                                Color(0xFFFF9800)
+                            "critical" ->
+                                Color(0xFFF44336)
+                            else -> Color.Gray
+                        },
+                    )
+                }
                 if (device.localStatus == "issued") {
                     device.employeeName?.let {
                         Text(

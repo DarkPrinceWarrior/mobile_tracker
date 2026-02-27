@@ -2,11 +2,17 @@ package com.example.mobile_tracker.presentation.context_selection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mobile_tracker.BuildConfig
 import com.example.mobile_tracker.data.local.datastore.UserPreferencesManager
+import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
+import com.example.mobile_tracker.data.local.db.dao.SiteDao
 import com.example.mobile_tracker.data.local.db.entity.ShiftContextEntity
+import com.example.mobile_tracker.data.remote.demo.DemoDataSeeder
+import com.example.mobile_tracker.data.remote.dto.toDomain
 import com.example.mobile_tracker.data.repository.ReferenceRepository
 import com.example.mobile_tracker.domain.model.Site
+import timber.log.Timber
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +28,8 @@ class ContextSelectionViewModel(
     private val shiftContextDao: ShiftContextDao,
     private val preferencesManager: UserPreferencesManager,
     private val referenceRepository: ReferenceRepository,
+    private val siteDao: SiteDao,
+    private val bindingDao: BindingDao,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ContextSelectionState())
@@ -42,14 +50,28 @@ class ContextSelectionViewModel(
             )
             _state.update { it.copy(shiftDate = today) }
 
+            try {
+                referenceRepository.syncSites()
+            } catch (e: Exception) {
+                Timber.w(e, "Sites sync failed")
+            }
+
             val prefs =
                 preferencesManager.userPreferences.first()
-            val sites = prefs.scopeIds.mapIndexed { i, id ->
-                Site(
-                    id = id,
-                    name = "Площадка ${i + 1}",
-                )
-            }
+            val scopeIds = prefs.scopeIds.toSet()
+
+            val allSites = siteDao.observeAll().first()
+            val sites = allSites
+                .filter { it.id in scopeIds }
+                .map { it.toDomain() }
+                .ifEmpty {
+                    scopeIds.mapIndexed { i, id ->
+                        Site(
+                            id = id,
+                            name = "Площадка ${i + 1}",
+                        )
+                    }
+                }
 
             _state.update {
                 it.copy(
@@ -116,6 +138,13 @@ class ContextSelectionViewModel(
 
             launch {
                 referenceRepository.syncAll(site.id)
+                if (BuildConfig.USE_DEMO) {
+                    DemoDataSeeder.seedBindings(
+                        bindingDao = bindingDao,
+                        siteId = site.id,
+                        shiftDate = current.shiftDate,
+                    )
+                }
             }
 
             _effect.send(ContextSelectionEffect.NavigateToHome)

@@ -26,8 +26,16 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField(
+                "boolean", "USE_DEMO", "true",
+            )
+        }
         release {
             isMinifyEnabled = true
+            buildConfigField(
+                "boolean", "USE_DEMO", "false",
+            )
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -118,4 +126,7 @@ dependencies {
 
     // LeakCanary (debug only)
     debugImplementation(libs.leakcanary)
+
+    // Ktor MockEngine (demo mode)
+    implementation(libs.ktor.client.mock)
 }

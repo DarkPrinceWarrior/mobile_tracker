@@ -50,7 +50,9 @@ val appModule = module {
 
     viewModel { LoginViewModel(get(), get(), get()) }
     viewModel {
-        ContextSelectionViewModel(get(), get(), get())
+        ContextSelectionViewModel(
+            get(), get(), get(), get(), get(),
+        )
     }
     single { NetworkMonitor(androidContext()) }
 

@@ -7,6 +7,7 @@ import com.example.mobile_tracker.data.worker.SyncPacketsWorker
 import com.example.mobile_tracker.data.worker.SyncReferenceDataWorker
 import com.example.mobile_tracker.di.appModule
 import com.example.mobile_tracker.di.databaseModule
+import com.example.mobile_tracker.di.demoNetworkModule
 import com.example.mobile_tracker.di.networkModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -21,12 +22,19 @@ class App : Application() {
             Timber.plant(Timber.DebugTree())
         }
 
+        val netModule = if (BuildConfig.USE_DEMO) {
+            Timber.d("▶ DEMO MODE — MockEngine")
+            demoNetworkModule
+        } else {
+            networkModule
+        }
+
         startKoin {
             androidLogger()
             androidContext(this@App)
             modules(
                 appModule,
-                networkModule,
+                netModule,
                 databaseModule,
             )
         }

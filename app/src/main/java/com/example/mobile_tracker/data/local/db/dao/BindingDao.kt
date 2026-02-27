@@ -72,4 +72,11 @@ interface BindingDao {
 
     @Query("SELECT * FROM bindings WHERE is_synced = 0")
     suspend fun getUnsynced(): List<BindingEntity>
+
+    @Query(
+        "SELECT COUNT(*) FROM bindings " +
+            "WHERE status = 'active' " +
+            "AND site_id = :siteId",
+    )
+    suspend fun countActive(siteId: String): Int
 }

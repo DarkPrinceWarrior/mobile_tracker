@@ -3,6 +3,7 @@ package com.example.mobile_tracker.presentation.devices
 import com.example.mobile_tracker.domain.model.Device
 
 data class DeviceListState(
+    val allDevices: List<Device> = emptyList(),
     val devices: List<Device> = emptyList(),
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,

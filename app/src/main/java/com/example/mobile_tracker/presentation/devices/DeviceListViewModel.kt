@@ -70,32 +70,31 @@ class DeviceListViewModel(
 
             deviceDao.observeBySite(ctx.siteId)
                 .collect { entities ->
-                    val allDevices =
+                    val all =
                         entities.map { it.toDomain() }
-                    val filtered = applyFilters(
-                        allDevices,
-                        _state.value.filterStatus,
-                        _state.value.searchQuery,
-                    ) ?: allDevices
+                    val cur = _state.value
+                    val filtered = filterList(
+                        all,
+                        cur.filterStatus,
+                        cur.searchQuery,
+                    )
                     _state.update {
                         it.copy(
+                            allDevices = all,
                             devices = filtered,
                             isLoading = false,
                             error = null,
                             availableCount =
-                                allDevices.count {
-                                    d ->
+                                all.count { d ->
                                     d.localStatus ==
                                         "available"
                                 },
                             issuedCount =
-                                allDevices.count {
-                                    d ->
+                                all.count { d ->
                                     d.localStatus ==
                                         "issued"
                                 },
-                            totalCount =
-                                allDevices.size,
+                            totalCount = all.size,
                         )
                     }
                 }
@@ -135,34 +134,39 @@ class DeviceListViewModel(
     }
 
     private fun applyFilter(status: String?) {
-        _state.update { current ->
-            val filtered = applyFilters(
-                null,
-                status,
-                current.searchQuery,
-            )
-            current.copy(
+        _state.update { cur ->
+            cur.copy(
                 filterStatus = status,
-                devices = filtered ?: current.devices,
+                devices = filterList(
+                    cur.allDevices,
+                    status,
+                    cur.searchQuery,
+                ),
             )
         }
     }
 
     private fun applySearch(query: String) {
-        _state.update { current ->
-            current.copy(searchQuery = query)
+        _state.update { cur ->
+            cur.copy(
+                searchQuery = query,
+                devices = filterList(
+                    cur.allDevices,
+                    cur.filterStatus,
+                    query,
+                ),
+            )
         }
     }
 
-    private fun applyFilters(
-        allDevices: List<com.example.mobile_tracker
-            .domain.model.Device>?,
+    private fun filterList(
+        all: List<com.example.mobile_tracker
+            .domain.model.Device>,
         status: String?,
         query: String,
     ): List<com.example.mobile_tracker
-        .domain.model.Device>? {
-        val base = allDevices ?: return null
-        return base.filter { device ->
+        .domain.model.Device> =
+        all.filter { device ->
             val matchesStatus = status == null ||
                 device.localStatus == status
             val matchesQuery = query.isBlank() ||
@@ -180,5 +184,4 @@ class DeviceListViewModel(
                 ) == true
             matchesStatus && matchesQuery
         }
-    }
 }

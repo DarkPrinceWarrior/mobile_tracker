@@ -248,19 +248,31 @@ fun HomeScreen(
                             style = MaterialTheme.typography
                                 .headlineMedium,
                         )
+                        Spacer(
+                            modifier =
+                                Modifier.height(8.dp),
+                        )
                         Text(
-                            text = stringResource(
-                                R.string
-                                    .home_section_wip,
-                            ),
-                            style = MaterialTheme.typography
-                                .bodyLarge,
+                            text = "Выберите часы " +
+                                "для выгрузки данных",
+                            style = MaterialTheme
+                                .typography.bodyLarge,
                             color = MaterialTheme
                                 .colorScheme
                                 .onSurfaceVariant,
-                            modifier = Modifier
-                                .padding(top = 8.dp),
                         )
+                        Spacer(
+                            modifier =
+                                Modifier.height(16.dp),
+                        )
+                        Button(
+                            onClick =
+                                onNavigateToDevices,
+                            modifier =
+                                Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Часы на площадке")
+                        }
                     }
                     3 -> {
                         Text(
