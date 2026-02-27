@@ -1,5 +1,6 @@
 package com.example.mobile_tracker.presentation.summary
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -35,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -42,6 +46,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
+import com.example.mobile_tracker.ui.theme.Danger
+import com.example.mobile_tracker.ui.theme.Success
+import com.example.mobile_tracker.ui.theme.Warning
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,11 +64,12 @@ fun SummaryScreen(
                 title = {
                     Text(
                         stringResource(R.string.summary_title),
+                        fontWeight = FontWeight.SemiBold,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor =
-                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.surface,
                 ),
             )
         },
@@ -104,71 +112,142 @@ fun SummaryScreen(
                     )
 
                     if (state.error != null) {
-                        Text(
-                            text = state.error!!,
-                            color = MaterialTheme
-                                .colorScheme.error,
-                            style = MaterialTheme
-                                .typography.bodyMedium,
-                        )
+                        Card(
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        MaterialTheme
+                                            .colorScheme
+                                            .errorContainer,
+                                ),
+                        ) {
+                            Text(
+                                text = state.error!!,
+                                color = MaterialTheme
+                                    .colorScheme
+                                    .onErrorContainer,
+                                style = MaterialTheme
+                                    .typography
+                                    .bodyMedium,
+                                modifier = Modifier
+                                    .padding(12.dp),
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))
 
+                    Row(
+                        horizontalArrangement =
+                            Arrangement.spacedBy(
+                                12.dp,
+                            ),
+                    ) {
+                        MetricCard(
+                            modifier = Modifier
+                                .weight(1f),
+                            icon = Icons.Default.Watch,
+                            iconTint =
+                                MaterialTheme.colorScheme
+                                    .primary,
+                            label = stringResource(
+                                R.string.summary_issued,
+                            ),
+                            value = state.issuedCount
+                                .toString(),
+                        )
+                        MetricCard(
+                            modifier = Modifier
+                                .weight(1f),
+                            icon = Icons.Default
+                                .CheckCircle,
+                            iconTint = Success,
+                            label = stringResource(
+                                R.string
+                                    .summary_returned,
+                            ),
+                            value = state.returnedCount
+                                .toString(),
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement =
+                            Arrangement.spacedBy(
+                                12.dp,
+                            ),
+                    ) {
+                        MetricCard(
+                            modifier = Modifier
+                                .weight(1f),
+                            icon = Icons.Default
+                                .HourglassTop,
+                            iconTint = Warning,
+                            label = stringResource(
+                                R.string
+                                    .summary_not_returned,
+                            ),
+                            value =
+                                state.notReturnedCount
+                                    .toString(),
+                        )
+                        MetricCard(
+                            modifier = Modifier
+                                .weight(1f),
+                            icon = Icons.Default
+                                .CloudDone,
+                            iconTint = MaterialTheme
+                                .colorScheme.tertiary,
+                            label = stringResource(
+                                R.string
+                                    .summary_data_uploaded,
+                            ),
+                            value =
+                                state.dataUploadedCount
+                                    .toString(),
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement =
+                            Arrangement.spacedBy(
+                                12.dp,
+                            ),
+                    ) {
+                        MetricCard(
+                            modifier = Modifier
+                                .weight(1f),
+                            icon = Icons.Default
+                                .CloudOff,
+                            iconTint = Warning,
+                            label = stringResource(
+                                R.string
+                                    .summary_pending_packets,
+                            ),
+                            value =
+                                state.pendingPacketsCount
+                                    .toString(),
+                        )
+                        MetricCard(
+                            modifier = Modifier
+                                .weight(1f),
+                            icon = Icons.Default.Error,
+                            iconTint = Danger,
+                            label = stringResource(
+                                R.string
+                                    .summary_error_packets,
+                            ),
+                            value =
+                                state.errorPacketsCount
+                                    .toString(),
+                        )
+                    }
+
                     MetricCard(
-                        icon = Icons.Default.Watch,
-                        iconTint = Color(0xFF1565C0),
-                        label = stringResource(
-                            R.string.summary_issued,
-                        ),
-                        value = state.issuedCount.toString(),
-                    )
-                    MetricCard(
-                        icon = Icons.Default.CheckCircle,
-                        iconTint = Color(0xFF2E7D32),
-                        label = stringResource(
-                            R.string.summary_returned,
-                        ),
-                        value = state.returnedCount.toString(),
-                    )
-                    MetricCard(
-                        icon = Icons.Default.HourglassTop,
-                        iconTint = Color(0xFFE65100),
-                        label = stringResource(
-                            R.string.summary_not_returned,
-                        ),
-                        value =
-                            state.notReturnedCount.toString(),
-                    )
-                    MetricCard(
-                        icon = Icons.Default.CloudDone,
-                        iconTint = Color(0xFF6A1B9A),
-                        label = stringResource(
-                            R.string.summary_data_uploaded,
-                        ),
-                        value =
-                            state.dataUploadedCount.toString(),
-                    )
-                    MetricCard(
-                        icon = Icons.Default.CloudOff,
-                        iconTint = Color(0xFFEF6C00),
-                        label = stringResource(
-                            R.string.summary_pending_packets,
-                        ),
-                        value =
-                            state.pendingPacketsCount.toString(),
-                    )
-                    MetricCard(
-                        icon = Icons.Default.Error,
-                        iconTint = Color(0xFFC62828),
-                        label = stringResource(
-                            R.string.summary_error_packets,
-                        ),
-                        value =
-                            state.errorPacketsCount.toString(),
-                    )
-                    MetricCard(
-                        icon = Icons.Default.SyncProblem,
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        icon = Icons.Default
+                            .SyncProblem,
                         iconTint = Color(0xFF795548),
                         label = stringResource(
                             R.string.summary_unsynced,
@@ -189,41 +268,56 @@ private fun MetricCard(
     iconTint: Color,
     label: String,
     value: String,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme
                 .surfaceContainerLow,
         ),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(16.dp),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = iconTint,
-                modifier = Modifier.size(36.dp),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp),
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically,
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(
+                            iconTint.copy(alpha = 0.12f),
+                        ),
+                    contentAlignment =
+                        Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = iconTint,
+                        modifier = Modifier
+                            .size(20.dp),
+                    )
+                }
+                Spacer(
+                    modifier = Modifier.width(10.dp),
+                )
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography
+                        .bodySmall,
                     color = MaterialTheme.colorScheme
                         .onSurfaceVariant,
                 )
             }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography
+                    .headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = iconTint,
             )

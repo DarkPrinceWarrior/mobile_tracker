@@ -1,8 +1,10 @@
 package com.example.mobile_tracker.presentation.binding.issue
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -29,13 +33,19 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -44,6 +54,7 @@ import com.example.mobile_tracker.domain.model.Device
 import com.example.mobile_tracker.domain.model.Employee
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IssueScreen(
     viewModel: IssueViewModel = koinViewModel(),
@@ -60,48 +71,77 @@ fun IssueScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-    ) {
-        if (state.step != IssueStep.IDENTIFY_EMPLOYEE) {
-            IconButton(
-                onClick = {
-                    viewModel.onIntent(IssueIntent.GoBack)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Выдача часов",
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 },
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Назад",
-                )
-            }
-        }
+                navigationIcon = {
+                    if (state.step !=
+                        IssueStep.IDENTIFY_EMPLOYEE
+                    ) {
+                        IconButton(
+                            onClick = {
+                                viewModel.onIntent(
+                                    IssueIntent.GoBack,
+                                )
+                            },
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored
+                                    .Filled.ArrowBack,
+                                contentDescription =
+                                    "Назад",
+                            )
+                        }
+                    }
+                },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme
+                            .colorScheme.surface,
+                    ),
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp),
+        ) {
+            StepIndicator(currentStep = state.step)
 
-        StepIndicator(currentStep = state.step)
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        AnimatedContent(
-            targetState = state.step,
-            label = "issue_step",
-        ) { step ->
-            when (step) {
-                IssueStep.IDENTIFY_EMPLOYEE ->
-                    IdentifyEmployeeContent(
-                        state = state,
-                        onIntent = viewModel::onIntent,
-                    )
-                IssueStep.SELECT_DEVICE ->
-                    SelectDeviceContent(
-                        state = state,
-                        onIntent = viewModel::onIntent,
-                    )
-                IssueStep.CONFIRM ->
-                    ConfirmContent(
-                        state = state,
-                        onIntent = viewModel::onIntent,
-                    )
+            AnimatedContent(
+                targetState = state.step,
+                label = "issue_step",
+            ) { step ->
+                when (step) {
+                    IssueStep.IDENTIFY_EMPLOYEE ->
+                        IdentifyEmployeeContent(
+                            state = state,
+                            onIntent =
+                                viewModel::onIntent,
+                        )
+                    IssueStep.SELECT_DEVICE ->
+                        SelectDeviceContent(
+                            state = state,
+                            onIntent =
+                                viewModel::onIntent,
+                        )
+                    IssueStep.CONFIRM ->
+                        ConfirmContent(
+                            state = state,
+                            onIntent =
+                                viewModel::onIntent,
+                        )
+                }
             }
         }
     }
@@ -110,33 +150,105 @@ fun IssueScreen(
 @Composable
 private fun StepIndicator(currentStep: IssueStep) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        IssueStep.entries.forEach { step ->
+        IssueStep.entries.forEachIndexed { index, step ->
             val isActive = step == currentStep
-            val isDone = step.ordinal < currentStep.ordinal
-            Text(
-                text = when (step) {
-                    IssueStep.IDENTIFY_EMPLOYEE ->
-                        "1. Сотрудник"
-                    IssueStep.SELECT_DEVICE ->
-                        "2. Часы"
-                    IssueStep.CONFIRM ->
-                        "3. Выдача"
-                },
-                style = MaterialTheme.typography.labelLarge,
-                color = when {
-                    isActive ->
-                        MaterialTheme.colorScheme.primary
-                    isDone ->
-                        MaterialTheme.colorScheme.primary
-                            .copy(alpha = 0.6f)
-                    else ->
-                        MaterialTheme.colorScheme
-                            .onSurfaceVariant
-                },
-            )
+            val isDone =
+                step.ordinal < currentStep.ordinal
+            val color = when {
+                isActive ->
+                    MaterialTheme.colorScheme.primary
+                isDone ->
+                    MaterialTheme.colorScheme.primary
+                else ->
+                    MaterialTheme.colorScheme
+                        .outlineVariant
+            }
+            val bgColor = when {
+                isActive || isDone ->
+                    MaterialTheme.colorScheme
+                        .primaryContainer
+                else ->
+                    MaterialTheme.colorScheme
+                        .surfaceVariant
+            }
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(bgColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isDone) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier =
+                                Modifier.size(20.dp),
+                            tint = color,
+                        )
+                    } else {
+                        Text(
+                            text = "${index + 1}",
+                            style = MaterialTheme
+                                .typography.labelLarge,
+                            fontWeight =
+                                FontWeight.Bold,
+                            color = color,
+                        )
+                    }
+                }
+                Spacer(
+                    modifier = Modifier.width(6.dp),
+                )
+                Text(
+                    text = when (step) {
+                        IssueStep.IDENTIFY_EMPLOYEE ->
+                            "Сотрудник"
+                        IssueStep.SELECT_DEVICE ->
+                            "Часы"
+                        IssueStep.CONFIRM ->
+                            "Выдача"
+                    },
+                    style = MaterialTheme.typography
+                        .labelMedium,
+                    fontWeight = if (isActive) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Normal
+                    },
+                    color = color,
+                )
+            }
+
+            if (index < IssueStep.entries.size - 1) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(2.dp)
+                        .padding(horizontal = 8.dp)
+                        .background(
+                            if (isDone) {
+                                MaterialTheme
+                                    .colorScheme
+                                    .primary
+                            } else {
+                                MaterialTheme
+                                    .colorScheme
+                                    .outlineVariant
+                            },
+                        ),
+                )
+            }
         }
     }
 }

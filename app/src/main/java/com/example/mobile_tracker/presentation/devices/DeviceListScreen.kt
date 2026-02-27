@@ -1,5 +1,6 @@
 package com.example.mobile_tracker.presentation.devices
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.Battery2Bar
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Watch
@@ -29,14 +35,20 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mobile_tracker.domain.model.Device
+import com.example.mobile_tracker.ui.theme.Success
+import com.example.mobile_tracker.ui.theme.Warning
+import com.example.mobile_tracker.ui.theme.Danger
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,8 +62,16 @@ fun DeviceListScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Часы на площадке")
+                    Text(
+                        "Часы на площадке",
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme
+                            .colorScheme.surface,
+                    ),
                 actions = {
                     if (state.isSyncing) {
                         CircularProgressIndicator(
@@ -63,7 +83,8 @@ fun DeviceListScreen(
                     } else {
                         IconButton(onClick = {
                             viewModel.onIntent(
-                                DeviceListIntent.SyncDevices,
+                                DeviceListIntent
+                                    .SyncDevices,
                             )
                         }) {
                             Icon(
@@ -83,6 +104,8 @@ fun DeviceListScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
         ) {
+            Spacer(modifier = Modifier.height(4.dp))
+
             OutlinedTextField(
                 value = state.searchQuery,
                 onValueChange = {
@@ -91,6 +114,7 @@ fun DeviceListScreen(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
                 placeholder = {
                     Text("Поиск по ID или серийному №")
                 },
@@ -98,12 +122,14 @@ fun DeviceListScreen(
                     Icon(
                         Icons.Default.Search,
                         contentDescription = null,
+                        tint = MaterialTheme.colorScheme
+                            .onSurfaceVariant,
                     )
                 },
                 singleLine = true,
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 horizontalArrangement =
@@ -163,7 +189,7 @@ fun DeviceListScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             when {
                 state.isLoading -> {
@@ -184,13 +210,24 @@ fun DeviceListScreen(
                         contentAlignment =
                             Alignment.Center,
                     ) {
-                        Text(
-                            text = state.error ?: "",
-                            color =
-                                MaterialTheme
+                        Card(
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        MaterialTheme
+                                            .colorScheme
+                                            .errorContainer,
+                                ),
+                        ) {
+                            Text(
+                                text = state.error ?: "",
+                                color = MaterialTheme
                                     .colorScheme
-                                    .error,
-                        )
+                                    .onErrorContainer,
+                                modifier = Modifier
+                                    .padding(16.dp),
+                            )
+                        }
                     }
                 }
 
@@ -201,13 +238,36 @@ fun DeviceListScreen(
                         contentAlignment =
                             Alignment.Center,
                     ) {
-                        Text(
-                            "Нет часов для отображения",
-                            style = MaterialTheme
-                                .typography
-                                .bodyLarge,
-                            color = Color.Gray,
-                        )
+                        Column(
+                            horizontalAlignment =
+                                Alignment
+                                    .CenterHorizontally,
+                        ) {
+                            Icon(
+                                Icons.Default.Watch,
+                                contentDescription =
+                                    null,
+                                modifier = Modifier
+                                    .size(48.dp),
+                                tint = MaterialTheme
+                                    .colorScheme
+                                    .outlineVariant,
+                            )
+                            Spacer(
+                                modifier = Modifier
+                                    .height(8.dp),
+                            )
+                            Text(
+                                "Нет часов " +
+                                    "для отображения",
+                                style = MaterialTheme
+                                    .typography
+                                    .bodyLarge,
+                                color = MaterialTheme
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                            )
+                        }
                     }
                 }
 
@@ -224,6 +284,12 @@ fun DeviceListScreen(
                         ) { device ->
                             DeviceCard(device)
                         }
+                        item {
+                            Spacer(
+                                modifier = Modifier
+                                    .height(16.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -236,46 +302,69 @@ private fun DeviceCard(device: Device) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = when (device.localStatus) {
-                "available" ->
-                    MaterialTheme.colorScheme
-                        .primaryContainer
-                        .copy(alpha = 0.3f)
-                "issued" ->
-                    MaterialTheme.colorScheme
-                        .tertiaryContainer
-                        .copy(alpha = 0.3f)
-                else ->
-                    MaterialTheme.colorScheme
-                        .surfaceVariant
-            },
+            containerColor = MaterialTheme.colorScheme
+                .surfaceContainerLow,
         ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             verticalAlignment =
                 Alignment.CenterVertically,
         ) {
-            Icon(
-                Icons.Default.Watch,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when (device.localStatus) {
+                            "available" ->
+                                MaterialTheme.colorScheme
+                                    .primaryContainer
+                            "issued" ->
+                                MaterialTheme.colorScheme
+                                    .tertiaryContainer
+                            else ->
+                                MaterialTheme.colorScheme
+                                    .surfaceVariant
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.Watch,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = when (device.localStatus) {
+                        "available" ->
+                            MaterialTheme.colorScheme
+                                .onPrimaryContainer
+                        "issued" ->
+                            MaterialTheme.colorScheme
+                                .onTertiaryContainer
+                        else ->
+                            MaterialTheme.colorScheme
+                                .onSurfaceVariant
+                    },
+                )
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = device.deviceId,
                     style = MaterialTheme.typography
                         .titleSmall,
+                    fontWeight = FontWeight.Medium,
                 )
                 device.serialNumber?.let {
                     Text(
                         text = "S/N: $it",
                         style = MaterialTheme
                             .typography.bodySmall,
-                        color = Color.Gray,
+                        color = MaterialTheme
+                            .colorScheme
+                            .onSurfaceVariant,
                     )
                 }
                 device.model?.let {
@@ -283,35 +372,63 @@ private fun DeviceCard(device: Device) {
                         text = it,
                         style = MaterialTheme
                             .typography.bodySmall,
-                        color = Color.Gray,
+                        color = MaterialTheme
+                            .colorScheme
+                            .onSurfaceVariant,
                     )
                 }
-                val chargeLabel = when (
-                    device.chargeStatus
+                val (chargeIcon, chargeLabel, chargeColor) =
+                    when (device.chargeStatus) {
+                        "charged" -> Triple(
+                            Icons.Default.BatteryFull,
+                            "Заряжен",
+                            Success,
+                        )
+                        "low" -> Triple(
+                            Icons.Default.Battery2Bar,
+                            "Низкий заряд",
+                            Warning,
+                        )
+                        "critical" -> Triple(
+                            Icons.Default.BatteryAlert,
+                            "Критический",
+                            Danger,
+                        )
+                        "charging" -> Triple(
+                            Icons.Default
+                                .BatteryChargingFull,
+                            "Заряжается",
+                            MaterialTheme.colorScheme
+                                .primary,
+                        )
+                        else -> Triple(null, null, null)
+                    }
+                if (chargeIcon != null &&
+                    chargeLabel != null &&
+                    chargeColor != null
                 ) {
-                    "charged" -> "🔋 Заряжен"
-                    "low" -> "🪫 Низкий заряд"
-                    "critical" -> "⚠️ Критический"
-                    "charging" -> "⚡ Заряжается"
-                    else -> null
-                }
-                chargeLabel?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme
-                            .typography.bodySmall,
-                        color = when (
-                            device.chargeStatus
-                        ) {
-                            "charged" ->
-                                Color(0xFF4CAF50)
-                            "low" ->
-                                Color(0xFFFF9800)
-                            "critical" ->
-                                Color(0xFFF44336)
-                            else -> Color.Gray
-                        },
-                    )
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            chargeIcon,
+                            contentDescription = null,
+                            modifier =
+                                Modifier.size(14.dp),
+                            tint = chargeColor,
+                        )
+                        Spacer(
+                            modifier =
+                                Modifier.width(4.dp),
+                        )
+                        Text(
+                            text = chargeLabel,
+                            style = MaterialTheme
+                                .typography.bodySmall,
+                            color = chargeColor,
+                        )
+                    }
                 }
                 if (device.localStatus == "issued") {
                     device.employeeName?.let {
@@ -335,25 +452,26 @@ private fun DeviceCard(device: Device) {
 @Composable
 private fun StatusBadge(status: String) {
     val (text, color) = when (status) {
-        "available" -> "Свободен" to Color(0xFF4CAF50)
-        "issued" -> "Выдан" to Color(0xFFFF9800)
-        "discharged" -> "Разряжен" to Color(0xFFF44336)
+        "available" -> "Свободен" to Success
+        "issued" -> "Выдан" to Warning
+        "discharged" -> "Разряжен" to Danger
         "faulty" -> "Неисправен" to Color(0xFF9E9E9E)
         else -> status to Color.Gray
     }
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.15f),
+            containerColor = color.copy(alpha = 0.12f),
         ),
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(
-                horizontal = 8.dp,
+                horizontal = 10.dp,
                 vertical = 4.dp,
             ),
             style = MaterialTheme.typography
                 .labelSmall,
+            fontWeight = FontWeight.Medium,
             color = color,
         )
     }

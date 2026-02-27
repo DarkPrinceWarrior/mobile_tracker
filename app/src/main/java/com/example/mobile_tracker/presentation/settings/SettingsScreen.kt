@@ -115,13 +115,14 @@ fun SettingsScreen(
                         stringResource(
                             R.string.settings_title,
                         ),
+                        fontWeight = FontWeight.SemiBold,
                     )
                 },
                 colors = TopAppBarDefaults
                     .topAppBarColors(
                         containerColor =
                             MaterialTheme.colorScheme
-                                .primaryContainer,
+                                .surface,
                     ),
             )
         },

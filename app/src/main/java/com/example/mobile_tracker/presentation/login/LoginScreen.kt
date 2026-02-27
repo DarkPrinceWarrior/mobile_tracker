@@ -1,6 +1,8 @@
 package com.example.mobile_tracker.presentation.login
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,31 +11,40 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
@@ -55,150 +66,252 @@ fun LoginScreen(
         }
     }
 
-    Scaffold { padding ->
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer
+                .copy(alpha = 0.4f),
+            MaterialTheme.colorScheme.surface,
+        ),
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(gradient)
+            .imePadding(),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp)
-                .imePadding(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment =
+                Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Icon(
-                imageVector = Icons.Default.Watch,
-                contentDescription = null,
-                modifier = Modifier.size(72.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            Spacer(modifier = Modifier.weight(1f))
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(
+                        MaterialTheme.colorScheme
+                            .primaryContainer,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Watch,
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp),
+                    tint = MaterialTheme.colorScheme
+                        .onPrimaryContainer,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             Text(
                 text = "Контроль подрядчиков",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography
+                    .headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme
+                    .onBackground,
+                textAlign = TextAlign.Center,
             )
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = "Вход оператора",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme
+                    .onSurfaceVariant,
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            OutlinedTextField(
-                value = state.email,
-                onValueChange = {
-                    viewModel.onIntent(
-                        LoginIntent.EmailChanged(it),
-                    )
-                },
-                label = { Text("Email") },
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme
+                        .colorScheme
+                        .surfaceContainerLowest,
                 ),
-                keyboardActions = KeyboardActions(
-                    onNext = {
-                        focusManager.moveFocus(FocusDirection.Down)
-                    },
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 2.dp,
                 ),
-                enabled = !state.isLoading,
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = state.password,
-                onValueChange = {
-                    viewModel.onIntent(
-                        LoginIntent.PasswordChanged(it),
-                    )
-                },
-                label = { Text("Пароль") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                visualTransformation =
-                    if (state.isPasswordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                trailingIcon = {
-                    IconButton(
-                        onClick = {
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement =
+                        Arrangement.spacedBy(16.dp),
+                ) {
+                    OutlinedTextField(
+                        value = state.email,
+                        onValueChange = {
                             viewModel.onIntent(
-                                LoginIntent.TogglePasswordVisibility,
+                                LoginIntent.EmailChanged(
+                                    it,
+                                ),
                             )
                         },
-                    ) {
-                        Icon(
-                            imageVector =
-                                if (state.isPasswordVisible) {
-                                    Icons.Default.VisibilityOff
-                                } else {
-                                    Icons.Default.Visibility
+                        label = { Text("Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.small,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType =
+                                KeyboardType.Email,
+                            imeAction = ImeAction.Next,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = {
+                                focusManager.moveFocus(
+                                    FocusDirection.Down,
+                                )
+                            },
+                        ),
+                        enabled = !state.isLoading,
+                    )
+
+                    OutlinedTextField(
+                        value = state.password,
+                        onValueChange = {
+                            viewModel.onIntent(
+                                LoginIntent.PasswordChanged(
+                                    it,
+                                ),
+                            )
+                        },
+                        label = { Text("Пароль") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape =
+                            MaterialTheme.shapes.small,
+                        visualTransformation =
+                            if (state.isPasswordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    viewModel.onIntent(
+                                        LoginIntent
+                                            .TogglePasswordVisibility,
+                                    )
                                 },
-                            contentDescription =
-                                if (state.isPasswordVisible) {
-                                    "Скрыть пароль"
-                                } else {
-                                    "Показать пароль"
-                                },
-                        )
+                            ) {
+                                Icon(
+                                    imageVector =
+                                        if (state
+                                                .isPasswordVisible
+                                        ) {
+                                            Icons.Default
+                                                .VisibilityOff
+                                        } else {
+                                            Icons.Default
+                                                .Visibility
+                                        },
+                                    contentDescription =
+                                        if (state
+                                                .isPasswordVisible
+                                        ) {
+                                            "Скрыть пароль"
+                                        } else {
+                                            "Показать пароль"
+                                        },
+                                )
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType =
+                                KeyboardType.Password,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                focusManager.clearFocus()
+                                viewModel.onIntent(
+                                    LoginIntent.LoginClicked,
+                                )
+                            },
+                        ),
+                        enabled = !state.isLoading,
+                    )
+
+                    if (state.error != null) {
+                        Card(
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        MaterialTheme
+                                            .colorScheme
+                                            .errorContainer,
+                                ),
+                        ) {
+                            Text(
+                                text = state.error!!,
+                                color = MaterialTheme
+                                    .colorScheme
+                                    .onErrorContainer,
+                                style = MaterialTheme
+                                    .typography
+                                    .bodyMedium,
+                                modifier = Modifier
+                                    .padding(12.dp),
+                            )
+                        }
                     }
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        focusManager.clearFocus()
-                        viewModel.onIntent(LoginIntent.LoginClicked)
-                    },
-                ),
-                enabled = !state.isLoading,
-            )
 
-            if (state.error != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = state.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    focusManager.clearFocus()
-                    viewModel.onIntent(LoginIntent.LoginClicked)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = !state.isLoading,
-            ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Text(
-                        text = "Войти",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    Button(
+                        onClick = {
+                            focusManager.clearFocus()
+                            viewModel.onIntent(
+                                LoginIntent.LoginClicked,
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        enabled = !state.isLoading,
+                        shape =
+                            MaterialTheme.shapes.small,
+                        elevation =
+                            ButtonDefaults
+                                .buttonElevation(
+                                    defaultElevation =
+                                        2.dp,
+                                ),
+                    ) {
+                        if (state.isLoading) {
+                            CircularProgressIndicator(
+                                modifier =
+                                    Modifier.size(22.dp),
+                                color = MaterialTheme
+                                    .colorScheme
+                                    .onPrimary,
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Text(
+                                text = "Войти",
+                                style = MaterialTheme
+                                    .typography
+                                    .titleMedium,
+                                fontWeight =
+                                    FontWeight.SemiBold,
+                            )
+                        }
+                    }
                 }
             }
+
+            Spacer(modifier = Modifier.weight(1.2f))
         }
     }
 }

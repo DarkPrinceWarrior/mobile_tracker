@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -25,17 +27,22 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.domain.model.DeviceBinding
@@ -44,6 +51,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReturnScreen(
     viewModel: ReturnViewModel = koinViewModel(),
@@ -101,91 +109,151 @@ fun ReturnScreen(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-    ) {
-        Text(
-            text = "Возврат часов",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = "Выданных: " +
-                "${state.activeBindings.size}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme
-                .onSurfaceVariant,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (state.error != null) {
-            Text(
-                text = state.error!!,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 8.dp),
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Возврат часов",
+                            fontWeight =
+                                FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = "Выданных: " +
+                                "${state.activeBindings.size}",
+                            style = MaterialTheme
+                                .typography.bodySmall,
+                            color = MaterialTheme
+                                .colorScheme
+                                .onSurfaceVariant,
+                        )
+                    }
+                },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme
+                            .colorScheme.surface,
+                    ),
             )
-        }
-
-        if (state.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (state.activeBindings.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "Нет выданных часов",
-                    style = MaterialTheme.typography
-                        .bodyLarge,
-                    color = MaterialTheme.colorScheme
-                        .onSurfaceVariant,
-                )
-            }
-        } else {
-            LazyColumn(
-                verticalArrangement =
-                    Arrangement.spacedBy(8.dp),
-            ) {
-                items(
-                    items = state.activeBindings,
-                    key = { it.id },
-                ) { binding ->
-                    BindingCard(
-                        binding = binding,
-                        isSelected =
-                            state.selectedBinding?.id ==
-                                binding.id,
-                        isReturning = state.isReturning &&
-                            state.selectedBinding?.id ==
-                            binding.id,
-                        onSelect = {
-                            viewModel.onIntent(
-                                ReturnIntent.SelectBinding(
-                                    binding,
-                                ),
-                            )
-                        },
-                        onReturn = {
-                            viewModel.onIntent(
-                                ReturnIntent.ConfirmReturn,
-                            )
-                        },
-                        onMarkLost = {
-                            viewModel.onIntent(
-                                ReturnIntent.MarkLost(
-                                    binding,
-                                ),
-                            )
-                        },
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp),
+        ) {
+            if (state.error != null) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme
+                            .colorScheme.errorContainer,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                ) {
+                    Text(
+                        text = state.error!!,
+                        color = MaterialTheme.colorScheme
+                            .onErrorContainer,
+                        style = MaterialTheme.typography
+                            .bodyMedium,
+                        modifier = Modifier
+                            .padding(12.dp),
                     )
+                }
+            }
+
+            if (state.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (state.activeBindings.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally,
+                    ) {
+                        Icon(
+                            Icons.Default.Replay,
+                            contentDescription = null,
+                            modifier =
+                                Modifier.size(48.dp),
+                            tint = MaterialTheme
+                                .colorScheme
+                                .outlineVariant,
+                        )
+                        Spacer(
+                            modifier =
+                                Modifier.height(8.dp),
+                        )
+                        Text(
+                            text = "Нет выданных часов",
+                            style = MaterialTheme
+                                .typography.bodyLarge,
+                            color = MaterialTheme
+                                .colorScheme
+                                .onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement =
+                        Arrangement.spacedBy(8.dp),
+                ) {
+                    items(
+                        items = state.activeBindings,
+                        key = { it.id },
+                    ) { binding ->
+                        BindingCard(
+                            binding = binding,
+                            isSelected =
+                                state.selectedBinding
+                                    ?.id == binding.id,
+                            isReturning =
+                                state.isReturning &&
+                                    state.selectedBinding
+                                        ?.id ==
+                                    binding.id,
+                            onSelect = {
+                                viewModel.onIntent(
+                                    ReturnIntent
+                                        .SelectBinding(
+                                            binding,
+                                        ),
+                                )
+                            },
+                            onReturn = {
+                                viewModel.onIntent(
+                                    ReturnIntent
+                                        .ConfirmReturn,
+                                )
+                            },
+                            onMarkLost = {
+                                viewModel.onIntent(
+                                    ReturnIntent
+                                        .MarkLost(
+                                            binding,
+                                        ),
+                                )
+                            },
+                        )
+                    }
+                    item {
+                        Spacer(
+                            modifier =
+                                Modifier.height(16.dp),
+                        )
+                    }
                 }
             }
         }

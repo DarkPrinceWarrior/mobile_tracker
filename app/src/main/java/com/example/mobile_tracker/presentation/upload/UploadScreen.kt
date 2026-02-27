@@ -3,6 +3,7 @@ package com.example.mobile_tracker.presentation.upload
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.CheckCircle
@@ -34,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -154,14 +157,26 @@ private fun _IdleContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector =
-                Icons.Default.BluetoothSearching,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .size(88.dp)
+                .clip(CircleShape)
+                .background(
+                    MaterialTheme.colorScheme
+                        .primaryContainer,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector =
+                    Icons.Default.BluetoothSearching,
+                contentDescription = null,
+                modifier = Modifier.size(44.dp),
+                tint = MaterialTheme.colorScheme
+                    .onPrimaryContainer,
+            )
+        }
+        Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = "Выгрузка данных",
             style = MaterialTheme.typography.headlineSmall,
@@ -177,13 +192,19 @@ private fun _IdleContent(
             )
             Spacer(modifier = Modifier.height(24.dp))
         }
-        Button(onClick = onStart) {
+        Button(
+            onClick = onStart,
+            shape = MaterialTheme.shapes.small,
+        ) {
             Icon(
                 imageVector = Icons.Default.CloudUpload,
                 contentDescription = null,
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Начать выгрузку")
+            Text(
+                "Начать выгрузку",
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
@@ -192,8 +213,12 @@ private fun _IdleContent(
 private fun _ProgressContent(state: UploadState) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme
+                .surfaceContainerLow,
+        ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp,
+            defaultElevation = 2.dp,
         ),
     ) {
         Column(
@@ -201,8 +226,11 @@ private fun _ProgressContent(state: UploadState) {
             horizontalAlignment =
                 Alignment.CenterHorizontally,
         ) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
+            CircularProgressIndicator(
+                modifier = Modifier.size(48.dp),
+                strokeWidth = 4.dp,
+            )
+            Spacer(modifier = Modifier.height(20.dp))
 
             Text(
                 text = stepLabel(state.step),
@@ -351,13 +379,26 @@ private fun _DoneContent(
             horizontalAlignment =
                 Alignment.CenterHorizontally,
         ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(
+                        MaterialTheme.colorScheme
+                            .primaryContainer,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector =
+                        Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp),
+                    tint = MaterialTheme.colorScheme
+                        .onPrimaryContainer,
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
             Text(
                 text = "Данные выгружены",
                 style =
