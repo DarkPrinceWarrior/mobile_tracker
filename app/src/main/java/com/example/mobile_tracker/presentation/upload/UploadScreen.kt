@@ -32,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -51,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.data.ble.BlePermissionManager
+import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -110,7 +110,8 @@ fun UploadScreen(
         }
     }
 
-    Scaffold(
+    AppScreenScaffold(
+        snackbarMessage = state.error,
         topBar = {
             TopAppBar(
                 title = { Text(text = stringResource(R.string.tab_upload)) },
@@ -162,7 +163,7 @@ fun UploadScreen(
                     },
                 )
                 UploadStep.Error -> _ErrorContent(
-                    error = state.error ?: "Неизвестная ошибка",
+                    error = state.error ?: stringResource(R.string.error_unknown),
                     onRetry = {
                         viewModel.onIntent(UploadIntent.Retry)
                     },
@@ -210,14 +211,14 @@ private fun _IdleContent(
         }
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Выгрузка данных",
+            text = stringResource(R.string.upload_data_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
         Spacer(modifier = Modifier.height(8.dp))
         if (deviceId.isNotBlank()) {
             Text(
-                text = "Устройство: $deviceId",
+                text = stringResource(R.string.upload_device_label, deviceId),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme
                     .onSurfaceVariant,
@@ -234,7 +235,7 @@ private fun _IdleContent(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                "Начать выгрузку",
+                stringResource(R.string.upload_start_button),
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -308,9 +309,11 @@ private fun _ProgressContent(state: UploadState) {
                         modifier = Modifier.height(8.dp),
                     )
                     Text(
-                        text = "${state.chunksReceived}" +
-                            " / ${state.totalChunks} " +
-                            "чанков",
+                        text = stringResource(
+                            R.string.upload_chunks_progress,
+                            state.chunksReceived,
+                            state.totalChunks,
+                        ),
                         style = MaterialTheme.typography
                             .bodySmall,
                     )
@@ -356,7 +359,7 @@ private fun _ErrorContent(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Ошибка выгрузки",
+                text = stringResource(R.string.upload_error_title),
                 style =
                     MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -377,7 +380,7 @@ private fun _ErrorContent(
                     Arrangement.spacedBy(12.dp),
             ) {
                 OutlinedButton(onClick = onCancel) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.return_cancel))
                 }
                 Button(onClick = onRetry) {
                     Icon(
@@ -387,7 +390,7 @@ private fun _ErrorContent(
                     Spacer(
                         modifier = Modifier.width(8.dp),
                     )
-                    Text("Повторить")
+                    Text(stringResource(R.string.upload_retry_button))
                 }
             }
         }
@@ -432,7 +435,7 @@ private fun _DoneContent(
             }
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "Данные выгружены",
+                text = stringResource(R.string.upload_done_title),
                 style =
                     MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
@@ -442,11 +445,9 @@ private fun _DoneContent(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = if (isServerUploaded) {
-                    "Отправлено на сервер"
+                    stringResource(R.string.upload_done_server)
                 } else {
-                    "Сохранено локально, " +
-                        "будет отправлено при " +
-                        "подключении к сети"
+                    stringResource(R.string.upload_done_local)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme
@@ -456,7 +457,10 @@ private fun _DoneContent(
             if (packetId != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "ID: $packetId",
+                    text = stringResource(
+                        R.string.upload_packet_id,
+                        packetId,
+                    ),
                     style =
                         MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme
@@ -468,25 +472,26 @@ private fun _DoneContent(
     }
 }
 
+@Composable
 private fun stepLabel(step: UploadStep): String =
     when (step) {
-        UploadStep.Idle -> "Ожидание"
+        UploadStep.Idle -> stringResource(R.string.upload_step_idle)
         UploadStep.Scanning ->
-            "Поиск часов..."
+            stringResource(R.string.upload_step_scanning)
         UploadStep.Connecting ->
-            "Подключение к часам..."
+            stringResource(R.string.upload_step_connecting)
         UploadStep.ReadingMeta ->
-            "Чтение метаданных..."
+            stringResource(R.string.upload_step_meta)
         UploadStep.ReadingChunks ->
-            "Считывание данных..."
+            stringResource(R.string.upload_step_chunks)
         UploadStep.Verifying ->
-            "Проверка целостности..."
+            stringResource(R.string.upload_step_verifying)
         UploadStep.SendingAck ->
-            "Подтверждение приёма..."
+            stringResource(R.string.upload_step_ack)
         UploadStep.SavingLocally ->
-            "Сохранение..."
+            stringResource(R.string.upload_step_saving)
         UploadStep.UploadingToServer ->
-            "Отправка на сервер..."
-        UploadStep.Done -> "Готово"
-        UploadStep.Error -> "Ошибка"
+            stringResource(R.string.upload_step_uploading)
+        UploadStep.Done -> stringResource(R.string.upload_step_done)
+        UploadStep.Error -> stringResource(R.string.upload_step_error)
     }

@@ -33,6 +33,14 @@
     <string name="tab_log">Журнал</string>
     <string name="tab_more">Ещё</string>
     <string name="home_section_wip">Раздел в разработке</string>
+    <string name="home_issue_subtitle">Выдайте часы сотруднику по табельному номеру или ФИО</string>
+    <string name="home_return_subtitle">Примите часы обратно после окончания смены</string>
+    <string name="home_upload_subtitle">Выберите часы для выгрузки данных через BLE</string>
+    <string name="home_journal_subtitle">Просмотрите историю всех операций за смену</string>
+    <string name="home_more_devices_subtitle">Все часы, привязанные к площадке</string>
+    <string name="home_more_employees_subtitle">База сотрудников подрядчиков</string>
+    <string name="home_more_summary_subtitle">Статистика текущей смены</string>
+    <string name="home_more_settings_subtitle">Профиль, контекст, выход</string>
 
     <!-- M2: Devices -->
     <string name="devices_title">Часы на площадке</string>
@@ -44,6 +52,10 @@
     <string name="devices_status_issued">Выдан</string>
     <string name="devices_status_discharged">Разряжен</string>
     <string name="devices_status_faulty">Неисправен</string>
+    <string name="devices_charge_charged">Заряжен</string>
+    <string name="devices_charge_low">Низкий заряд</string>
+    <string name="devices_charge_critical">Критический</string>
+    <string name="devices_charge_charging">Заряжается</string>
     <string name="devices_empty">Нет часов для отображения</string>
     <string name="devices_issued_to">Выдан: %s</string>
     <string name="devices_serial">S/N: %s</string>
@@ -73,7 +85,11 @@
     <string name="issue_step_employee">1. Сотрудник</string>
     <string name="issue_step_device">2. Часы</string>
     <string name="issue_step_confirm">3. Выдача</string>
+    <string name="issue_step_employee_short">Сотрудник</string>
+    <string name="issue_step_device_short">Часы</string>
+    <string name="issue_step_confirm_short">Выдача</string>
     <string name="issue_personnel_label">Табельный номер</string>
+    <string name="issue_personnel_short">Таб. № %s</string>
     <string name="issue_name_label">Поиск по ФИО</string>
     <string name="issue_confirm_title">Подтверждение выдачи</string>
     <string name="issue_confirm_employee">Сотрудник</string>
@@ -89,6 +105,7 @@
     <string name="issue_navigate">Перейти к выдаче</string>
     <string name="issue_select_device">Выберите часы (%d свободных)</string>
     <string name="issue_next">Далее</string>
+    <string name="issue_selected">Выбрано</string>
 
     <!-- M3: Return -->
     <string name="return_title">Возврат часов</string>
@@ -116,6 +133,16 @@
     <string name="journal_search_hint">Сотрудник или устройство</string>
     <string name="journal_filter_all">Все</string>
     <string name="journal_empty">Нет записей в журнале</string>
+    <string name="journal_status_ok">OK</string>
+    <string name="journal_status_success">Успех</string>
+    <string name="journal_status_error">Ошибка</string>
+    <string name="journal_status_pending">Ожидание</string>
+    <string name="journal_type_issue">Выдача</string>
+    <string name="journal_type_return">Возврат</string>
+    <string name="journal_type_upload">Выгрузка</string>
+    <string name="journal_type_upload_error">Ошибка выгрузки</string>
+    <string name="journal_type_sync">Синхронизация</string>
+    <string name="journal_type_status_change">Смена статуса</string>
 
     <!-- M5: Summary -->
     <string name="summary_title">Сводка по смене</string>
@@ -150,6 +177,29 @@
     <string name="settings_version">Версия %s</string>
     <string name="settings_confirm">Подтвердить</string>
     <string name="more_settings">Настройки</string>
+
+    <!-- Upload -->
+    <string name="upload_data_title">Выгрузка данных</string>
+    <string name="upload_device_label">Устройство: %s</string>
+    <string name="upload_start_button">Начать выгрузку</string>
+    <string name="upload_error_title">Ошибка выгрузки</string>
+    <string name="upload_retry_button">Повторить</string>
+    <string name="upload_done_title">Данные выгружены</string>
+    <string name="upload_done_server">Отправлено на сервер</string>
+    <string name="upload_done_local">Сохранено локально, будет отправлено при подключении к сети</string>
+    <string name="upload_packet_id">ID: %s</string>
+    <string name="upload_chunks_progress">%1$d / %2$d чанков</string>
+    <string name="upload_step_idle">Ожидание</string>
+    <string name="upload_step_scanning">Поиск часов...</string>
+    <string name="upload_step_connecting">Подключение к часам...</string>
+    <string name="upload_step_meta">Чтение метаданных...</string>
+    <string name="upload_step_chunks">Считывание данных...</string>
+    <string name="upload_step_verifying">Проверка целостности...</string>
+    <string name="upload_step_ack">Подтверждение приёма...</string>
+    <string name="upload_step_saving">Сохранение...</string>
+    <string name="upload_step_uploading">Отправка на сервер...</string>
+    <string name="upload_step_done">Готово</string>
+    <string name="upload_step_error">Ошибка</string>
 
     <!-- General -->
     <string name="action_logout">Выход</string>

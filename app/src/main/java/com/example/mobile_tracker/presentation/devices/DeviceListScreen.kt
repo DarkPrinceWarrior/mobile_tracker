@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -46,11 +47,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.Device
+import com.example.mobile_tracker.presentation.common.AdaptiveListDetail
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
 import com.example.mobile_tracker.presentation.common.SearchField
 import com.example.mobile_tracker.presentation.common.StateCard
+import com.example.mobile_tracker.presentation.common.rememberIsTablet
 import com.example.mobile_tracker.ui.theme.Success
 import com.example.mobile_tracker.ui.theme.Warning
 import com.example.mobile_tracker.ui.theme.Danger
@@ -63,6 +66,10 @@ fun DeviceListScreen(
     viewModel: DeviceListViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val isTablet = rememberIsTablet()
+    val selectedDevice = state.devices.firstOrNull {
+        it.deviceId == state.selectedDeviceId
+    }
 
     AppScreenScaffold(
         snackbarMessage = state.error,
@@ -147,7 +154,7 @@ fun DeviceListScreen(
                     },
                     label = {
                         Text(
-                            "Все (${state.totalCount})",
+                            "${stringResource(R.string.devices_filter_all)} (${state.totalCount})",
                         )
                     },
                 )
@@ -165,8 +172,7 @@ fun DeviceListScreen(
                     },
                     label = {
                         Text(
-                            "Свободны " +
-                                "(${state.availableCount})",
+                            "${stringResource(R.string.devices_filter_available)} (${state.availableCount})",
                         )
                     },
                 )
@@ -183,8 +189,7 @@ fun DeviceListScreen(
                     },
                     label = {
                         Text(
-                            "Выданы " +
-                                "(${state.issuedCount})",
+                            "${stringResource(R.string.devices_filter_issued)} (${state.issuedCount})",
                         )
                     },
                 )
@@ -192,51 +197,70 @@ fun DeviceListScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            when {
-                state.isLoading -> {
-                    LoadingState()
-                }
+            Box(
+                modifier = Modifier.weight(1f),
+            ) {
+                AdaptiveListDetail(
+                    isTablet = isTablet,
+                    listPane = { paneModifier ->
+                        when {
+                            state.isLoading -> {
+                                LoadingState(modifier = paneModifier)
+                            }
 
-                state.error != null -> {
-                    StateCard(message = state.error.orEmpty())
-                }
+                            state.error != null -> {
+                                Box(modifier = paneModifier) {
+                                    StateCard(message = state.error.orEmpty())
+                                }
+                            }
 
-                state.devices.isEmpty() -> {
-                    EmptyState(
-                        title = stringResource(R.string.devices_empty),
-                        icon = Icons.Default.Watch,
-                    )
-                }
+                            state.devices.isEmpty() -> {
+                                EmptyState(
+                                    title = stringResource(R.string.devices_empty),
+                                    icon = Icons.Default.Watch,
+                                    modifier = paneModifier,
+                                )
+                            }
 
-                else -> {
-                    LazyColumn(
-                        verticalArrangement =
-                            Arrangement.spacedBy(
-                                8.dp,
-                            ),
-                    ) {
-                        items(
-                            state.devices,
-                            key = { it.deviceId },
-                        ) { device ->
-                            DeviceCard(
-                                device = device,
-                                isSelected = state.selectedDeviceId == device.deviceId,
-                                onClick = {
-                                    viewModel.onIntent(
-                                        DeviceListIntent.SelectDevice(device.deviceId),
-                                    )
-                                },
-                            )
+                            else -> {
+                                LazyColumn(
+                                    modifier = paneModifier,
+                                    verticalArrangement =
+                                        Arrangement.spacedBy(
+                                            8.dp,
+                                        ),
+                                ) {
+                                    items(
+                                        state.devices,
+                                        key = { it.deviceId },
+                                    ) { device ->
+                                        DeviceCard(
+                                            device = device,
+                                            isSelected = state.selectedDeviceId == device.deviceId,
+                                            onClick = {
+                                                viewModel.onIntent(
+                                                    DeviceListIntent.SelectDevice(device.deviceId),
+                                                )
+                                            },
+                                        )
+                                    }
+                                    item {
+                                        Spacer(
+                                            modifier = Modifier
+                                                .height(16.dp),
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        item {
-                            Spacer(
-                                modifier = Modifier
-                                    .height(16.dp),
-                            )
-                        }
-                    }
-                }
+                    },
+                    detailPane = { paneModifier ->
+                        DeviceDetailPane(
+                            modifier = paneModifier.padding(horizontal = 12.dp),
+                            device = selectedDevice,
+                        )
+                    },
+                )
             }
         }
     }
@@ -313,7 +337,10 @@ private fun DeviceCard(
                 )
                 device.serialNumber?.let {
                     Text(
-                        text = "S/N: $it",
+                        text = stringResource(
+                            R.string.devices_serial,
+                            it,
+                        ),
                         style = MaterialTheme
                             .typography.bodySmall,
                         color = MaterialTheme
@@ -335,23 +362,23 @@ private fun DeviceCard(
                     when (device.chargeStatus) {
                         "charged" -> Triple(
                             Icons.Default.BatteryFull,
-                            "Заряжен",
+                            stringResource(R.string.devices_charge_charged),
                             Success,
                         )
                         "low" -> Triple(
                             Icons.Default.Battery2Bar,
-                            "Низкий заряд",
+                            stringResource(R.string.devices_charge_low),
                             Warning,
                         )
                         "critical" -> Triple(
                             Icons.Default.BatteryAlert,
-                            "Критический",
+                            stringResource(R.string.devices_charge_critical),
                             Danger,
                         )
                         "charging" -> Triple(
                             Icons.Default
                                 .BatteryChargingFull,
-                            "Заряжается",
+                            stringResource(R.string.devices_charge_charging),
                             MaterialTheme.colorScheme
                                 .primary,
                         )
@@ -387,7 +414,10 @@ private fun DeviceCard(
                 if (device.localStatus == "issued") {
                     device.employeeName?.let {
                         Text(
-                            text = "Выдан: $it",
+                            text = stringResource(
+                                R.string.devices_issued_to,
+                                it,
+                            ),
                             style = MaterialTheme
                                 .typography
                                 .bodySmall,
@@ -404,12 +434,77 @@ private fun DeviceCard(
 }
 
 @Composable
+private fun DeviceDetailPane(
+    modifier: Modifier,
+    device: Device?,
+) {
+    if (device == null) {
+        EmptyState(
+            title = stringResource(R.string.devices_empty),
+            icon = Icons.Default.Watch,
+            modifier = modifier.fillMaxSize(),
+        )
+        return
+    }
+
+    Card(
+        modifier = modifier.fillMaxSize(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = device.deviceId,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            device.serialNumber?.let {
+                Text(
+                    text = stringResource(R.string.devices_serial, it),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            device.model?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            device.employeeName?.let {
+                Text(
+                    text = stringResource(R.string.devices_issued_to, it),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.devices_status_issued),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                StatusBadge(device.localStatus)
+            }
+        }
+    }
+}
+
+@Composable
 private fun StatusBadge(status: String) {
     val (text, color) = when (status) {
-        "available" -> "Свободен" to Success
-        "issued" -> "Выдан" to Warning
-        "discharged" -> "Разряжен" to Danger
-        "faulty" -> "Неисправен" to Color(0xFF9E9E9E)
+        "available" ->
+            stringResource(R.string.devices_status_available) to Success
+        "issued" ->
+            stringResource(R.string.devices_status_issued) to Warning
+        "discharged" ->
+            stringResource(R.string.devices_status_discharged) to Danger
+        "faulty" ->
+            stringResource(R.string.devices_status_faulty) to Color(0xFF9E9E9E)
         else -> status to Color.Gray
     }
     Card(

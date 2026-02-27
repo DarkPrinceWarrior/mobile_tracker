@@ -221,11 +221,17 @@ private fun StepIndicator(currentStep: IssueStep) {
                 Text(
                     text = when (step) {
                         IssueStep.IDENTIFY_EMPLOYEE ->
-                            "Сотрудник"
+                            stringResource(
+                                R.string.issue_step_employee_short,
+                            )
                         IssueStep.SELECT_DEVICE ->
-                            "Часы"
+                            stringResource(
+                                R.string.issue_step_device_short,
+                            )
                         IssueStep.CONFIRM ->
-                            "Выдача"
+                            stringResource(
+                                R.string.issue_step_confirm_short,
+                            )
                     },
                     style = MaterialTheme.typography
                         .labelMedium,
@@ -409,8 +415,10 @@ private fun EmployeeCard(
                 )
                 if (employee.personnelNumber != null) {
                     Text(
-                        text = "Таб. № " +
+                        text = stringResource(
+                            R.string.issue_personnel_short,
                             employee.personnelNumber,
+                        ),
                         style = MaterialTheme.typography
                             .bodySmall,
                         color = MaterialTheme.colorScheme
@@ -426,8 +434,10 @@ private fun EmployeeCard(
                 }
                 if (employee.brigadeName != null) {
                     Text(
-                        text = "Бригада: " +
+                        text = stringResource(
+                            R.string.employees_brigade,
                             employee.brigadeName,
+                        ),
                         style = MaterialTheme.typography
                             .bodySmall,
                     )
@@ -471,8 +481,10 @@ private fun SelectDeviceContent(
                         )
                         if (emp.personnelNumber != null) {
                             Text(
-                                text = "Таб. № " +
+                                text = stringResource(
+                                    R.string.issue_personnel_short,
                                     emp.personnelNumber,
+                                ),
                                 style = MaterialTheme
                                     .typography.bodySmall,
                             )
@@ -483,9 +495,10 @@ private fun SelectDeviceContent(
         }
 
         Text(
-            text = "Выберите часы " +
-                "(${state.availableDevices.size} " +
-                "свободных)",
+            text = stringResource(
+                R.string.issue_select_device,
+                state.availableDevices.size,
+            ),
             style = MaterialTheme.typography.titleMedium,
         )
 
@@ -600,8 +613,10 @@ private fun DeviceCard(
                 }
                 if (device.serialNumber != null) {
                     Text(
-                        text = "S/N: " +
+                        text = stringResource(
+                            R.string.devices_serial,
                             device.serialNumber,
+                        ),
                         style = MaterialTheme.typography
                             .bodySmall,
                         color = MaterialTheme.colorScheme
@@ -612,7 +627,7 @@ private fun DeviceCard(
             if (isSelected) {
                 Icon(
                     Icons.Default.CheckCircle,
-                    contentDescription = "Выбрано",
+                    contentDescription = stringResource(R.string.issue_selected),
                     tint =
                         MaterialTheme.colorScheme.primary,
                 )
@@ -663,7 +678,10 @@ private fun ConfirmContent(
                 state.selectedEmployee
                     ?.personnelNumber?.let {
                         Text(
-                            text = "Таб. № $it",
+                            text = stringResource(
+                                R.string.issue_personnel_short,
+                                it,
+                            ),
                             style = MaterialTheme.typography
                                 .bodySmall,
                         )

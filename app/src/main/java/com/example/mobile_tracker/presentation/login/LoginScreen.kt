@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -47,6 +48,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mobile_tracker.R
+import com.example.mobile_tracker.presentation.common.AppScreenScaffold
+import com.example.mobile_tracker.presentation.common.StateCard
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -74,12 +78,16 @@ fun LoginScreen(
         ),
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(gradient)
-            .imePadding(),
-    ) {
+    AppScreenScaffold(
+        snackbarMessage = state.error,
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(gradient)
+                .imePadding(),
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -113,7 +121,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Контроль подрядчиков",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography
                     .headlineSmall,
                 fontWeight = FontWeight.Bold,
@@ -125,7 +133,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Вход оператора",
+                text = stringResource(R.string.login_title),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme
                     .onSurfaceVariant,
@@ -158,7 +166,7 @@ fun LoginScreen(
                                 ),
                             )
                         },
-                        label = { Text("Email") },
+                        label = { Text(stringResource(R.string.login_email_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = MaterialTheme.shapes.small,
@@ -186,7 +194,7 @@ fun LoginScreen(
                                 ),
                             )
                         },
-                        label = { Text("Пароль") },
+                        label = { Text(stringResource(R.string.login_password_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape =
@@ -221,9 +229,9 @@ fun LoginScreen(
                                         if (state
                                                 .isPasswordVisible
                                         ) {
-                                            "Скрыть пароль"
+                                            stringResource(R.string.login_hide_password)
                                         } else {
-                                            "Показать пароль"
+                                            stringResource(R.string.login_show_password)
                                         },
                                 )
                             }
@@ -245,27 +253,7 @@ fun LoginScreen(
                     )
 
                     if (state.error != null) {
-                        Card(
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor =
-                                        MaterialTheme
-                                            .colorScheme
-                                            .errorContainer,
-                                ),
-                        ) {
-                            Text(
-                                text = state.error!!,
-                                color = MaterialTheme
-                                    .colorScheme
-                                    .onErrorContainer,
-                                style = MaterialTheme
-                                    .typography
-                                    .bodyMedium,
-                                modifier = Modifier
-                                    .padding(12.dp),
-                            )
-                        }
+                        StateCard(message = state.error!!)
                     }
 
                     Button(
@@ -299,7 +287,7 @@ fun LoginScreen(
                             )
                         } else {
                             Text(
-                                text = "Войти",
+                                text = stringResource(R.string.login_button),
                                 style = MaterialTheme
                                     .typography
                                     .titleMedium,
@@ -313,5 +301,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.weight(1.2f))
         }
+    }
     }
 }

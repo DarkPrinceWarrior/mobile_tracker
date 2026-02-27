@@ -2,6 +2,7 @@ package com.example.mobile_tracker.presentation.journal
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -46,11 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.data.local.db.entity.OperationLogEntity
+import com.example.mobile_tracker.presentation.common.AdaptiveListDetail
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
 import com.example.mobile_tracker.presentation.common.SearchField
 import com.example.mobile_tracker.presentation.common.StateCard
+import com.example.mobile_tracker.presentation.common.rememberIsTablet
 import com.example.mobile_tracker.util.formatTimestamp
 import org.koin.androidx.compose.koinViewModel
 
@@ -64,6 +67,10 @@ fun JournalScreen(
     viewModel: JournalViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val isTablet = rememberIsTablet()
+    val selectedLog = state.filteredLogs.firstOrNull {
+        it.id == state.selectedLogId
+    }
 
     AppScreenScaffold(
         snackbarMessage = state.error,
@@ -150,38 +157,55 @@ fun JournalScreen(
                     )
                 }
 
-                if (state.isLoading && state.logs.isEmpty()) {
-                    LoadingState()
-                } else if (state.filteredLogs.isEmpty()) {
-                    EmptyState(
-                        title = stringResource(R.string.journal_empty),
-                        icon = Icons.Default.SwapHoriz,
+                Box(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    AdaptiveListDetail(
+                        isTablet = isTablet,
+                        listPane = { paneModifier ->
+                            if (state.isLoading && state.logs.isEmpty()) {
+                                LoadingState(modifier = paneModifier)
+                            } else if (state.filteredLogs.isEmpty()) {
+                                EmptyState(
+                                    title = stringResource(R.string.journal_empty),
+                                    icon = Icons.Default.SwapHoriz,
+                                    modifier = paneModifier,
+                                )
+                            } else {
+                                LazyColumn(
+                                    modifier = paneModifier,
+                                    verticalArrangement =
+                                        Arrangement.spacedBy(8.dp),
+                                ) {
+                                    items(
+                                        items = state.filteredLogs,
+                                        key = { it.id },
+                                    ) { log ->
+                                        LogEntryCard(
+                                            log = log,
+                                            isSelected = state.selectedLogId == log.id,
+                                            onClick = {
+                                                viewModel.onIntent(
+                                                    JournalIntent.SelectLog(log.id),
+                                                )
+                                            },
+                                        )
+                                    }
+                                    item {
+                                        Spacer(
+                                            modifier = Modifier.height(16.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        detailPane = { paneModifier ->
+                            JournalDetailPane(
+                                modifier = paneModifier.padding(horizontal = 12.dp),
+                                log = selectedLog,
+                            )
+                        },
                     )
-                } else {
-                    LazyColumn(
-                        verticalArrangement =
-                            Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(
-                            items = state.filteredLogs,
-                            key = { it.id },
-                        ) { log ->
-                            LogEntryCard(
-                                log = log,
-                                isSelected = state.selectedLogId == log.id,
-                                onClick = {
-                                    viewModel.onIntent(
-                                        JournalIntent.SelectLog(log.id),
-                                    )
-                                },
-                            )
-                        }
-                        item {
-                            Spacer(
-                                modifier = Modifier.height(16.dp),
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -332,9 +356,12 @@ private fun LogEntryCard(
 @Composable
 private fun StatusBadge(status: String) {
     val (text, color) = when (status) {
-        "success" -> "OK" to Color(0xFF2E7D32)
-        "error" -> "Ошибка" to Color(0xFFC62828)
-        "pending" -> "Ожидание" to Color(0xFFE65100)
+        "success" ->
+            stringResource(R.string.journal_status_ok) to Color(0xFF2E7D32)
+        "error" ->
+            stringResource(R.string.journal_status_error) to Color(0xFFC62828)
+        "pending" ->
+            stringResource(R.string.journal_status_pending) to Color(0xFFE65100)
         else -> status to MaterialTheme.colorScheme
             .onSurfaceVariant
     }
@@ -355,21 +382,87 @@ private fun StatusBadge(status: String) {
     }
 }
 
+@Composable
+private fun JournalDetailPane(
+    modifier: Modifier,
+    log: OperationLogEntity?,
+) {
+    if (log == null) {
+        EmptyState(
+            title = stringResource(R.string.journal_empty),
+            icon = Icons.Default.SwapHoriz,
+            modifier = modifier.fillMaxSize(),
+        )
+        return
+    }
+
+    Card(
+        modifier = modifier.fillMaxSize(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = typeDisplayName(log.type),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = formatTimestamp(log.createdAt),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            log.employeeName?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            log.deviceId?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            log.details?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            log.errorMessage?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            StatusBadge(status = log.status)
+        }
+    }
+}
+
+@Composable
 private fun typeDisplayName(type: String): String = when (type) {
-    "issue" -> "Выдача"
-    "return" -> "Возврат"
-    "upload" -> "Выгрузка"
-    "upload_error" -> "Ошибка выгрузки"
-    "sync" -> "Синхронизация"
-    "status_change" -> "Смена статуса"
+    "issue" -> stringResource(R.string.journal_type_issue)
+    "return" -> stringResource(R.string.journal_type_return)
+    "upload" -> stringResource(R.string.journal_type_upload)
+    "upload_error" -> stringResource(R.string.journal_type_upload_error)
+    "sync" -> stringResource(R.string.journal_type_sync)
+    "status_change" -> stringResource(R.string.journal_type_status_change)
     else -> type
 }
 
+@Composable
 private fun statusDisplayName(status: String): String =
     when (status) {
-        "success" -> "Успех"
-        "error" -> "Ошибка"
-        "pending" -> "Ожидание"
+        "success" -> stringResource(R.string.journal_status_success)
+        "error" -> stringResource(R.string.journal_status_error)
+        "pending" -> stringResource(R.string.journal_status_pending)
         else -> status
     }
 

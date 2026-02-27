@@ -19,7 +19,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.filled.Warning
@@ -50,6 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.DeviceBinding
+import com.example.mobile_tracker.presentation.common.AdaptiveListDetail
+import com.example.mobile_tracker.presentation.common.EmptyState
+import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.StateCard
+import com.example.mobile_tracker.presentation.common.rememberIsTablet
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,6 +67,10 @@ fun ReturnScreen(
 ) {
     val state by
         viewModel.state.collectAsStateWithLifecycle()
+    val isTablet = rememberIsTablet()
+    val selectedBinding = state.activeBindings.firstOrNull {
+        it.id == state.selectedBindingId
+    }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -169,113 +177,93 @@ fun ReturnScreen(
                 .padding(horizontal = 16.dp),
         ) {
             if (state.error != null) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme
-                            .colorScheme.errorContainer,
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                ) {
-                    Text(
-                        text = state.error!!,
-                        color = MaterialTheme.colorScheme
-                            .onErrorContainer,
-                        style = MaterialTheme.typography
-                            .bodyMedium,
-                        modifier = Modifier
-                            .padding(12.dp),
-                    )
-                }
+                StateCard(
+                    message = state.error!!,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
             }
 
-            if (state.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (state.activeBindings.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally,
-                    ) {
-                        Icon(
-                            Icons.Default.Replay,
-                            contentDescription = null,
-                            modifier =
-                                Modifier.size(48.dp),
-                            tint = MaterialTheme
-                                .colorScheme
-                                .outlineVariant,
-                        )
-                        Spacer(
-                            modifier =
-                                Modifier.height(8.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.return_empty),
-                            style = MaterialTheme
-                                .typography.bodyLarge,
-                            color = MaterialTheme
-                                .colorScheme
-                                .onSurfaceVariant,
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement =
-                        Arrangement.spacedBy(8.dp),
-                ) {
-                    items(
-                        items = state.activeBindings,
-                        key = { it.id },
-                    ) { binding ->
-                        BindingCard(
-                            binding = binding,
-                            isSelected =
-                                state.selectedBindingId == binding.id,
-                            isReturning =
-                                state.isReturning &&
-                                    state.selectedBindingId == binding.id,
-                            onSelect = {
-                                viewModel.onIntent(
-                                    ReturnIntent
-                                        .SelectBinding(
-                                            binding,
-                                        ),
-                                )
-                            },
+            Box(modifier = Modifier.weight(1f)) {
+                AdaptiveListDetail(
+                    isTablet = isTablet,
+                    listPane = { paneModifier ->
+                        if (state.isLoading) {
+                            LoadingState(modifier = paneModifier)
+                        } else if (state.activeBindings.isEmpty()) {
+                            EmptyState(
+                                title = stringResource(R.string.return_empty),
+                                icon = Icons.Default.Replay,
+                                modifier = paneModifier,
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = paneModifier,
+                                verticalArrangement =
+                                    Arrangement.spacedBy(8.dp),
+                            ) {
+                                items(
+                                    items = state.activeBindings,
+                                    key = { it.id },
+                                ) { binding ->
+                                    BindingCard(
+                                        binding = binding,
+                                        isSelected =
+                                            state.selectedBindingId == binding.id,
+                                        isReturning =
+                                            state.isReturning &&
+                                                state.selectedBindingId == binding.id,
+                                        showInlineActions = !isTablet,
+                                        onSelect = {
+                                            viewModel.onIntent(
+                                                ReturnIntent
+                                                    .SelectBinding(
+                                                        binding,
+                                                    ),
+                                            )
+                                        },
+                                        onReturn = {
+                                            viewModel.onIntent(
+                                                ReturnIntent
+                                                    .ConfirmReturn,
+                                            )
+                                        },
+                                        onMarkLost = {
+                                            viewModel.onIntent(
+                                                ReturnIntent
+                                                    .MarkLost(
+                                                        binding,
+                                                    ),
+                                            )
+                                        },
+                                    )
+                                }
+                                item {
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(16.dp),
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    detailPane = { paneModifier ->
+                        ReturnDetailPane(
+                            modifier = paneModifier.padding(horizontal = 12.dp),
+                            binding = selectedBinding,
+                            isReturning = state.isReturning,
                             onReturn = {
-                                viewModel.onIntent(
-                                    ReturnIntent
-                                        .ConfirmReturn,
-                                )
+                                viewModel.onIntent(ReturnIntent.ConfirmReturn)
                             },
                             onMarkLost = {
-                                viewModel.onIntent(
-                                    ReturnIntent
-                                        .MarkLost(
-                                            binding,
-                                        ),
-                                )
+                                selectedBinding?.let {
+                                    viewModel.onIntent(
+                                        ReturnIntent.MarkLost(it),
+                                    )
+                                }
                             },
                         )
-                    }
-                    item {
-                        Spacer(
-                            modifier =
-                                Modifier.height(16.dp),
-                        )
-                    }
-                }
+                    },
+                )
             }
         }
     }
@@ -286,6 +274,7 @@ private fun BindingCard(
     binding: DeviceBinding,
     isSelected: Boolean,
     isReturning: Boolean,
+    showInlineActions: Boolean,
     onSelect: () -> Unit,
     onReturn: () -> Unit,
     onMarkLost: () -> Unit,
@@ -356,7 +345,7 @@ private fun BindingCard(
                 )
             }
 
-            if (isSelected) {
+            if (isSelected && showInlineActions) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -384,6 +373,81 @@ private fun BindingCard(
                     ) {
                         Text(stringResource(R.string.return_mark_lost))
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReturnDetailPane(
+    modifier: Modifier,
+    binding: DeviceBinding?,
+    isReturning: Boolean,
+    onReturn: () -> Unit,
+    onMarkLost: () -> Unit,
+) {
+    if (binding == null) {
+        EmptyState(
+            title = stringResource(R.string.return_empty),
+            icon = Icons.Default.Replay,
+            modifier = modifier.fillMaxSize(),
+        )
+        return
+    }
+
+    Card(
+        modifier = modifier.fillMaxSize(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = binding.deviceId,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = binding.employeeName,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = stringResource(
+                    R.string.return_issued_at,
+                    formatTime(binding.boundAt),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SyncStatusIcon(isSynced = binding.isSynced)
+                DataStatusIcon(dataUploaded = binding.dataUploaded)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilledTonalButton(
+                    onClick = onReturn,
+                    modifier = Modifier.weight(1f),
+                    enabled = !isReturning,
+                ) {
+                    Text(stringResource(R.string.return_button))
+                }
+                OutlinedButton(
+                    onClick = onMarkLost,
+                    enabled = !isReturning,
+                ) {
+                    Text(stringResource(R.string.return_mark_lost))
                 }
             }
         }

@@ -128,7 +128,7 @@ fun HomeScreen(
                     Column {
                         Text(
                             text = state.siteName.ifBlank {
-                                "Площадка"
+                                stringResource(R.string.context_site_label)
                             },
                             style = MaterialTheme
                                 .typography.titleMedium,
@@ -139,9 +139,9 @@ fun HomeScreen(
                                 if (state.shiftType ==
                                     "day"
                                 ) {
-                                    "Дневная"
+                                    stringResource(R.string.context_shift_day)
                                 } else {
-                                    "Ночная"
+                                    stringResource(R.string.context_shift_night)
                                 },
                             style = MaterialTheme
                                 .typography.bodySmall,
@@ -395,8 +395,7 @@ private fun IssueTabContent(
     TabHeroCard(
         icon = Icons.Default.Watch,
         title = stringResource(R.string.issue_title),
-        subtitle = "Выдайте часы сотруднику " +
-            "по табельному номеру или ФИО",
+        subtitle = stringResource(R.string.home_issue_subtitle),
         buttonText = stringResource(
             R.string.issue_navigate,
         ),
@@ -411,8 +410,7 @@ private fun ReturnTabContent(
     TabHeroCard(
         icon = Icons.Default.Replay,
         title = stringResource(R.string.return_title),
-        subtitle = "Примите часы обратно " +
-            "после окончания смены",
+        subtitle = stringResource(R.string.home_return_subtitle),
         buttonText = stringResource(
             R.string.return_navigate,
         ),
@@ -427,9 +425,8 @@ private fun UploadTabContent(
     TabHeroCard(
         icon = Icons.Default.CloudUpload,
         title = stringResource(R.string.tab_upload),
-        subtitle = "Выберите часы " +
-            "для выгрузки данных через BLE",
-        buttonText = "Часы на площадке",
+        subtitle = stringResource(R.string.home_upload_subtitle),
+        buttonText = stringResource(R.string.more_devices),
         onClick = onNavigateToDevices,
     )
 }
@@ -441,8 +438,7 @@ private fun JournalTabContent(
     TabHeroCard(
         icon = Icons.AutoMirrored.Filled.List,
         title = stringResource(R.string.journal_title),
-        subtitle = "Просмотрите историю " +
-            "всех операций за смену",
+        subtitle = stringResource(R.string.home_journal_subtitle),
         buttonText = stringResource(
             R.string.journal_navigate,
         ),
@@ -466,26 +462,25 @@ private fun MoreTabContent(
     MoreMenuItem(
         icon = Icons.Default.Devices,
         title = stringResource(R.string.more_devices),
-        subtitle = "Все часы, привязанные " +
-            "к площадке",
+        subtitle = stringResource(R.string.home_more_devices_subtitle),
         onClick = onNavigateToDevices,
     )
     MoreMenuItem(
         icon = Icons.Default.People,
         title = stringResource(R.string.more_employees),
-        subtitle = "База сотрудников подрядчиков",
+        subtitle = stringResource(R.string.home_more_employees_subtitle),
         onClick = onNavigateToEmployees,
     )
     MoreMenuItem(
         icon = Icons.Default.BarChart,
         title = stringResource(R.string.more_summary),
-        subtitle = "Статистика текущей смены",
+        subtitle = stringResource(R.string.home_more_summary_subtitle),
         onClick = onNavigateToSummary,
     )
     MoreMenuItem(
         icon = Icons.Default.Settings,
         title = stringResource(R.string.more_settings),
-        subtitle = "Профиль, контекст, выход",
+        subtitle = stringResource(R.string.home_more_settings_subtitle),
         onClick = onNavigateToSettings,
     )
 }

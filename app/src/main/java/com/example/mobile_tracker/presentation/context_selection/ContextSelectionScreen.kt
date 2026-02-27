@@ -34,7 +34,6 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -46,9 +45,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mobile_tracker.R
+import com.example.mobile_tracker.presentation.common.AppScreenScaffold
+import com.example.mobile_tracker.presentation.common.StateCard
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,7 +73,8 @@ fun ContextSelectionScreen(
         }
     }
 
-    Scaffold(
+    AppScreenScaffold(
+        snackbarMessage = state.error,
         modifier = Modifier.nestedScroll(
             scrollBehavior.nestedScrollConnection,
         ),
@@ -78,7 +82,7 @@ fun ContextSelectionScreen(
             LargeTopAppBar(
                 title = {
                     Text(
-                        "Выбор контекста\nработы",
+                        stringResource(R.string.context_title),
                         fontWeight = FontWeight.Bold,
                     )
                 },
@@ -133,7 +137,7 @@ fun ContextSelectionScreen(
                             modifier = Modifier.width(8.dp),
                         )
                         Text(
-                            text = "Площадка",
+                            text = stringResource(R.string.context_site_label),
                             style = MaterialTheme.typography
                                 .titleMedium,
                             fontWeight = FontWeight.SemiBold,
@@ -171,7 +175,7 @@ fun ContextSelectionScreen(
                                     )
                             },
                             label = {
-                                Text("Выберите площадку")
+                                Text(stringResource(R.string.context_site_hint))
                             },
                         )
 
@@ -230,7 +234,7 @@ fun ContextSelectionScreen(
                             modifier = Modifier.width(8.dp),
                         )
                         Text(
-                            text = "Дата смены",
+                            text = stringResource(R.string.context_date_label),
                             style = MaterialTheme.typography
                                 .titleMedium,
                             fontWeight = FontWeight.SemiBold,
@@ -248,7 +252,7 @@ fun ContextSelectionScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape =
                             MaterialTheme.shapes.small,
-                        label = { Text("ГГГГ-ММ-ДД") },
+                        label = { Text(stringResource(R.string.context_date_hint)) },
                         singleLine = true,
                     )
                 }
@@ -282,7 +286,7 @@ fun ContextSelectionScreen(
                             modifier = Modifier.width(8.dp),
                         )
                         Text(
-                            text = "Тип смены",
+                            text = stringResource(R.string.context_shift_label),
                             style = MaterialTheme.typography
                                 .titleMedium,
                             fontWeight = FontWeight.SemiBold,
@@ -304,7 +308,7 @@ fun ContextSelectionScreen(
                                         ),
                                 )
                             },
-                            label = { Text("Дневная") },
+                            label = { Text(stringResource(R.string.context_shift_day)) },
                             leadingIcon = {
                                 Icon(
                                     Icons.Default.LightMode,
@@ -330,7 +334,7 @@ fun ContextSelectionScreen(
                                         ),
                                 )
                             },
-                            label = { Text("Ночная") },
+                            label = { Text(stringResource(R.string.context_shift_night)) },
                             leadingIcon = {
                                 Icon(
                                     Icons.Default.DarkMode,
@@ -349,21 +353,7 @@ fun ContextSelectionScreen(
             }
 
             if (state.error != null) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme
-                            .colorScheme.errorContainer,
-                    ),
-                ) {
-                    Text(
-                        text = state.error!!,
-                        color = MaterialTheme.colorScheme
-                            .onErrorContainer,
-                        style = MaterialTheme.typography
-                            .bodyMedium,
-                        modifier = Modifier.padding(12.dp),
-                    )
-                }
+                StateCard(message = state.error!!)
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -392,7 +382,7 @@ fun ContextSelectionScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Начать работу",
+                    text = stringResource(R.string.context_start_button),
                     style = MaterialTheme.typography
                         .titleMedium,
                     fontWeight = FontWeight.SemiBold,

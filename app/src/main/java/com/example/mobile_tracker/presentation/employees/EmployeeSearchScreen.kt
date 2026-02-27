@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -42,11 +43,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.Employee
+import com.example.mobile_tracker.presentation.common.AdaptiveListDetail
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
 import com.example.mobile_tracker.presentation.common.SearchField
 import com.example.mobile_tracker.presentation.common.StateCard
+import com.example.mobile_tracker.presentation.common.rememberIsTablet
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +60,10 @@ fun EmployeeSearchScreen(
         koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val isTablet = rememberIsTablet()
+    val selectedEmployee = state.results.firstOrNull {
+        it.id == state.selectedEmployeeId
+    }
 
     AppScreenScaffold(
         snackbarMessage = state.error,
@@ -142,53 +149,72 @@ fun EmployeeSearchScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            when {
-                state.isLoading -> {
-                    LoadingState()
-                }
+            Box(
+                modifier = Modifier.weight(1f),
+            ) {
+                AdaptiveListDetail(
+                    isTablet = isTablet,
+                    listPane = { paneModifier ->
+                        when {
+                            state.isLoading -> {
+                                LoadingState(modifier = paneModifier)
+                            }
 
-                state.error != null -> {
-                    StateCard(message = state.error.orEmpty())
-                }
+                            state.error != null -> {
+                                Box(modifier = paneModifier) {
+                                    StateCard(message = state.error.orEmpty())
+                                }
+                            }
 
-                state.results.isEmpty() -> {
-                    EmptyState(
-                        title = stringResource(R.string.employees_empty),
-                        icon = Icons.Default.People,
-                    )
-                }
+                            state.results.isEmpty() -> {
+                                EmptyState(
+                                    title = stringResource(R.string.employees_empty),
+                                    icon = Icons.Default.People,
+                                    modifier = paneModifier,
+                                )
+                            }
 
-                else -> {
-                    LazyColumn(
-                        verticalArrangement =
-                            Arrangement.spacedBy(
-                                8.dp,
-                            ),
-                    ) {
-                        items(
-                            state.results,
-                            key = { it.id },
-                        ) { employee ->
-                            EmployeeCard(
-                                employee = employee,
-                                isSelected = state.selectedEmployeeId == employee.id,
-                                onClick = {
-                                    viewModel.onIntent(
-                                        EmployeeSearchIntent.SelectEmployee(
-                                            employee.id,
+                            else -> {
+                                LazyColumn(
+                                    modifier = paneModifier,
+                                    verticalArrangement =
+                                        Arrangement.spacedBy(
+                                            8.dp,
                                         ),
-                                    )
-                                },
-                            )
+                                ) {
+                                    items(
+                                        state.results,
+                                        key = { it.id },
+                                    ) { employee ->
+                                        EmployeeCard(
+                                            employee = employee,
+                                            isSelected = state.selectedEmployeeId == employee.id,
+                                            onClick = {
+                                                viewModel.onIntent(
+                                                    EmployeeSearchIntent.SelectEmployee(
+                                                        employee.id,
+                                                    ),
+                                                )
+                                            },
+                                        )
+                                    }
+                                    item {
+                                        Spacer(
+                                            modifier = Modifier
+                                                .height(16.dp),
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        item {
-                            Spacer(
-                                modifier = Modifier
-                                    .height(16.dp),
-                            )
-                        }
-                    }
-                }
+                    },
+                    detailPane = { paneModifier ->
+                        EmployeeDetailPane(
+                            modifier = paneModifier.padding(horizontal = 12.dp),
+                            employee = selectedEmployee,
+                        )
+                    },
+                )
             }
         }
     }
@@ -263,7 +289,10 @@ private fun EmployeeCard(
                                 Modifier.width(4.dp),
                         )
                         Text(
-                            text = "Таб. №: $it",
+                            text = stringResource(
+                                R.string.employees_personnel_number,
+                                it,
+                            ),
                             style = MaterialTheme
                                 .typography.bodySmall,
                             color = MaterialTheme
@@ -293,7 +322,10 @@ private fun EmployeeCard(
                 }
                 employee.brigadeName?.let {
                     Text(
-                        text = "Бригада: $it",
+                        text = stringResource(
+                            R.string.employees_brigade,
+                            it,
+                        ),
                         style = MaterialTheme
                             .typography.bodySmall,
                         color = MaterialTheme
@@ -301,6 +333,69 @@ private fun EmployeeCard(
                             .onSurfaceVariant,
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmployeeDetailPane(
+    modifier: Modifier,
+    employee: Employee?,
+) {
+    if (employee == null) {
+        EmptyState(
+            title = stringResource(R.string.employees_empty),
+            icon = Icons.Default.People,
+            modifier = modifier.fillMaxSize(),
+        )
+        return
+    }
+
+    Card(
+        modifier = modifier.fillMaxSize(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = employee.fullName,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            employee.personnelNumber?.let {
+                Text(
+                    text = stringResource(
+                        R.string.employees_personnel_number,
+                        it,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            employee.companyName?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            employee.position?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            employee.brigadeName?.let {
+                Text(
+                    text = stringResource(
+                        R.string.employees_brigade,
+                        it,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     }

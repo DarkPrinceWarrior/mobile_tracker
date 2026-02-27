@@ -26,12 +26,10 @@ import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -48,6 +46,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
+import com.example.mobile_tracker.presentation.common.AppScreenScaffold
+import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.ui.theme.Danger
 import com.example.mobile_tracker.ui.theme.Success
 import com.example.mobile_tracker.ui.theme.Warning
@@ -61,7 +62,8 @@ fun SummaryScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Scaffold(
+    AppScreenScaffold(
+        snackbarMessage = state.error,
         topBar = {
             TopAppBar(
                 title = {
@@ -97,12 +99,7 @@ fun SummaryScreen(
                 .padding(padding),
         ) {
             if (state.isLoading && state.issuedCount == 0) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
+                LoadingState()
             } else {
                 Column(
                     modifier = Modifier
@@ -125,27 +122,7 @@ fun SummaryScreen(
                     )
 
                     if (state.error != null) {
-                        Card(
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor =
-                                        MaterialTheme
-                                            .colorScheme
-                                            .errorContainer,
-                                ),
-                        ) {
-                            Text(
-                                text = state.error!!,
-                                color = MaterialTheme
-                                    .colorScheme
-                                    .onErrorContainer,
-                                style = MaterialTheme
-                                    .typography
-                                    .bodyMedium,
-                                modifier = Modifier
-                                    .padding(12.dp),
-                            )
-                        }
+                        StateCard(message = state.error!!)
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))
