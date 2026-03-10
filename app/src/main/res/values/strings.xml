@@ -207,4 +207,10 @@
     <string name="label_loading">Загрузка…</string>
     <string name="action_back">Назад</string>
     <string name="action_search">Найти</string>
+    <string name="action_open_device_details">Открыть детали устройства</string>
+    <string name="action_open_employee_details">Открыть карточку сотрудника</string>
+    <string name="action_open_journal_details">Открыть запись журнала</string>
+    <string name="action_open_return_details">Открыть детали возврата</string>
+    <string name="action_select_employee">Выбрать сотрудника</string>
+    <string name="action_select_device">Выбрать устройство</string>
 </resources>
