@@ -1,18 +1,17 @@
 package com.example.mobile_tracker.presentation.home
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,13 +20,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -43,24 +42,18 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -68,7 +61,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
+import com.example.mobile_tracker.presentation.common.AppScreenScaffold
+import com.example.mobile_tracker.presentation.common.MTCard
+import com.example.mobile_tracker.presentation.common.MTCompactTopBar
+import com.example.mobile_tracker.presentation.common.MTMetricCard
+import com.example.mobile_tracker.presentation.common.MTSectionHeader
+import com.example.mobile_tracker.presentation.common.MTStatusBadge
+import com.example.mobile_tracker.presentation.common.MTStatusTone
+import com.example.mobile_tracker.presentation.common.MTTopBarAction
+import com.example.mobile_tracker.presentation.common.MTTopStatusBar
+import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.common.rememberIsTablet
+import com.example.mobile_tracker.ui.theme.AppLayout
+import com.example.mobile_tracker.ui.theme.AppRadius
+import com.example.mobile_tracker.ui.theme.AppSpacing
+import com.example.mobile_tracker.ui.theme.danger
+import com.example.mobile_tracker.ui.theme.success
+import com.example.mobile_tracker.ui.theme.warning
 import org.koin.androidx.compose.koinViewModel
 
 private data class BottomNavItem(
@@ -101,7 +110,6 @@ private val bottomNavItems = listOf(
     BottomNavItem(HomeDestination.MORE, R.string.tab_more, Icons.Default.MoreHoriz),
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onLogout: () -> Unit,
@@ -120,101 +128,68 @@ fun HomeScreen(
         mutableStateOf(HomeDestination.ISSUE)
     }
     val isTablet = rememberIsTablet()
+    val shiftTypeLabel = if (state.shiftType == "day") {
+        stringResource(R.string.context_shift_day)
+    } else {
+        stringResource(R.string.context_shift_night)
+    }
+    val statusText = when {
+        !state.isOnline -> stringResource(R.string.shell_offline)
+        state.pendingPacketsCount > 0 -> stringResource(
+            R.string.shell_pending_packets_short,
+            state.pendingPacketsCount,
+        )
+        else -> stringResource(R.string.shell_sync_ready)
+    }
+    val statusColor = when {
+        !state.isOnline -> MaterialTheme.colorScheme.danger
+        state.pendingPacketsCount > 0 -> MaterialTheme.colorScheme.warning
+        else -> MaterialTheme.colorScheme.success
+    }
+    val operatorLabel = state.operatorName.ifBlank {
+        stringResource(R.string.shell_unknown_operator)
+    }
+    val headerTitle = state.siteName.ifBlank {
+        stringResource(R.string.context_site_label)
+    }
+    val headerSubtitle = buildString {
+        if (state.shiftDate.isNotBlank()) {
+            append(state.shiftDate)
+            append(" · ")
+        }
+        append(shiftTypeLabel)
+    }
 
-    Scaffold(
+    AppScreenScaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = state.siteName.ifBlank {
-                                stringResource(R.string.context_site_label)
-                            },
-                            style = MaterialTheme
-                                .typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = "${state.shiftDate} · " +
-                                if (state.shiftType ==
-                                    "day"
-                                ) {
-                                    stringResource(R.string.context_shift_day)
-                                } else {
-                                    stringResource(R.string.context_shift_night)
-                                },
-                            style = MaterialTheme
-                                .typography.bodySmall,
-                            color = MaterialTheme
-                                .colorScheme
-                                .onSurfaceVariant,
-                        )
-                    }
-                },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme
-                            .colorScheme.surface,
-                    ),
-                actions = {
-                    if (state.pendingPacketsCount > 0) {
-                        BadgedBox(
-                            badge = {
-                                Badge {
-                                    Text(
-                                        state
-                                            .pendingPacketsCount
-                                            .toString(),
-                                    )
-                                }
-                            },
-                        ) {
+            Column {
+                MTTopStatusBar(
+                    leadingText = statusText,
+                    trailingText = operatorLabel,
+                    statusColor = statusColor,
+                )
+                MTCompactTopBar(
+                    title = headerTitle,
+                    subtitle = headerSubtitle,
+                    actions = {
+                        MTTopBarAction(onClick = onLogout) {
                             Icon(
-                                Icons.Default
-                                    .CloudUpload,
-                                contentDescription =
-                                    stringResource(
-                                        R.string
-                                            .offline_pending_count,
-                                        state
-                                            .pendingPacketsCount,
-                                    ),
-                                modifier = Modifier
-                                    .size(24.dp),
+                                Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = stringResource(R.string.action_logout),
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
-                    }
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            Icons.AutoMirrored
-                                .Filled.Logout,
-                            contentDescription = stringResource(R.string.action_logout),
-                        )
-                    }
-                },
-            )
+                    },
+                )
+            }
         },
         bottomBar = {
             if (!isTablet) {
-                NavigationBar(
-                    containerColor = MaterialTheme
-                        .colorScheme.surfaceContainer,
-                    tonalElevation = 0.dp,
-                ) {
-                    bottomNavItems.forEach { item ->
-                        NavigationBarItem(
-                            selected = selectedDestination == item.destination,
-                            onClick = { selectedDestination = item.destination },
-                            icon = {
-                                Icon(
-                                    item.icon,
-                                    contentDescription = stringResource(item.titleRes),
-                                )
-                            },
-                            label = { Text(stringResource(item.titleRes)) },
-                        )
-                    }
-                }
+                HomeBottomBar(
+                    selectedDestination = selectedDestination,
+                    pendingPacketsCount = state.pendingPacketsCount,
+                    onDestinationSelected = { selectedDestination = it },
+                )
             }
         },
     ) { padding ->
@@ -224,36 +199,16 @@ fun HomeScreen(
                 .padding(padding),
         ) {
             if (isTablet) {
-                NavigationRail(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ) {
-                    bottomNavItems.forEach { item ->
-                        NavigationRailItem(
-                            selected = selectedDestination == item.destination,
-                            onClick = { selectedDestination = item.destination },
-                            icon = {
-                                Icon(
-                                    item.icon,
-                                    contentDescription = stringResource(item.titleRes),
-                                )
-                            },
-                            label = { Text(stringResource(item.titleRes)) },
-                        )
-                    }
-                }
+                HomeNavigationRail(
+                    selectedDestination = selectedDestination,
+                    pendingPacketsCount = state.pendingPacketsCount,
+                    onDestinationSelected = { selectedDestination = it },
+                )
             }
 
             Column(
                 modifier = Modifier.fillMaxSize(),
             ) {
-                AnimatedVisibility(
-                    visible = !state.isOnline,
-                    enter = expandVertically(),
-                    exit = shrinkVertically(),
-                ) {
-                    OfflineBanner()
-                }
-
                 AnimatedContent(
                     targetState = selectedDestination,
                     label = "tab_content",
@@ -267,22 +222,38 @@ fun HomeScreen(
                             .verticalScroll(
                                 rememberScrollState(),
                             )
-                            .padding(20.dp),
+                            .padding(horizontal = AppLayout.screenPadding)
+                            .padding(top = AppSpacing.sm, bottom = AppSpacing.lg),
                         verticalArrangement =
                             Arrangement.spacedBy(16.dp),
                     ) {
+                        if (destination == HomeDestination.ISSUE || destination == HomeDestination.MORE) {
+                            HomeOverviewSection(
+                                state = state,
+                                shiftTypeLabel = shiftTypeLabel,
+                                onNavigateToSummary = onNavigateToSummary,
+                            )
+                        }
                         when (destination) {
                             HomeDestination.ISSUE -> IssueTabContent(
-                                onNavigateToIssue,
+                                onNavigateToIssue = onNavigateToIssue,
+                                onNavigateToEmployees = onNavigateToEmployees,
+                                onNavigateToDevices = onNavigateToDevices,
                             )
                             HomeDestination.RETURN -> ReturnTabContent(
-                                onNavigateToReturn,
+                                onNavigateToReturn = onNavigateToReturn,
+                                onNavigateToJournal = onNavigateToJournal,
+                                onNavigateToSummary = onNavigateToSummary,
                             )
                             HomeDestination.UPLOAD -> UploadTabContent(
-                                onNavigateToDevices,
+                                pendingPacketsCount = state.pendingPacketsCount,
+                                onNavigateToDevices = onNavigateToDevices,
+                                onNavigateToJournal = onNavigateToJournal,
                             )
                             HomeDestination.JOURNAL -> JournalTabContent(
-                                onNavigateToJournal,
+                                onNavigateToJournal = onNavigateToJournal,
+                                onNavigateToSummary = onNavigateToSummary,
+                                onNavigateToSettings = onNavigateToSettings,
                             )
                             HomeDestination.MORE -> MoreTabContent(
                                 onNavigateToDevices =
@@ -303,8 +274,290 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TabHeroCard(
+private fun HomeOverviewSection(
+    state: HomeState,
+    shiftTypeLabel: String,
+    onNavigateToSummary: () -> Unit,
+) {
+    MTSectionHeader(
+        title = stringResource(R.string.home_overview_title),
+        actionLabel = stringResource(R.string.more_summary),
+        onActionClick = onNavigateToSummary,
+    )
+
+    MTCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            ) {
+                Text(
+                    text = state.siteName.ifBlank { stringResource(R.string.context_site_label) },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = buildString {
+                        if (state.shiftDate.isNotBlank()) {
+                            append(state.shiftDate)
+                            append(" · ")
+                        }
+                        append(shiftTypeLabel)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            MTStatusBadge(
+                label = if (state.isOnline) {
+                    stringResource(R.string.home_network_online)
+                } else {
+                    stringResource(R.string.home_network_offline)
+                },
+                tone = if (state.isOnline) {
+                    MTStatusTone.Success
+                } else {
+                    MTStatusTone.Danger
+                },
+            )
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        MTMetricCard(
+            title = stringResource(R.string.home_metric_network),
+            value = if (state.isOnline) {
+                stringResource(R.string.home_network_online)
+            } else {
+                stringResource(R.string.home_network_offline)
+            },
+            subtitle = if (state.isOnline) {
+                stringResource(R.string.shell_sync_ready)
+            } else {
+                stringResource(R.string.offline_banner)
+            },
+            tone = if (state.isOnline) MTStatusTone.Success else MTStatusTone.Danger,
+            modifier = Modifier.weight(1f),
+        )
+        MTMetricCard(
+            title = stringResource(R.string.home_metric_queue),
+            value = state.pendingPacketsCount.toString(),
+            subtitle = if (state.pendingPacketsCount > 0) {
+                stringResource(R.string.home_queue_pending)
+            } else {
+                stringResource(R.string.home_queue_ready)
+            },
+            tone = if (state.pendingPacketsCount > 0) {
+                MTStatusTone.Warning
+            } else {
+                MTStatusTone.Neutral
+            },
+            modifier = Modifier.weight(1f),
+        )
+    }
+
+    MTCard {
+        Text(
+            text = stringResource(R.string.home_metric_shift),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            ) {
+                Text(
+                    text = shiftTypeLabel,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = state.operatorName.ifBlank {
+                        stringResource(R.string.shell_unknown_operator)
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            MTStatusBadge(
+                label = stringResource(R.string.more_summary),
+                tone = MTStatusTone.Neutral,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeBottomBar(
+    selectedDestination: HomeDestination,
+    pendingPacketsCount: Int,
+    onDestinationSelected: (HomeDestination) -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.sm),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            bottomNavItems.forEach { item ->
+                HomeNavItem(
+                    modifier = Modifier.weight(1f),
+                    title = stringResource(item.titleRes),
+                    icon = item.icon,
+                    selected = selectedDestination == item.destination,
+                    badgeCount = if (
+                        item.destination == HomeDestination.UPLOAD &&
+                            pendingPacketsCount > 0
+                    ) {
+                        pendingPacketsCount
+                    } else {
+                        null
+                    },
+                    vertical = false,
+                    onClick = { onDestinationSelected(item.destination) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeNavigationRail(
+    selectedDestination: HomeDestination,
+    pendingPacketsCount: Int,
+    onDestinationSelected: (HomeDestination) -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .padding(start = AppLayout.screenPadding, top = AppSpacing.sm, bottom = AppSpacing.sm)
+            .fillMaxHeight(),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        shape = RoundedCornerShape(AppRadius.xl),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            bottomNavItems.forEach { item ->
+                HomeNavItem(
+                    title = stringResource(item.titleRes),
+                    icon = item.icon,
+                    selected = selectedDestination == item.destination,
+                    badgeCount = if (
+                        item.destination == HomeDestination.UPLOAD &&
+                            pendingPacketsCount > 0
+                    ) {
+                        pendingPacketsCount
+                    } else {
+                        null
+                    },
+                    vertical = true,
+                    onClick = { onDestinationSelected(item.destination) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeNavItem(
+    modifier: Modifier = Modifier,
+    title: String,
     icon: ImageVector,
+    selected: Boolean,
+    badgeCount: Int?,
+    vertical: Boolean,
+    onClick: () -> Unit,
+) {
+    val activeColor = MaterialTheme.colorScheme.tertiary
+    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val contentColor = if (selected) activeColor else inactiveColor
+
+    val outerModifier = if (vertical) {
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    } else {
+        modifier
+            .clickable(onClick = onClick)
+    }
+
+    val arrangement = if (vertical) Arrangement.spacedBy(AppSpacing.xs) else Arrangement.spacedBy(6.dp)
+
+    Box(
+        modifier = outerModifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(if (vertical) AppRadius.lg else AppRadius.xl),
+            color = if (selected) {
+                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)
+            } else {
+                Color.Transparent
+            },
+        ) {
+            Column(
+                modifier = Modifier.padding(
+                    horizontal = if (vertical) AppSpacing.sm else 14.dp,
+                    vertical = if (vertical) AppSpacing.sm else 10.dp,
+                ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = arrangement,
+            ) {
+                BadgedBox(
+                    badge = {
+                        if (badgeCount != null) {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.danger,
+                                contentColor = MaterialTheme.colorScheme.onError,
+                            ) {
+                                Text(badgeCount.toString())
+                            }
+                        }
+                    },
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = contentColor,
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomePrimaryActionCard(
+    icon: ImageVector,
+    statusLabel: String,
+    statusTone: MTStatusTone,
     title: String,
     subtitle: String,
     buttonText: String,
@@ -312,72 +565,70 @@ private fun TabHeroCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AppRadius.xl),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme
-                .primaryContainer.copy(alpha = 0.5f),
+            containerColor = MaterialTheme.colorScheme.primary,
         ),
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
-            horizontalAlignment =
-                Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = AppSpacing.lg, vertical = AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(
-                        MaterialTheme.colorScheme
-                            .primaryContainer,
-                    ),
-                contentAlignment = Alignment.Center,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(36.dp),
-                    tint = MaterialTheme.colorScheme
-                        .onPrimaryContainer,
+                MTStatusBadge(
+                    label = statusLabel,
+                    tone = statusTone,
                 )
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = title,
-                style = MaterialTheme.typography
-                    .headlineSmall,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onPrimary,
             )
-
-            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography
-                    .bodyMedium,
-                color = MaterialTheme.colorScheme
-                    .onSurfaceVariant,
-                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.74f),
             )
-
-            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = onClick,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.small,
-                elevation =
-                    ButtonDefaults.buttonElevation(
-                        defaultElevation = 2.dp,
-                    ),
+                shape = RoundedCornerShape(AppRadius.xl),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onPrimary,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 2.dp,
+                ),
             ) {
                 Text(
                     text = buttonText,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(AppSpacing.xs))
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
@@ -389,60 +640,241 @@ private fun TabHeroCard(
 }
 
 @Composable
+private fun HomeQuickActionCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AppRadius.lg),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppLayout.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeQuickActionsRow(
+    title: String,
+    first: @Composable () -> Unit,
+    second: @Composable () -> Unit,
+) {
+    MTSectionHeader(title = title)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        Box(modifier = Modifier.weight(1f)) { first() }
+        Box(modifier = Modifier.weight(1f)) { second() }
+    }
+}
+
+@Composable
 private fun IssueTabContent(
     onNavigateToIssue: () -> Unit,
+    onNavigateToEmployees: () -> Unit,
+    onNavigateToDevices: () -> Unit,
 ) {
-    TabHeroCard(
+    HomePrimaryActionCard(
         icon = Icons.Default.Watch,
+        statusLabel = stringResource(R.string.home_primary_issue_status),
+        statusTone = MTStatusTone.Success,
         title = stringResource(R.string.issue_title),
         subtitle = stringResource(R.string.home_issue_subtitle),
-        buttonText = stringResource(
-            R.string.issue_navigate,
-        ),
+        buttonText = stringResource(R.string.issue_navigate),
         onClick = onNavigateToIssue,
+    )
+
+    HomeQuickActionsRow(
+        title = stringResource(R.string.home_quick_actions),
+        first = {
+            HomeQuickActionCard(
+                icon = Icons.Default.People,
+                title = stringResource(R.string.more_employees),
+                subtitle = stringResource(R.string.home_shortcut_employees_desc),
+                onClick = onNavigateToEmployees,
+            )
+        },
+        second = {
+            HomeQuickActionCard(
+                icon = Icons.Default.Devices,
+                title = stringResource(R.string.more_devices),
+                subtitle = stringResource(R.string.home_shortcut_devices_desc),
+                onClick = onNavigateToDevices,
+            )
+        },
+    )
+
+    StateCard(
+        message = stringResource(R.string.home_issue_hint),
+        isError = false,
     )
 }
 
 @Composable
 private fun ReturnTabContent(
     onNavigateToReturn: () -> Unit,
+    onNavigateToJournal: () -> Unit,
+    onNavigateToSummary: () -> Unit,
 ) {
-    TabHeroCard(
+    HomePrimaryActionCard(
         icon = Icons.Default.Replay,
+        statusLabel = stringResource(R.string.home_primary_return_status),
+        statusTone = MTStatusTone.Warning,
         title = stringResource(R.string.return_title),
         subtitle = stringResource(R.string.home_return_subtitle),
-        buttonText = stringResource(
-            R.string.return_navigate,
-        ),
+        buttonText = stringResource(R.string.return_navigate),
         onClick = onNavigateToReturn,
+    )
+
+    HomeQuickActionsRow(
+        title = stringResource(R.string.home_quick_actions),
+        first = {
+            HomeQuickActionCard(
+                icon = Icons.AutoMirrored.Filled.List,
+                title = stringResource(R.string.journal_title),
+                subtitle = stringResource(R.string.home_shortcut_journal_desc),
+                onClick = onNavigateToJournal,
+            )
+        },
+        second = {
+            HomeQuickActionCard(
+                icon = Icons.Default.BarChart,
+                title = stringResource(R.string.more_summary),
+                subtitle = stringResource(R.string.home_shortcut_summary_desc),
+                onClick = onNavigateToSummary,
+            )
+        },
+    )
+
+    StateCard(
+        message = stringResource(R.string.home_return_hint),
+        isError = false,
     )
 }
 
 @Composable
 private fun UploadTabContent(
+    pendingPacketsCount: Int,
     onNavigateToDevices: () -> Unit,
+    onNavigateToJournal: () -> Unit,
 ) {
-    TabHeroCard(
+    HomePrimaryActionCard(
         icon = Icons.Default.CloudUpload,
+        statusLabel = if (pendingPacketsCount > 0) {
+            stringResource(R.string.home_primary_upload_status_pending, pendingPacketsCount)
+        } else {
+            stringResource(R.string.home_primary_upload_status_ready)
+        },
+        statusTone = if (pendingPacketsCount > 0) MTStatusTone.Warning else MTStatusTone.Success,
         title = stringResource(R.string.tab_upload),
         subtitle = stringResource(R.string.home_upload_subtitle),
         buttonText = stringResource(R.string.more_devices),
         onClick = onNavigateToDevices,
+    )
+
+    HomeQuickActionsRow(
+        title = stringResource(R.string.home_quick_actions),
+        first = {
+            HomeQuickActionCard(
+                icon = Icons.Default.Devices,
+                title = stringResource(R.string.more_devices),
+                subtitle = stringResource(R.string.home_shortcut_devices_desc),
+                onClick = onNavigateToDevices,
+            )
+        },
+        second = {
+            HomeQuickActionCard(
+                icon = Icons.AutoMirrored.Filled.List,
+                title = stringResource(R.string.journal_title),
+                subtitle = stringResource(R.string.home_shortcut_journal_desc),
+                onClick = onNavigateToJournal,
+            )
+        },
+    )
+
+    StateCard(
+        message = if (pendingPacketsCount > 0) {
+            stringResource(R.string.home_upload_hint_pending, pendingPacketsCount)
+        } else {
+            stringResource(R.string.home_upload_hint_ready)
+        },
+        isError = false,
     )
 }
 
 @Composable
 private fun JournalTabContent(
     onNavigateToJournal: () -> Unit,
+    onNavigateToSummary: () -> Unit,
+    onNavigateToSettings: () -> Unit,
 ) {
-    TabHeroCard(
+    HomePrimaryActionCard(
         icon = Icons.AutoMirrored.Filled.List,
+        statusLabel = stringResource(R.string.home_primary_journal_status),
+        statusTone = MTStatusTone.Neutral,
         title = stringResource(R.string.journal_title),
         subtitle = stringResource(R.string.home_journal_subtitle),
-        buttonText = stringResource(
-            R.string.journal_navigate,
-        ),
+        buttonText = stringResource(R.string.journal_navigate),
         onClick = onNavigateToJournal,
+    )
+
+    HomeQuickActionsRow(
+        title = stringResource(R.string.home_quick_actions),
+        first = {
+            HomeQuickActionCard(
+                icon = Icons.Default.BarChart,
+                title = stringResource(R.string.more_summary),
+                subtitle = stringResource(R.string.home_shortcut_summary_desc),
+                onClick = onNavigateToSummary,
+            )
+        },
+        second = {
+            HomeQuickActionCard(
+                icon = Icons.Default.Settings,
+                title = stringResource(R.string.more_settings),
+                subtitle = stringResource(R.string.home_shortcut_settings_desc),
+                onClick = onNavigateToSettings,
+            )
+        },
+    )
+
+    StateCard(
+        message = stringResource(R.string.home_journal_hint),
+        isError = false,
     )
 }
 
@@ -453,10 +885,8 @@ private fun MoreTabContent(
     onNavigateToSummary: () -> Unit,
     onNavigateToSettings: () -> Unit,
 ) {
-    Text(
-        text = stringResource(R.string.more_title),
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
+    MTSectionHeader(
+        title = stringResource(R.string.more_title),
     )
 
     MoreMenuItem(
@@ -496,17 +926,16 @@ private fun MoreMenuItem(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AppRadius.lg),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme
-                .surfaceContainerLow,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment =
-                Alignment.CenterVertically,
+                .padding(AppLayout.cardPadding),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
@@ -514,8 +943,8 @@ private fun MoreMenuItem(
                     .clip(CircleShape)
                     .background(
                         MaterialTheme.colorScheme
-                            .primaryContainer
-                            .copy(alpha = 0.6f),
+                            .tertiaryContainer
+                            .copy(alpha = 0.7f),
                     ),
                 contentAlignment = Alignment.Center,
             ) {
@@ -523,68 +952,28 @@ private fun MoreMenuItem(
                     icon,
                     contentDescription = null,
                     modifier = Modifier.size(22.dp),
-                    tint = MaterialTheme.colorScheme
-                        .primary,
+                    tint = MaterialTheme.colorScheme.tertiary,
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography
-                        .titleSmall,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography
-                        .bodySmall,
-                    color = MaterialTheme.colorScheme
-                        .onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme
-                    .onSurfaceVariant,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-}
-
-@Composable
-private fun OfflineBanner() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.errorContainer,
-            )
-            .padding(
-                horizontal = 16.dp,
-                vertical = 10.dp,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Icon(
-            Icons.Default.CloudOff,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme
-                .onErrorContainer,
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = stringResource(
-                R.string.offline_banner,
-            ),
-            color = MaterialTheme.colorScheme
-                .onErrorContainer,
-            style = MaterialTheme.typography.labelLarge,
-            textAlign = TextAlign.Center,
-        )
     }
 }

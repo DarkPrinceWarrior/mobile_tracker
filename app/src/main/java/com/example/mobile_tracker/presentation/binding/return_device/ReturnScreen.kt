@@ -1,5 +1,7 @@
 package com.example.mobile_tracker.presentation.binding.return_device
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,165 +13,114 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Replay
-import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.DeviceBinding
 import com.example.mobile_tracker.presentation.common.AdaptiveListDetail
+import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.MTCard
+import com.example.mobile_tracker.presentation.common.MTCompactTopBar
+import com.example.mobile_tracker.presentation.common.MTStatusBadge
+import com.example.mobile_tracker.presentation.common.MTStatusTone
 import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.common.rememberIsTablet
+import com.example.mobile_tracker.ui.theme.AppLayout
+import com.example.mobile_tracker.ui.theme.AppRadius
+import com.example.mobile_tracker.ui.theme.AppSpacing
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReturnScreen(
     onBack: (() -> Unit)? = null,
     viewModel: ReturnViewModel = koinViewModel(),
 ) {
-    val state by
-        viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val isTablet = rememberIsTablet()
-    val selectedBinding = state.activeBindings.firstOrNull {
-        it.id == state.selectedBindingId
-    }
+    val selectedBinding = state.activeBindings.firstOrNull { it.id == state.selectedBindingId }
 
     LaunchedEffect(Unit) {
-        viewModel.effect.collect { effect ->
-            when (effect) {
-                is ReturnEffect.ShowSuccess -> { }
-                is ReturnEffect.ShowError -> { }
-            }
-        }
+        viewModel.effect.collect { }
     }
 
     if (state.showConfirmWithoutUpload) {
         AlertDialog(
-            onDismissRequest = {
-                viewModel.onIntent(
-                    ReturnIntent.DismissConfirmDialog,
-                )
-            },
-            title = {
-                Text(
-                    stringResource(
-                        R.string.return_data_not_uploaded_title,
-                    ),
-                )
-            },
-            text = {
-                Text(
-                    stringResource(
-                        R.string.return_data_not_uploaded_message,
-                    ),
-                )
-            },
+            onDismissRequest = { viewModel.onIntent(ReturnIntent.DismissConfirmDialog) },
+            title = { Text(stringResource(R.string.return_data_not_uploaded_title)) },
+            text = { Text(stringResource(R.string.return_data_not_uploaded_message)) },
             confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.onIntent(
-                            ReturnIntent
-                                .ConfirmReturnWithoutUpload,
-                        )
-                    },
-                ) {
+                Button(onClick = { viewModel.onIntent(ReturnIntent.ConfirmReturnWithoutUpload) }) {
                     Text(stringResource(R.string.return_continue))
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.onIntent(
-                            ReturnIntent
-                                .DismissConfirmDialog,
-                        )
-                    },
-                ) {
+                TextButton(onClick = { viewModel.onIntent(ReturnIntent.DismissConfirmDialog) }) {
                     Text(stringResource(R.string.return_cancel))
                 }
             },
         )
     }
 
-    Scaffold(
+    AppScreenScaffold(
+        snackbarMessage = state.error,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.return_title),
-                            fontWeight =
-                                FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.return_issued_count,
-                                state.activeBindings.size,
-                            ),
-                            style = MaterialTheme
-                                .typography.bodySmall,
-                            color = MaterialTheme
-                                .colorScheme
-                                .onSurfaceVariant,
-                        )
-                    }
-                },
+            MTCompactTopBar(
+                title = stringResource(R.string.return_title),
+                subtitle = stringResource(R.string.return_issued_count, state.activeBindings.size),
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.action_back),
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
                 },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme
-                            .colorScheme.surface,
-                    ),
             )
         },
     ) { padding ->
@@ -177,95 +128,126 @@ fun ReturnScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
+            ReturnSummaryCard(
+                totalCount = state.activeBindings.size,
+                selectedBinding = selectedBinding,
+            )
+
             if (state.error != null) {
-                StateCard(
-                    message = state.error!!,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
+                StateCard(message = state.error!!, isError = true)
             }
 
             Box(modifier = Modifier.weight(1f)) {
                 AdaptiveListDetail(
                     isTablet = isTablet,
                     listPane = { paneModifier ->
-                        if (state.isLoading) {
-                            LoadingState(modifier = paneModifier)
-                        } else if (state.activeBindings.isEmpty()) {
-                            EmptyState(
+                        when {
+                            state.isLoading -> LoadingState(modifier = paneModifier)
+                            state.activeBindings.isEmpty() -> EmptyState(
                                 title = stringResource(R.string.return_empty),
                                 icon = Icons.Default.Replay,
                                 modifier = paneModifier,
                             )
-                        } else {
-                            LazyColumn(
+                            else -> LazyColumn(
                                 modifier = paneModifier,
-                                verticalArrangement =
-                                    Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                             ) {
-                                items(
-                                    items = state.activeBindings,
-                                    key = { it.id },
-                                ) { binding ->
+                                items(state.activeBindings, key = { it.id }) { binding ->
                                     BindingCard(
                                         binding = binding,
-                                        isSelected =
+                                        isSelected = state.selectedBindingId == binding.id,
+                                        isReturning = state.isReturning &&
                                             state.selectedBindingId == binding.id,
-                                        isReturning =
-                                            state.isReturning &&
-                                                state.selectedBindingId == binding.id,
                                         showInlineActions = !isTablet,
                                         onSelect = {
-                                            viewModel.onIntent(
-                                                ReturnIntent
-                                                    .SelectBinding(
-                                                        binding,
-                                                    ),
-                                            )
+                                            viewModel.onIntent(ReturnIntent.SelectBinding(binding))
                                         },
-                                        onReturn = {
-                                            viewModel.onIntent(
-                                                ReturnIntent
-                                                    .ConfirmReturn,
-                                            )
-                                        },
+                                        onReturn = { viewModel.onIntent(ReturnIntent.ConfirmReturn) },
                                         onMarkLost = {
-                                            viewModel.onIntent(
-                                                ReturnIntent
-                                                    .MarkLost(
-                                                        binding,
-                                                    ),
-                                            )
+                                            viewModel.onIntent(ReturnIntent.MarkLost(binding))
                                         },
                                     )
                                 }
-                                item {
-                                    Spacer(
-                                        modifier =
-                                            Modifier.height(16.dp),
-                                    )
-                                }
+                                item { Spacer(modifier = Modifier.height(AppSpacing.lg)) }
                             }
                         }
                     },
                     detailPane = { paneModifier ->
                         ReturnDetailPane(
-                            modifier = paneModifier.padding(horizontal = 12.dp),
+                            modifier = paneModifier.padding(start = AppSpacing.sm),
                             binding = selectedBinding,
                             isReturning = state.isReturning,
-                            onReturn = {
-                                viewModel.onIntent(ReturnIntent.ConfirmReturn)
-                            },
+                            onReturn = { viewModel.onIntent(ReturnIntent.ConfirmReturn) },
                             onMarkLost = {
                                 selectedBinding?.let {
-                                    viewModel.onIntent(
-                                        ReturnIntent.MarkLost(it),
-                                    )
+                                    viewModel.onIntent(ReturnIntent.MarkLost(it))
                                 }
                             },
                         )
                     },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReturnSummaryCard(
+    totalCount: Int,
+    selectedBinding: DeviceBinding?,
+) {
+    MTCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            ) {
+                Text(
+                    text = stringResource(R.string.return_summary_title),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = totalCount.toString(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = stringResource(R.string.home_return_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            MTStatusBadge(
+                label = stringResource(R.string.return_summary_status),
+                tone = MTStatusTone.Warning,
+            )
+        }
+
+        if (selectedBinding != null) {
+            Spacer(modifier = Modifier.height(AppSpacing.xs))
+            Surface(
+                shape = RoundedCornerShape(AppRadius.pill),
+                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f),
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.return_selected_binding,
+                        selectedBinding.deviceId,
+                        selectedBinding.employeeName,
+                    ),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -291,97 +273,77 @@ private fun BindingCard(
                 role = Role.Button,
                 onClick = onSelect,
             ),
+        shape = RoundedCornerShape(AppRadius.lg),
+        border = if (isSelected) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.32f))
+        } else {
+            null
+        },
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
-                MaterialTheme.colorScheme
-                    .secondaryContainer
+                MaterialTheme.colorScheme.surfaceContainer
             } else {
-                MaterialTheme.colorScheme.surface
-            },
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) {
-                4.dp
-            } else {
-                1.dp
+                MaterialTheme.colorScheme.surfaceContainerLowest
             },
         ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(AppLayout.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment =
-                    Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    Icons.Default.Watch,
-                    contentDescription = null,
-                    tint =
-                        MaterialTheme.colorScheme.primary,
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Default.Watch,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
                     Text(
                         text = binding.deviceId,
-                        style = MaterialTheme.typography
-                            .titleMedium,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = binding.employeeName,
-                        style = MaterialTheme.typography
-                            .bodyMedium,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = stringResource(
-                            R.string.return_issued_at,
-                            formatTime(binding.boundAt),
-                        ),
-                        style = MaterialTheme.typography
-                            .bodySmall,
-                        color = MaterialTheme.colorScheme
-                            .onSurfaceVariant,
+                        text = stringResource(R.string.return_issued_at, formatTime(binding.boundAt)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                SyncStatusIcon(
-                    isSynced = binding.isSynced,
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                DataStatusIcon(
-                    dataUploaded = binding.dataUploaded,
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    SyncBadge(isSynced = binding.isSynced)
+                    UploadBadge(dataUploaded = binding.dataUploaded)
+                }
             }
 
             if (isSelected && showInlineActions) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(8.dp),
-                ) {
-                    FilledTonalButton(
-                        onClick = onReturn,
-                        modifier = Modifier.weight(1f),
-                        enabled = !isReturning,
-                    ) {
-                        if (isReturning) {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .height(20.dp)
-                                    .width(20.dp),
-                            )
-                        } else {
-                            Text(stringResource(R.string.return_button))
-                        }
-                    }
-                    OutlinedButton(
-                        onClick = onMarkLost,
-                        enabled = !isReturning,
-                    ) {
-                        Text(stringResource(R.string.return_mark_lost))
-                    }
-                }
+                ReturnActionRow(
+                    isReturning = isReturning,
+                    onReturn = onReturn,
+                    onMarkLost = onMarkLost,
+                )
             }
         }
     }
@@ -397,7 +359,7 @@ private fun ReturnDetailPane(
 ) {
     if (binding == null) {
         EmptyState(
-            title = stringResource(R.string.return_empty),
+            title = stringResource(R.string.return_detail_empty),
             icon = Icons.Default.Replay,
             modifier = modifier.fillMaxSize(),
         )
@@ -406,103 +368,178 @@ private fun ReturnDetailPane(
 
     Card(
         modifier = modifier.fillMaxSize(),
+        shape = RoundedCornerShape(AppRadius.xl),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(AppSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            Text(
-                text = binding.deviceId,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = binding.employeeName,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                text = stringResource(
-                    R.string.return_issued_at,
-                    formatTime(binding.boundAt),
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SyncStatusIcon(isSynced = binding.isSynced)
-                DataStatusIcon(dataUploaded = binding.dataUploaded)
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Default.Watch,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = binding.deviceId,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = binding.employeeName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            ReturnDetailRow(
+                label = stringResource(R.string.return_detail_employee),
+                value = binding.employeeName,
+            )
+            ReturnDetailRow(
+                label = stringResource(R.string.return_detail_issued_at),
+                value = formatTime(binding.boundAt),
+            )
+            ReturnDetailRow(
+                label = stringResource(R.string.return_detail_shift),
+                value = "${binding.shiftDate} · ${binding.shiftType}",
+            )
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                FilledTonalButton(
-                    onClick = onReturn,
-                    modifier = Modifier.weight(1f),
-                    enabled = !isReturning,
-                ) {
-                    Text(stringResource(R.string.return_button))
-                }
-                OutlinedButton(
-                    onClick = onMarkLost,
-                    enabled = !isReturning,
-                ) {
-                    Text(stringResource(R.string.return_mark_lost))
-                }
+                SyncBadge(isSynced = binding.isSynced)
+                UploadBadge(dataUploaded = binding.dataUploaded)
             }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            ReturnActionRow(
+                isReturning = isReturning,
+                onReturn = onReturn,
+                onMarkLost = onMarkLost,
+            )
         }
     }
 }
 
 @Composable
-private fun SyncStatusIcon(isSynced: Boolean) {
-    if (isSynced) {
-        Icon(
-            Icons.Default.CloudDone,
-            contentDescription = stringResource(R.string.binding_synced),
-            tint = MaterialTheme.colorScheme
-                .onSurfaceVariant
-                .copy(alpha = 0.5f),
-        )
-    } else {
-        Icon(
-            Icons.Default.CloudOff,
-            contentDescription =
-                stringResource(R.string.binding_pending_sync),
-            tint = MaterialTheme.colorScheme.tertiary,
-        )
+private fun ReturnActionRow(
+    isReturning: Boolean,
+    onReturn: () -> Unit,
+    onMarkLost: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        Button(
+            onClick = onReturn,
+            modifier = Modifier
+                .weight(1f)
+                .height(52.dp),
+            enabled = !isReturning,
+            shape = RoundedCornerShape(AppRadius.xl),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+        ) {
+            if (isReturning) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            } else {
+                Text(stringResource(R.string.return_button))
+            }
+        }
+        OutlinedButton(
+            onClick = onMarkLost,
+            modifier = Modifier.height(52.dp),
+            enabled = !isReturning,
+            shape = RoundedCornerShape(AppRadius.xl),
+        ) {
+            Text(stringResource(R.string.return_mark_lost))
+        }
     }
 }
 
 @Composable
-private fun DataStatusIcon(dataUploaded: Boolean) {
-    if (dataUploaded) {
-        Icon(
-            Icons.Default.CheckCircle,
-            contentDescription = stringResource(R.string.return_data_uploaded),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-    } else {
-        Icon(
-            Icons.Default.Warning,
-            contentDescription = stringResource(R.string.return_data_pending),
-            tint = MaterialTheme.colorScheme.error,
-        )
+private fun SyncBadge(isSynced: Boolean) {
+    MTStatusBadge(
+        label = if (isSynced) {
+            stringResource(R.string.binding_synced)
+        } else {
+            stringResource(R.string.binding_pending_sync)
+        },
+        tone = if (isSynced) MTStatusTone.Neutral else MTStatusTone.Warning,
+    )
+}
+
+@Composable
+private fun UploadBadge(dataUploaded: Boolean) {
+    MTStatusBadge(
+        label = if (dataUploaded) {
+            stringResource(R.string.return_data_uploaded)
+        } else {
+            stringResource(R.string.return_data_pending)
+        },
+        tone = if (dataUploaded) MTStatusTone.Success else MTStatusTone.Danger,
+    )
+}
+
+@Composable
+private fun ReturnDetailRow(
+    label: String,
+    value: String,
+) {
+    Surface(
+        shape = RoundedCornerShape(AppRadius.lg),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 
 private fun formatTime(timestampMs: Long): String {
-    val sdf = SimpleDateFormat(
-        "HH:mm",
-        Locale("ru"),
-    )
+    val sdf = SimpleDateFormat("HH:mm", Locale("ru"))
     return sdf.format(Date(timestampMs))
 }

@@ -41,13 +41,41 @@
     <string name="home_more_employees_subtitle">База сотрудников подрядчиков</string>
     <string name="home_more_summary_subtitle">Статистика текущей смены</string>
     <string name="home_more_settings_subtitle">Профиль, контекст, выход</string>
+    <string name="home_overview_title">Смена на площадке</string>
+    <string name="home_metric_network">Сеть</string>
+    <string name="home_metric_queue">Очередь</string>
+    <string name="home_metric_shift">Смена</string>
+    <string name="home_network_online">Онлайн</string>
+    <string name="home_network_offline">Оффлайн</string>
+    <string name="home_queue_ready">Без очереди</string>
+    <string name="home_queue_pending">Ожидает отправки</string>
+    <string name="home_quick_actions">Быстрые действия</string>
+    <string name="home_shortcut_employees_desc">Проверить сотрудника перед выдачей</string>
+    <string name="home_shortcut_devices_desc">Открыть список часов на площадке</string>
+    <string name="home_shortcut_journal_desc">Посмотреть последние операции смены</string>
+    <string name="home_shortcut_summary_desc">Открыть сводку по текущей смене</string>
+    <string name="home_shortcut_settings_desc">Профиль, контекст и служебные действия</string>
+    <string name="home_issue_hint">Сценарий выдачи остаётся пошаговым: сначала сотрудник, затем устройство, затем подтверждение.</string>
+    <string name="home_return_hint">Возврат проверяет, были ли выгружены данные с часов, прежде чем завершить операцию.</string>
+    <string name="home_upload_hint_ready">Данные можно выгружать сразу из списка устройств. Если сеть недоступна, пакет сохранится локально.</string>
+    <string name="home_upload_hint_pending">%1$d пакетов уже находятся в очереди. Выгрузка продолжит работать без потери данных.</string>
+    <string name="home_journal_hint">Журнал остаётся основным местом для поиска операций, фильтрации ошибок и контроля синхронизации.</string>
+    <string name="home_primary_issue_status">Основное действие</string>
+    <string name="home_primary_return_status">Требует проверки</string>
+    <string name="home_primary_upload_status_ready">Готово к выгрузке</string>
+    <string name="home_primary_upload_status_pending">%1$d в очереди</string>
+    <string name="home_primary_journal_status">Контроль операций</string>
 
     <!-- M2: Devices -->
     <string name="devices_title">Часы на площадке</string>
     <string name="devices_search_hint">Поиск по ID или серийному №</string>
+    <string name="devices_section_title">Часы площадки</string>
     <string name="devices_filter_all">Все</string>
     <string name="devices_filter_available">Свободны</string>
     <string name="devices_filter_issued">Выданы</string>
+    <string name="devices_detail_empty">Выберите устройство из списка</string>
+    <string name="devices_detail_serial">Серийный номер</string>
+    <string name="devices_detail_last_sync">Последняя синхронизация</string>
     <string name="devices_status_available">Свободен</string>
     <string name="devices_status_issued">Выдан</string>
     <string name="devices_status_discharged">Разряжен</string>
@@ -65,6 +93,13 @@
     <string name="employees_search_hint">Табельный номер или ФИО</string>
     <string name="employees_found">Найдено: %d</string>
     <string name="employees_empty">Сотрудники не найдены</string>
+    <string name="employees_detail_empty">Выберите сотрудника из списка</string>
+    <string name="employees_section_title">Сотрудники площадки</string>
+    <string name="employees_list_mode">Полный список</string>
+    <string name="employees_selected">Выбран: %1$s</string>
+    <string name="employees_detail_position">Должность</string>
+    <string name="employees_detail_brigade">Бригада</string>
+    <string name="employees_detail_pass">Пропуск</string>
     <string name="employees_personnel_number">Таб. №: %s</string>
     <string name="employees_brigade">Бригада: %s</string>
 
@@ -115,6 +150,13 @@
     <string name="return_mark_lost">Потеряны</string>
     <string name="return_success">Часы возвращены</string>
     <string name="return_navigate">Перейти к возврату</string>
+    <string name="return_summary_title">Активные выдачи</string>
+    <string name="return_summary_status">Нужна проверка</string>
+    <string name="return_selected_binding">%1$s · %2$s</string>
+    <string name="return_detail_empty">Выберите выдачу из списка</string>
+    <string name="return_detail_employee">Сотрудник</string>
+    <string name="return_detail_issued_at">Выдано</string>
+    <string name="return_detail_shift">Смена</string>
     <string name="return_data_not_uploaded_title">Данные не выгружены</string>
     <string name="return_data_not_uploaded_message">Данные с часов ещё не выгружены. Продолжить возврат без выгрузки?</string>
     <string name="return_continue">Продолжить</string>
@@ -158,6 +200,10 @@
     <!-- M5: Offline -->
     <string name="offline_banner">Нет подключения к интернету</string>
     <string name="offline_pending_count">Пакетов в очереди: %d</string>
+    <string name="shell_sync_ready">Синхронизация активна</string>
+    <string name="shell_pending_packets_short">%d в очереди</string>
+    <string name="shell_offline">Оффлайн</string>
+    <string name="shell_unknown_operator">Оператор</string>
 
     <!-- M5: More tab -->
     <string name="more_summary">Сводка по смене</string>
@@ -180,6 +226,9 @@
 
     <!-- Upload -->
     <string name="upload_data_title">Выгрузка данных</string>
+    <string name="upload_idle_status">BLE готов</string>
+    <string name="upload_progress_status">Идёт считывание</string>
+    <string name="upload_done_status">Выгрузка завершена</string>
     <string name="upload_device_label">Устройство: %s</string>
     <string name="upload_start_button">Начать выгрузку</string>
     <string name="upload_error_title">Ошибка выгрузки</string>

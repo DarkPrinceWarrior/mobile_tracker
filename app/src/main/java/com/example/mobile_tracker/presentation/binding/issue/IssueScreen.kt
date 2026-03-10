@@ -1,6 +1,7 @@
 package com.example.mobile_tracker.presentation.binding.issue
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,105 +18,93 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.Device
 import com.example.mobile_tracker.domain.model.Employee
+import com.example.mobile_tracker.presentation.common.AppScreenScaffold
+import com.example.mobile_tracker.presentation.common.MTCard
+import com.example.mobile_tracker.presentation.common.MTCompactTopBar
+import com.example.mobile_tracker.presentation.common.MTStatusBadge
+import com.example.mobile_tracker.presentation.common.MTStatusTone
+import com.example.mobile_tracker.presentation.common.StateCard
+import com.example.mobile_tracker.ui.theme.AppLayout
+import com.example.mobile_tracker.ui.theme.AppRadius
+import com.example.mobile_tracker.ui.theme.AppSpacing
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IssueScreen(
     onBack: (() -> Unit)? = null,
     viewModel: IssueViewModel = koinViewModel(),
 ) {
-    val state by
-        viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        viewModel.effect.collect { effect ->
-            when (effect) {
-                is IssueEffect.ShowSuccess -> { }
-                is IssueEffect.ShowError -> { }
-            }
-        }
+        viewModel.effect.collect { }
     }
 
-    Scaffold(
+    AppScreenScaffold(
+        snackbarMessage = state.error ?: state.validationError,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.issue_title),
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                },
+            MTCompactTopBar(
+                title = stringResource(R.string.issue_title),
+                subtitle = stepTitle(state.step),
                 navigationIcon = {
-                    if (state.step != IssueStep.IDENTIFY_EMPLOYEE) {
-                        IconButton(
-                            onClick = {
-                                viewModel.onIntent(
-                                    IssueIntent.GoBack,
-                                )
-                            },
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored
-                                    .Filled.ArrowBack,
-                                contentDescription =
-                                    stringResource(R.string.action_back),
-                            )
+                    val backAction: (() -> Unit)? = when {
+                        state.step != IssueStep.IDENTIFY_EMPLOYEE -> {
+                            { viewModel.onIntent(IssueIntent.GoBack) }
                         }
-                    } else if (onBack != null) {
-                        IconButton(onClick = onBack) {
+                        onBack != null -> onBack
+                        else -> null
+                    }
+                    if (backAction != null) {
+                        IconButton(onClick = backAction) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.action_back),
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
                 },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme
-                            .colorScheme.surface,
-                    ),
             )
         },
     ) { padding ->
@@ -123,35 +112,31 @@ fun IssueScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            StepIndicator(currentStep = state.step)
+            IssueStepIndicator(currentStep = state.step)
+            IssueContextCard(state = state)
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            AnimatedContent(
-                targetState = state.step,
-                label = "issue_step",
-            ) { step ->
-                when (step) {
-                    IssueStep.IDENTIFY_EMPLOYEE ->
-                        IdentifyEmployeeContent(
+            Box(modifier = Modifier.weight(1f)) {
+                AnimatedContent(
+                    targetState = state.step,
+                    label = "issue_step",
+                ) { step ->
+                    when (step) {
+                        IssueStep.IDENTIFY_EMPLOYEE -> IdentifyEmployeeContent(
                             state = state,
-                            onIntent =
-                                viewModel::onIntent,
+                            onIntent = viewModel::onIntent,
                         )
-                    IssueStep.SELECT_DEVICE ->
-                        SelectDeviceContent(
+                        IssueStep.SELECT_DEVICE -> SelectDeviceContent(
                             state = state,
-                            onIntent =
-                                viewModel::onIntent,
+                            onIntent = viewModel::onIntent,
                         )
-                    IssueStep.CONFIRM ->
-                        ConfirmContent(
+                        IssueStep.CONFIRM -> ConfirmContent(
                             state = state,
-                            onIntent =
-                                viewModel::onIntent,
+                            onIntent = viewModel::onIntent,
                         )
+                    }
                 }
             }
         }
@@ -159,112 +144,110 @@ fun IssueScreen(
 }
 
 @Composable
-private fun StepIndicator(currentStep: IssueStep) {
+private fun IssueStepIndicator(currentStep: IssueStep) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
         IssueStep.entries.forEachIndexed { index, step ->
-            val isActive = step == currentStep
-            val isDone =
-                step.ordinal < currentStep.ordinal
-            val color = when {
-                isActive ->
-                    MaterialTheme.colorScheme.primary
-                isDone ->
-                    MaterialTheme.colorScheme.primary
-                else ->
-                    MaterialTheme.colorScheme
-                        .outlineVariant
-            }
-            val bgColor = when {
-                isActive || isDone ->
-                    MaterialTheme.colorScheme
-                        .primaryContainer
-                else ->
-                    MaterialTheme.colorScheme
-                        .surfaceVariant
-            }
-
-            Row(
-                verticalAlignment =
-                    Alignment.CenterVertically,
+            val selected = step == currentStep
+            val completed = step.ordinal < currentStep.ordinal
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(AppRadius.lg),
+                color = when {
+                    selected -> MaterialTheme.colorScheme.primary
+                    completed -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)
+                    else -> MaterialTheme.colorScheme.surfaceContainer
+                },
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(bgColor),
-                    contentAlignment = Alignment.Center,
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (isDone) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            modifier =
-                                Modifier.size(20.dp),
-                            tint = color,
-                        )
-                    } else {
-                        Text(
-                            text = "${index + 1}",
-                            style = MaterialTheme
-                                .typography.labelLarge,
-                            fontWeight =
-                                FontWeight.Bold,
-                            color = color,
-                        )
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(
+                                when {
+                                    selected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)
+                                    completed -> MaterialTheme.colorScheme.tertiary
+                                    else -> MaterialTheme.colorScheme.outlineVariant
+                                },
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (completed) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            )
+                        } else {
+                            Text(
+                                text = "${index + 1}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (selected) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
                     }
+                    Text(
+                        text = stepShortTitle(step),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else if (completed) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-                Spacer(
-                    modifier = Modifier.width(6.dp),
-                )
-                Text(
-                    text = when (step) {
-                        IssueStep.IDENTIFY_EMPLOYEE ->
-                            stringResource(
-                                R.string.issue_step_employee_short,
-                            )
-                        IssueStep.SELECT_DEVICE ->
-                            stringResource(
-                                R.string.issue_step_device_short,
-                            )
-                        IssueStep.CONFIRM ->
-                            stringResource(
-                                R.string.issue_step_confirm_short,
-                            )
-                    },
-                    style = MaterialTheme.typography
-                        .labelMedium,
-                    fontWeight = if (isActive) {
-                        FontWeight.Bold
-                    } else {
-                        FontWeight.Normal
-                    },
-                    color = color,
-                )
             }
+        }
+    }
+}
 
-            if (index < IssueStep.entries.size - 1) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(2.dp)
-                        .padding(horizontal = 8.dp)
-                        .background(
-                            if (isDone) {
-                                MaterialTheme
-                                    .colorScheme
-                                    .primary
-                            } else {
-                                MaterialTheme
-                                    .colorScheme
-                                    .outlineVariant
-                            },
-                        ),
-                )
+@Composable
+private fun IssueContextCard(state: IssueState) {
+    MTCard {
+        Text(
+            text = stepTitle(state.step),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stepSubtitle(state.step, state.availableDevices.size),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (state.selectedEmployee != null || state.selectedDevice != null) {
+            Spacer(modifier = Modifier.height(AppSpacing.xs))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                state.selectedEmployee?.let {
+                    SelectionPill(
+                        icon = Icons.Default.Person,
+                        text = it.fullName,
+                    )
+                }
+                state.selectedDevice?.let {
+                    SelectionPill(
+                        icon = Icons.Default.Watch,
+                        text = it.deviceId,
+                    )
+                }
             }
         }
     }
@@ -275,109 +258,54 @@ private fun IdentifyEmployeeContent(
     state: IssueState,
     onIntent: (IssueIntent) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        OutlinedTextField(
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
+        SearchBlock(
+            label = stringResource(R.string.issue_personnel_label),
             value = state.personnelQuery,
-            onValueChange = {
-                onIntent(
-                    IssueIntent.UpdatePersonnelQuery(it),
-                )
-            },
-            label = { Text(stringResource(R.string.issue_personnel_label)) },
-            modifier = Modifier.fillMaxWidth(),
+            onValueChange = { onIntent(IssueIntent.UpdatePersonnelQuery(it)) },
+            onSearch = { onIntent(IssueIntent.SearchByPersonnel) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
                 imeAction = ImeAction.Search,
             ),
             keyboardActions = KeyboardActions(
-                onSearch = {
-                    onIntent(IssueIntent.SearchByPersonnel)
-                },
+                onSearch = { onIntent(IssueIntent.SearchByPersonnel) },
             ),
-            trailingIcon = {
-                IconButton(
-                    onClick = {
-                        onIntent(
-                            IssueIntent.SearchByPersonnel,
-                        )
-                    },
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = stringResource(R.string.action_search),
-                    )
-                }
-            },
-            singleLine = true,
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
+        SearchBlock(
+            label = stringResource(R.string.issue_name_label),
             value = state.nameQuery,
-            onValueChange = {
-                onIntent(
-                    IssueIntent.UpdateNameQuery(it),
-                )
-            },
-            label = { Text(stringResource(R.string.issue_name_label)) },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Search,
-            ),
+            onValueChange = { onIntent(IssueIntent.UpdateNameQuery(it)) },
+            onSearch = { onIntent(IssueIntent.SearchByName) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(
-                onSearch = {
-                    onIntent(IssueIntent.SearchByName)
-                },
+                onSearch = { onIntent(IssueIntent.SearchByName) },
             ),
-            trailingIcon = {
-                IconButton(
-                    onClick = {
-                        onIntent(IssueIntent.SearchByName)
-                    },
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = stringResource(R.string.action_search),
-                    )
-                }
-            },
-            singleLine = true,
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         if (state.isSearching) {
             CircularProgressIndicator(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(16.dp),
+                    .padding(vertical = AppSpacing.sm),
+                color = MaterialTheme.colorScheme.tertiary,
             )
         }
-
         if (state.error != null) {
-            Text(
-                text = state.error,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
+            StateCard(message = state.error, isError = true)
         }
 
-        LazyColumn {
-            items(
-                items = state.searchResults,
-                key = { it.id },
-            ) { employee ->
-                EmployeeCard(
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            items(state.searchResults, key = { it.id }) { employee ->
+                IssueEmployeeResultCard(
                     employee = employee,
-                    onClick = {
-                        onIntent(
-                            IssueIntent.SelectEmployee(
-                                employee,
-                            ),
-                        )
-                    },
+                    onClick = { onIntent(IssueIntent.SelectEmployee(employee)) },
                 )
             }
         }
@@ -385,71 +313,136 @@ private fun IdentifyEmployeeContent(
 }
 
 @Composable
-private fun EmployeeCard(
+private fun SearchBlock(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    keyboardOptions: KeyboardOptions,
+    keyboardActions: KeyboardActions,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                shape = RoundedCornerShape(AppRadius.lg),
+            )
+            Surface(
+                modifier = Modifier.clickable(onClick = onSearch),
+                shape = RoundedCornerShape(AppRadius.lg),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.tertiary,
+                    )
+                    Text(
+                        text = stringResource(R.string.action_search),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IssueEmployeeResultCard(
     employee: Employee,
     onClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
             .clickable(
                 onClickLabel = stringResource(R.string.action_select_employee),
                 role = Role.Button,
                 onClick = onClick,
             ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
+        shape = RoundedCornerShape(AppRadius.lg),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(AppLayout.cardPadding),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                Icons.Default.Person,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     text = employee.fullName,
-                    style =
-                        MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                if (employee.personnelNumber != null) {
+                employee.personnelNumber?.let {
                     Text(
-                        text = stringResource(
-                            R.string.issue_personnel_short,
-                            employee.personnelNumber,
-                        ),
-                        style = MaterialTheme.typography
-                            .bodySmall,
-                        color = MaterialTheme.colorScheme
-                            .onSurfaceVariant,
+                        text = stringResource(R.string.issue_personnel_short, it),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (employee.position != null) {
+                val secondaryLine = listOfNotNull(employee.position, employee.brigadeName).joinToString(" · ")
+                if (secondaryLine.isNotBlank()) {
                     Text(
-                        text = employee.position,
-                        style = MaterialTheme.typography
-                            .bodySmall,
-                    )
-                }
-                if (employee.brigadeName != null) {
-                    Text(
-                        text = stringResource(
-                            R.string.employees_brigade,
-                            employee.brigadeName,
-                        ),
-                        style = MaterialTheme.typography
-                            .bodySmall,
+                        text = secondaryLine,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -459,110 +452,64 @@ private fun SelectDeviceContent(
     state: IssueState,
     onIntent: (IssueIntent) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
         state.selectedEmployee?.let { emp ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme
-                        .colorScheme.primaryContainer,
-                ),
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment =
-                        Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = emp.fullName,
-                            style = MaterialTheme.typography
-                                .titleSmall,
-                        )
-                        if (emp.personnelNumber != null) {
-                            Text(
-                                text = stringResource(
-                                    R.string.issue_personnel_short,
-                                    emp.personnelNumber,
-                                ),
-                                style = MaterialTheme
-                                    .typography.bodySmall,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        Text(
-            text = stringResource(
-                R.string.issue_select_device,
-                state.availableDevices.size,
-            ),
-            style = MaterialTheme.typography.titleMedium,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (state.isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(16.dp),
+            SelectionSummaryCard(
+                icon = Icons.Default.Person,
+                title = emp.fullName,
+                subtitle = emp.personnelNumber?.let {
+                    stringResource(R.string.issue_personnel_short, it)
+                } ?: emp.position.orEmpty(),
             )
         }
 
         if (state.error != null) {
-            Text(
-                text = state.error,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
+            StateCard(message = state.error, isError = true)
         }
 
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(
-                items = state.availableDevices,
-                key = { it.deviceId },
-            ) { device ->
-                DeviceCard(
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            items(state.availableDevices, key = { it.deviceId }) { device ->
+                IssueDeviceResultCard(
                     device = device,
-                    isSelected =
-                        state.selectedDevice?.deviceId ==
-                            device.deviceId,
-                    onClick = {
-                        onIntent(
-                            IssueIntent.SelectDevice(device),
-                        )
-                    },
+                    isSelected = state.selectedDevice?.deviceId == device.deviceId,
+                    onClick = { onIntent(IssueIntent.SelectDevice(device)) },
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (state.selectedDevice != null) {
-            Button(
-                onClick = {
-                    onIntent(IssueIntent.AutoAssignDevice)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.issue_next))
+        Button(
+            onClick = { onIntent(IssueIntent.AutoAssignDevice) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
+            enabled = state.selectedDevice != null && !state.isLoading,
+            shape = RoundedCornerShape(AppRadius.xl),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+        ) {
+            if (state.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            } else {
+                Text(text = stringResource(R.string.issue_next))
             }
         }
     }
 }
 
 @Composable
-private fun DeviceCard(
+private fun IssueDeviceResultCard(
     device: Device,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -570,78 +517,74 @@ private fun DeviceCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
             .semantics { selected = isSelected }
             .clickable(
                 onClickLabel = stringResource(R.string.action_select_device),
                 role = Role.Button,
                 onClick = onClick,
             ),
+        shape = RoundedCornerShape(AppRadius.lg),
+        border = if (isSelected) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.32f))
+        } else {
+            null
+        },
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
-                MaterialTheme.colorScheme
-                    .secondaryContainer
+                MaterialTheme.colorScheme.surfaceContainer
             } else {
-                MaterialTheme.colorScheme.surface
-            },
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) {
-                4.dp
-            } else {
-                1.dp
+                MaterialTheme.colorScheme.surfaceContainerLowest
             },
         ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(AppLayout.cardPadding),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                Icons.Default.Watch,
-                contentDescription = null,
-                tint = if (isSelected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme
-                        .onSurfaceVariant
-                },
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Watch,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     text = device.deviceId,
-                    style =
-                        MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                if (device.model != null) {
+                device.model?.let {
                     Text(
-                        text = device.model,
-                        style = MaterialTheme.typography
-                            .bodySmall,
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (device.serialNumber != null) {
+                device.serialNumber?.let {
                     Text(
-                        text = stringResource(
-                            R.string.devices_serial,
-                            device.serialNumber,
-                        ),
-                        style = MaterialTheme.typography
-                            .bodySmall,
-                        color = MaterialTheme.colorScheme
-                            .onSurfaceVariant,
+                        text = stringResource(R.string.devices_serial, it),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
             if (isSelected) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = stringResource(R.string.issue_selected),
-                    tint =
-                        MaterialTheme.colorScheme.primary,
+                MTStatusBadge(
+                    label = stringResource(R.string.issue_selected),
+                    tone = MTStatusTone.Success,
                 )
             }
         }
@@ -655,113 +598,151 @@ private fun ConfirmContent(
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
     ) {
-        Text(
-            text = stringResource(R.string.issue_confirm_title),
-            style = MaterialTheme.typography.headlineSmall,
+        SelectionSummaryCard(
+            icon = Icons.Default.Person,
+            title = state.selectedEmployee?.fullName.orEmpty(),
+            subtitle = state.selectedEmployee?.personnelNumber?.let {
+                stringResource(R.string.issue_personnel_short, it)
+            } ?: "",
+        )
+        SelectionSummaryCard(
+            icon = Icons.Default.Watch,
+            title = state.selectedDevice?.deviceId.orEmpty(),
+            subtitle = state.selectedDevice?.model ?: state.selectedDevice?.serialNumber.orEmpty(),
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme
-                    .colorScheme.surfaceVariant,
-            ),
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.issue_confirm_employee),
-                    style = MaterialTheme.typography
-                        .labelMedium,
-                    color = MaterialTheme.colorScheme
-                        .onSurfaceVariant,
-                )
-                Text(
-                    text = state.selectedEmployee
-                        ?.fullName ?: "",
-                    style = MaterialTheme.typography
-                        .titleMedium,
-                )
-                state.selectedEmployee
-                    ?.personnelNumber?.let {
-                        Text(
-                            text = stringResource(
-                                R.string.issue_personnel_short,
-                                it,
-                            ),
-                            style = MaterialTheme.typography
-                                .bodySmall,
-                        )
-                    }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = stringResource(R.string.issue_confirm_device),
-                    style = MaterialTheme.typography
-                        .labelMedium,
-                    color = MaterialTheme.colorScheme
-                        .onSurfaceVariant,
-                )
-                Text(
-                    text = state.selectedDevice
-                        ?.deviceId ?: "",
-                    style = MaterialTheme.typography
-                        .titleMedium,
-                )
-                state.selectedDevice?.model?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography
-                            .bodySmall,
-                    )
-                }
-            }
-        }
-
         if (state.validationError != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = state.validationError,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            StateCard(message = state.validationError, isError = true)
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.weight(1f))
 
-        FilledTonalButton(
-            onClick = {
-                onIntent(IssueIntent.ConfirmIssue)
-            },
+        Button(
+            onClick = { onIntent(IssueIntent.ConfirmIssue) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             enabled = !state.isIssuing,
+            shape = RoundedCornerShape(AppRadius.xl),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
         ) {
             if (state.isIssuing) {
                 CircularProgressIndicator(
-                    modifier = Modifier
-                        .height(24.dp)
-                        .width(24.dp),
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
                 Icon(
-                    Icons.Default.CheckCircle,
+                    imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.issue_button),
-                    style = MaterialTheme.typography
-                        .titleMedium,
-                )
+                Spacer(modifier = Modifier.width(AppSpacing.xs))
+                Text(text = stringResource(R.string.issue_button))
             }
         }
     }
+}
+
+@Composable
+private fun SelectionSummaryCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+) {
+    MTCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+) {
+    Surface(
+        shape = RoundedCornerShape(AppRadius.pill),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.tertiary,
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun stepTitle(step: IssueStep): String = when (step) {
+    IssueStep.IDENTIFY_EMPLOYEE -> stringResource(R.string.issue_step_employee)
+    IssueStep.SELECT_DEVICE -> stringResource(R.string.issue_step_device)
+    IssueStep.CONFIRM -> stringResource(R.string.issue_step_confirm)
+}
+
+@Composable
+private fun stepShortTitle(step: IssueStep): String = when (step) {
+    IssueStep.IDENTIFY_EMPLOYEE -> stringResource(R.string.issue_step_employee_short)
+    IssueStep.SELECT_DEVICE -> stringResource(R.string.issue_step_device_short)
+    IssueStep.CONFIRM -> stringResource(R.string.issue_step_confirm_short)
+}
+
+@Composable
+private fun stepSubtitle(step: IssueStep, availableDevices: Int): String = when (step) {
+    IssueStep.IDENTIFY_EMPLOYEE -> stringResource(R.string.home_issue_subtitle)
+    IssueStep.SELECT_DEVICE -> stringResource(R.string.issue_select_device, availableDevices)
+    IssueStep.CONFIRM -> stringResource(R.string.issue_confirm_title)
 }

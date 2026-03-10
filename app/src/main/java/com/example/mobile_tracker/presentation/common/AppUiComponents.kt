@@ -161,13 +161,13 @@ fun StateCard(
     val containerColor = if (isError) {
         MaterialTheme.colorScheme.dangerSoft
     } else {
-        MaterialTheme.colorScheme.infoSoft
+        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
     }
 
     val accentColor = if (isError) {
         MaterialTheme.colorScheme.danger
     } else {
-        MaterialTheme.colorScheme.info
+        MaterialTheme.colorScheme.tertiary
     }
 
     Card(
