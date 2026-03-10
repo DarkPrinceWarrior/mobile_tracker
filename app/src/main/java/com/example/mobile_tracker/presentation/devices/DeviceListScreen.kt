@@ -41,8 +41,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mobile_tracker.R
@@ -275,7 +277,12 @@ private fun DeviceCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .semantics { selected = isSelected }
+            .clickable(
+                onClickLabel = stringResource(R.string.action_open_device_details),
+                role = Role.Button,
+                onClick = onClick,
+            ),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.secondaryContainer
@@ -504,8 +511,8 @@ private fun StatusBadge(status: String) {
         "discharged" ->
             stringResource(R.string.devices_status_discharged) to Danger
         "faulty" ->
-            stringResource(R.string.devices_status_faulty) to Color(0xFF9E9E9E)
-        else -> status to Color.Gray
+            stringResource(R.string.devices_status_faulty) to MaterialTheme.colorScheme.outline
+        else -> status to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Card(
         colors = CardDefaults.cardColors(

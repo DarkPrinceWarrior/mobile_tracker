@@ -41,6 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,6 +57,9 @@ import com.example.mobile_tracker.presentation.common.LoadingState
 import com.example.mobile_tracker.presentation.common.SearchField
 import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.common.rememberIsTablet
+import com.example.mobile_tracker.ui.theme.Danger
+import com.example.mobile_tracker.ui.theme.Success
+import com.example.mobile_tracker.ui.theme.Warning
 import com.example.mobile_tracker.util.formatTimestamp
 import org.koin.androidx.compose.koinViewModel
 
@@ -280,7 +286,12 @@ private fun LogEntryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .semantics { selected = isSelected }
+            .clickable(
+                onClickLabel = stringResource(R.string.action_open_journal_details),
+                role = Role.Button,
+                onClick = onClick,
+            ),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.secondaryContainer
@@ -297,7 +308,7 @@ private fun LogEntryCard(
         ) {
             Icon(
                 imageVector = typeIcon(log.type),
-                contentDescription = log.type,
+                contentDescription = typeDisplayName(log.type),
                 tint = typeColor(log.type),
                 modifier = Modifier.size(32.dp),
             )
@@ -357,11 +368,11 @@ private fun LogEntryCard(
 private fun StatusBadge(status: String) {
     val (text, color) = when (status) {
         "success" ->
-            stringResource(R.string.journal_status_ok) to Color(0xFF2E7D32)
+            stringResource(R.string.journal_status_ok) to Success
         "error" ->
-            stringResource(R.string.journal_status_error) to Color(0xFFC62828)
+            stringResource(R.string.journal_status_error) to Danger
         "pending" ->
-            stringResource(R.string.journal_status_pending) to Color(0xFFE65100)
+            stringResource(R.string.journal_status_pending) to Warning
         else -> status to MaterialTheme.colorScheme
             .onSurfaceVariant
     }
@@ -477,10 +488,10 @@ private fun typeIcon(type: String): ImageVector = when (type) {
 
 @Composable
 private fun typeColor(type: String): Color = when (type) {
-    "issue" -> Color(0xFF1565C0)
-    "return" -> Color(0xFF2E7D32)
-    "upload" -> Color(0xFF6A1B9A)
+    "issue" -> MaterialTheme.colorScheme.primary
+    "return" -> Success
+    "upload" -> MaterialTheme.colorScheme.tertiary
     "upload_error" -> MaterialTheme.colorScheme.error
-    "sync" -> Color(0xFFE65100)
+    "sync" -> Warning
     else -> MaterialTheme.colorScheme.onSurfaceVariant
 }

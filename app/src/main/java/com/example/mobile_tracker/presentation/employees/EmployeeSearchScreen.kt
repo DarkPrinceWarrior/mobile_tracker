@@ -39,6 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mobile_tracker.R
@@ -229,7 +232,12 @@ private fun EmployeeCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .semantics { selected = isSelected }
+            .clickable(
+                onClickLabel = stringResource(R.string.action_open_employee_details),
+                role = Role.Button,
+                onClick = onClick,
+            ),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.secondaryContainer

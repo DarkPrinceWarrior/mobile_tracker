@@ -46,6 +46,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -390,7 +393,11 @@ private fun EmployeeCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable(onClick = onClick),
+            .clickable(
+                onClickLabel = stringResource(R.string.action_select_employee),
+                role = Role.Button,
+                onClick = onClick,
+            ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp,
         ),
@@ -564,7 +571,12 @@ private fun DeviceCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable(onClick = onClick),
+            .semantics { selected = isSelected }
+            .clickable(
+                onClickLabel = stringResource(R.string.action_select_device),
+                role = Role.Button,
+                onClick = onClick,
+            ),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme

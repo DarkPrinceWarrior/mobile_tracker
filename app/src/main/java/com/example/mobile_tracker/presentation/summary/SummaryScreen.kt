@@ -238,7 +238,7 @@ fun SummaryScreen(
                             .fillMaxWidth(),
                         icon = Icons.Default
                             .SyncProblem,
-                        iconTint = Color(0xFF795548),
+                        iconTint = MaterialTheme.colorScheme.secondary,
                         label = stringResource(
                             R.string.summary_unsynced,
                         ),
