@@ -1,5 +1,6 @@
 package com.example.mobile_tracker.presentation.navigation
 
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -16,6 +17,7 @@ import com.example.mobile_tracker.presentation.settings.SettingsScreen
 import com.example.mobile_tracker.presentation.summary.SummaryScreen
 import com.example.mobile_tracker.presentation.upload.UploadScreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavGraph(
     navController: NavHostController,

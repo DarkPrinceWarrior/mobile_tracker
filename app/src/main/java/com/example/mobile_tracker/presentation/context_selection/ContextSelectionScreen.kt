@@ -1,6 +1,9 @@
 package com.example.mobile_tracker.presentation.context_selection
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,8 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -21,21 +25,16 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,14 +43,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
+import com.example.mobile_tracker.domain.model.Site
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
+import com.example.mobile_tracker.presentation.common.MTCard
+import com.example.mobile_tracker.presentation.common.MTCompactTopBar
+import com.example.mobile_tracker.presentation.common.MTStatusBadge
+import com.example.mobile_tracker.presentation.common.MTStatusTone
 import com.example.mobile_tracker.presentation.common.StateCard
+import com.example.mobile_tracker.ui.theme.AppLayout
+import com.example.mobile_tracker.ui.theme.AppRadius
+import com.example.mobile_tracker.ui.theme.AppSpacing
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,40 +66,21 @@ fun ContextSelectionScreen(
     viewModel: ContextSelectionViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val scrollBehavior =
-        TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                ContextSelectionEffect.NavigateToHome ->
-                    onContextSelected()
+                ContextSelectionEffect.NavigateToHome -> onContextSelected()
             }
         }
     }
 
     AppScreenScaffold(
         snackbarMessage = state.error,
-        modifier = Modifier.nestedScroll(
-            scrollBehavior.nestedScrollConnection,
-        ),
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.context_title),
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults
-                    .largeTopAppBarColors(
-                        containerColor = MaterialTheme
-                            .colorScheme.surface,
-                        scrolledContainerColor =
-                            MaterialTheme.colorScheme
-                                .surfaceContainer,
-                    ),
+            MTCompactTopBar(
+                title = stringResource(R.string.context_title),
+                subtitle = stringResource(R.string.context_screen_subtitle),
             )
         },
     ) { padding ->
@@ -103,293 +89,260 @@ fun ContextSelectionScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(16.dp),
+                .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
+            ContextSummaryCard(state = state)
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme
-                        .colorScheme
-                        .surfaceContainerLow,
-                ),
+            SiteSelectionCard(
+                selectedSite = state.selectedSite,
+                sites = state.sites,
+                onSiteSelected = {
+                    viewModel.onIntent(ContextSelectionIntent.SiteSelected(it))
+                },
+            )
+
+            ContextFieldCard(
+                icon = Icons.Default.CalendarMonth,
+                title = stringResource(R.string.context_date_label),
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement =
-                        Arrangement.spacedBy(12.dp),
-                ) {
-                    Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme
-                                .primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(
-                            modifier = Modifier.width(8.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.context_site_label),
-                            style = MaterialTheme.typography
-                                .titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-
-                    var isExpanded by remember {
-                        mutableStateOf(false)
-                    }
-
-                    ExposedDropdownMenuBox(
-                        expanded = isExpanded,
-                        onExpandedChange = {
-                            isExpanded = it
-                        },
-                    ) {
-                        OutlinedTextField(
-                            value = state.selectedSite
-                                ?.name ?: "",
-                            onValueChange = {},
-                            readOnly = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(
-                                    MenuAnchorType
-                                        .PrimaryEditable,
-                                ),
-                            shape = MaterialTheme
-                                .shapes.small,
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults
-                                    .TrailingIcon(
-                                        expanded =
-                                            isExpanded,
-                                    )
-                            },
-                            label = {
-                                Text(stringResource(R.string.context_site_hint))
-                            },
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = isExpanded,
-                            onDismissRequest = {
-                                isExpanded = false
-                            },
-                        ) {
-                            state.sites.forEach { site ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(site.name)
-                                    },
-                                    onClick = {
-                                        viewModel.onIntent(
-                                            ContextSelectionIntent
-                                                .SiteSelected(
-                                                    site,
-                                                ),
-                                        )
-                                        isExpanded = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
+                OutlinedTextField(
+                    value = state.shiftDate,
+                    onValueChange = {
+                        viewModel.onIntent(ContextSelectionIntent.DateChanged(it))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.context_date_hint)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(AppRadius.lg),
+                )
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme
-                        .colorScheme
-                        .surfaceContainerLow,
-                ),
+            ContextFieldCard(
+                icon = Icons.Default.Schedule,
+                title = stringResource(R.string.context_shift_label),
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement =
-                        Arrangement.spacedBy(12.dp),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
-                    Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme
-                                .primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(
-                            modifier = Modifier.width(8.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.context_date_label),
-                            style = MaterialTheme.typography
-                                .titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-
-                    OutlinedTextField(
-                        value = state.shiftDate,
-                        onValueChange = {
-                            viewModel.onIntent(
-                                ContextSelectionIntent
-                                    .DateChanged(it),
-                            )
+                    ShiftTypeChip(
+                        title = stringResource(R.string.context_shift_day),
+                        selected = state.shiftType == "day",
+                        icon = Icons.Default.LightMode,
+                        onClick = {
+                            viewModel.onIntent(ContextSelectionIntent.ShiftTypeChanged("day"))
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape =
-                            MaterialTheme.shapes.small,
-                        label = { Text(stringResource(R.string.context_date_hint)) },
-                        singleLine = true,
+                        modifier = Modifier.weight(1f),
                     )
-                }
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme
-                        .colorScheme
-                        .surfaceContainerLow,
-                ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement =
-                        Arrangement.spacedBy(12.dp),
-                ) {
-                    Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme
-                                .primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(
-                            modifier = Modifier.width(8.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.context_shift_label),
-                            style = MaterialTheme.typography
-                                .titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-
-                    Row(
-                        horizontalArrangement =
-                            Arrangement.spacedBy(12.dp),
-                    ) {
-                        FilterChip(
-                            selected =
-                                state.shiftType == "day",
-                            onClick = {
-                                viewModel.onIntent(
-                                    ContextSelectionIntent
-                                        .ShiftTypeChanged(
-                                            "day",
-                                        ),
-                                )
-                            },
-                            label = { Text(stringResource(R.string.context_shift_day)) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.LightMode,
-                                    contentDescription =
-                                        null,
-                                    modifier = Modifier
-                                        .size(
-                                            FilterChipDefaults
-                                                .IconSize,
-                                        ),
-                                )
-                            },
-                        )
-
-                        FilterChip(
-                            selected =
-                                state.shiftType == "night",
-                            onClick = {
-                                viewModel.onIntent(
-                                    ContextSelectionIntent
-                                        .ShiftTypeChanged(
-                                            "night",
-                                        ),
-                                )
-                            },
-                            label = { Text(stringResource(R.string.context_shift_night)) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.DarkMode,
-                                    contentDescription =
-                                        null,
-                                    modifier = Modifier
-                                        .size(
-                                            FilterChipDefaults
-                                                .IconSize,
-                                        ),
-                                )
-                            },
-                        )
-                    }
+                    ShiftTypeChip(
+                        title = stringResource(R.string.context_shift_night),
+                        selected = state.shiftType == "night",
+                        icon = Icons.Default.DarkMode,
+                        onClick = {
+                            viewModel.onIntent(ContextSelectionIntent.ShiftTypeChanged("night"))
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
 
             if (state.error != null) {
-                StateCard(message = state.error!!)
+                StateCard(message = state.error!!, isError = true)
             }
-
-            Spacer(modifier = Modifier.weight(1f))
 
             Button(
-                onClick = {
-                    viewModel.onIntent(
-                        ContextSelectionIntent.StartWork,
-                    )
-                },
+                onClick = { viewModel.onIntent(ContextSelectionIntent.StartWork) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                enabled = !state.isLoading
-                    && state.selectedSite != null,
-                shape = MaterialTheme.shapes.small,
-                elevation = ButtonDefaults
-                    .buttonElevation(
-                        defaultElevation = 2.dp,
-                    ),
+                    .height(54.dp),
+                enabled = !state.isLoading && state.selectedSite != null,
+                shape = RoundedCornerShape(AppRadius.xl),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             ) {
                 Icon(
-                    Icons.Default.PlayArrow,
+                    imageVector = Icons.Default.PlayArrow,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.size(AppSpacing.xs))
+                Text(text = stringResource(R.string.context_start_button))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContextSummaryCard(state: ContextSelectionState) {
+    MTCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            ) {
                 Text(
-                    text = stringResource(R.string.context_start_button),
-                    style = MaterialTheme.typography
-                        .titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    text = stringResource(R.string.context_summary_title),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = state.selectedSite?.name ?: stringResource(R.string.context_site_hint),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "${state.shiftDate} · " + if (state.shiftType == "day") {
+                        stringResource(R.string.context_shift_day)
+                    } else {
+                        stringResource(R.string.context_shift_night)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            MTStatusBadge(
+                label = if (state.selectedSite != null) {
+                    stringResource(R.string.context_ready)
+                } else {
+                    stringResource(R.string.context_pending)
+                },
+                tone = if (state.selectedSite != null) MTStatusTone.Success else MTStatusTone.Warning,
+            )
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(24.dp))
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SiteSelectionCard(
+    selectedSite: Site?,
+    sites: List<Site>,
+    onSiteSelected: (Site) -> Unit,
+) {
+    ContextFieldCard(
+        icon = Icons.Default.LocationOn,
+        title = stringResource(R.string.context_site_label),
+    ) {
+        var expanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+        ) {
+            OutlinedTextField(
+                value = selectedSite?.name.orEmpty(),
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryEditable),
+                label = { Text(stringResource(R.string.context_site_hint)) },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                shape = RoundedCornerShape(AppRadius.lg),
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                sites.forEach { site ->
+                    DropdownMenuItem(
+                        text = { Text(site.name) },
+                        onClick = {
+                            onSiteSelected(site)
+                            expanded = false
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContextFieldCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    MTCard {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
+                        shape = CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        content()
+    }
+}
+
+@Composable
+private fun ShiftTypeChip(
+    title: String,
+    selected: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(AppRadius.lg),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (selected) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.tertiary
+                },
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+            )
         }
     }
 }

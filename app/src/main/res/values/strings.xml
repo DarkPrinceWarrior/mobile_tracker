@@ -3,6 +3,8 @@
 
     <!-- Login -->
     <string name="login_title">Вход оператора</string>
+    <string name="login_screen_subtitle">Доступ к выдаче, возврату и выгрузке по рабочему контексту</string>
+    <string name="login_form_title">Операторский вход</string>
     <string name="login_email_label">Email</string>
     <string name="login_password_label">Пароль</string>
     <string name="login_button">Войти</string>
@@ -16,6 +18,10 @@
 
     <!-- Context Selection -->
     <string name="context_title">Выбор контекста работы</string>
+    <string name="context_screen_subtitle">Площадка, дата и тип смены</string>
+    <string name="context_summary_title">Рабочий контекст</string>
+    <string name="context_ready">Готово</string>
+    <string name="context_pending">Заполните поля</string>
     <string name="context_site_label">Площадка</string>
     <string name="context_site_hint">Выберите площадку</string>
     <string name="context_date_label">Дата смены</string>
@@ -171,6 +177,12 @@
 
     <!-- M5: Journal -->
     <string name="journal_title">Журнал операций</string>
+    <string name="journal_summary_title">Операции смены</string>
+    <string name="journal_summary_subtitle">Найдено записей: %1$d</string>
+    <string name="journal_detail_empty">Выберите запись журнала</string>
+    <string name="journal_detail_employee">Сотрудник</string>
+    <string name="journal_detail_device">Устройство</string>
+    <string name="journal_detail_details">Детали</string>
     <string name="journal_navigate">Открыть журнал</string>
     <string name="journal_search_hint">Сотрудник или устройство</string>
     <string name="journal_filter_all">Все</string>
@@ -189,6 +201,8 @@
     <!-- M5: Summary -->
     <string name="summary_title">Сводка по смене</string>
     <string name="summary_subtitle">%1$s · %2$s</string>
+    <string name="summary_hero_title">Активность смены</string>
+    <string name="summary_hero_status">Возвращено: %1$d</string>
     <string name="summary_issued">Выдано часов</string>
     <string name="summary_returned">Возвращено</string>
     <string name="summary_not_returned">Не возвращено</string>
@@ -210,6 +224,7 @@
 
     <!-- M6: Settings -->
     <string name="settings_title">Настройки</string>
+    <string name="settings_subtitle">Профиль, контекст и служебные действия</string>
     <string name="settings_operator">Оператор</string>
     <string name="settings_current_context">Текущий контекст</string>
     <string name="settings_change_context">Сменить контекст</string>

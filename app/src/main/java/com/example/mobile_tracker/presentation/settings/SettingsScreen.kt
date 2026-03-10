@@ -1,20 +1,23 @@
 package com.example.mobile_tracker.presentation.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
@@ -22,15 +25,12 @@ import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,16 +38,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.MTCompactTopBar
+import com.example.mobile_tracker.presentation.common.MTStatusBadge
+import com.example.mobile_tracker.presentation.common.MTStatusTone
 import com.example.mobile_tracker.presentation.common.StateCard
+import com.example.mobile_tracker.ui.theme.AppLayout
+import com.example.mobile_tracker.ui.theme.AppRadius
+import com.example.mobile_tracker.ui.theme.AppSpacing
+import com.example.mobile_tracker.ui.theme.danger
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: (() -> Unit)? = null,
@@ -55,16 +61,13 @@ fun SettingsScreen(
     onNavigateToContextSelection: () -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
-    val state by viewModel.state
-        .collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                SettingsEffect.NavigateToLogin ->
-                    onNavigateToLogin()
-                SettingsEffect.NavigateToContextSelection ->
-                    onNavigateToContextSelection()
+                SettingsEffect.NavigateToLogin -> onNavigateToLogin()
+                SettingsEffect.NavigateToContextSelection -> onNavigateToContextSelection()
                 is SettingsEffect.ShowMessage -> {}
             }
         }
@@ -73,79 +76,43 @@ fun SettingsScreen(
     if (state.showLogoutDialog) {
         ConfirmDialog(
             title = stringResource(R.string.settings_logout),
-            text = stringResource(
-                R.string.settings_logout_confirm,
-            ),
-            onConfirm = {
-                viewModel.onIntent(
-                    SettingsIntent.LogoutConfirmed,
-                )
-            },
-            onDismiss = {
-                viewModel.onIntent(
-                    SettingsIntent.LogoutDismissed,
-                )
-            },
+            text = stringResource(R.string.settings_logout_confirm),
+            onConfirm = { viewModel.onIntent(SettingsIntent.LogoutConfirmed) },
+            onDismiss = { viewModel.onIntent(SettingsIntent.LogoutDismissed) },
         )
     }
 
     if (state.showClearCacheDialog) {
         ConfirmDialog(
-            title = stringResource(
-                R.string.settings_clear_cache,
-            ),
-            text = stringResource(
-                R.string.settings_clear_cache_confirm,
-            ),
-            onConfirm = {
-                viewModel.onIntent(
-                    SettingsIntent.ClearCacheConfirmed,
-                )
-            },
-            onDismiss = {
-                viewModel.onIntent(
-                    SettingsIntent.ClearCacheDismissed,
-                )
-            },
+            title = stringResource(R.string.settings_clear_cache),
+            text = stringResource(R.string.settings_clear_cache_confirm),
+            onConfirm = { viewModel.onIntent(SettingsIntent.ClearCacheConfirmed) },
+            onDismiss = { viewModel.onIntent(SettingsIntent.ClearCacheDismissed) },
         )
     }
 
     AppScreenScaffold(
         snackbarMessage = state.error,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        stringResource(
-                            R.string.settings_title,
-                        ),
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                },
+            MTCompactTopBar(
+                title = stringResource(R.string.settings_title),
+                subtitle = stringResource(R.string.settings_subtitle),
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.action_back),
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
                 },
-                colors = TopAppBarDefaults
-                    .topAppBarColors(
-                        containerColor =
-                            MaterialTheme.colorScheme
-                                .surface,
-                    ),
             )
         },
     ) { padding ->
         if (state.isLoading) {
-            LoadingState(
-                modifier = Modifier
-                    .padding(padding),
-            )
+            LoadingState(modifier = Modifier.padding(padding))
             return@AppScreenScaffold
         }
 
@@ -154,16 +121,12 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(16.dp),
+                .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            OperatorCard(
+            SettingsHeroCard(
                 name = state.operatorName,
                 email = state.operatorEmail,
-            )
-
-            ShiftContextCard(
                 siteName = state.siteName,
                 shiftDate = state.shiftDate,
                 shiftType = state.shiftType,
@@ -171,114 +134,149 @@ fun SettingsScreen(
 
             SettingsActionItem(
                 icon = Icons.Default.SwapHoriz,
-                title = stringResource(
-                    R.string.settings_change_context,
-                ),
-                subtitle = stringResource(
-                    R.string
-                        .settings_change_context_desc,
-                ),
-                onClick = {
-                    viewModel.onIntent(
-                        SettingsIntent
-                            .ChangeContextClicked,
-                    )
-                },
+                title = stringResource(R.string.settings_change_context),
+                subtitle = stringResource(R.string.settings_change_context_desc),
+                onClick = { viewModel.onIntent(SettingsIntent.ChangeContextClicked) },
             )
-
             SettingsActionItem(
                 icon = Icons.Default.DeleteSweep,
-                title = stringResource(
-                    R.string.settings_clear_cache,
-                ),
-                subtitle = stringResource(
-                    R.string
-                        .settings_clear_cache_desc,
-                ),
-                onClick = {
-                    viewModel.onIntent(
-                        SettingsIntent.ClearCacheClicked,
-                    )
-                },
+                title = stringResource(R.string.settings_clear_cache),
+                subtitle = stringResource(R.string.settings_clear_cache_desc),
+                onClick = { viewModel.onIntent(SettingsIntent.ClearCacheClicked) },
             )
-
-            HorizontalDivider()
-
             SettingsActionItem(
                 icon = Icons.AutoMirrored.Filled.Logout,
-                title = stringResource(
-                    R.string.settings_logout,
-                ),
-                subtitle = stringResource(
-                    R.string.settings_logout_desc,
-                ),
-                onClick = {
-                    viewModel.onIntent(
-                        SettingsIntent.LogoutClicked,
-                    )
-                },
+                title = stringResource(R.string.settings_logout),
+                subtitle = stringResource(R.string.settings_logout_desc),
+                onClick = { viewModel.onIntent(SettingsIntent.LogoutClicked) },
                 isDestructive = true,
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            AppInfoRow(version = state.appVersion)
+            Surface(
+                shape = RoundedCornerShape(AppRadius.lg),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.size(AppSpacing.xxs))
+                    Text(
+                        text = stringResource(R.string.settings_version, state.appVersion),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             if (state.error != null) {
-                StateCard(
-                    message = state.error!!,
-                    modifier = Modifier
-                        .padding(top = 8.dp),
-                )
+                StateCard(message = state.error!!, isError = true)
             }
         }
     }
 }
 
 @Composable
-private fun OperatorCard(
+private fun SettingsHeroCard(
     name: String,
     email: String,
+    siteName: String,
+    shiftDate: String,
+    shiftType: String,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AppRadius.xl),
         colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme
-                    .surfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         ),
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment =
-                Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(AppSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            Icon(
-                Icons.Default.Person,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = name.ifBlank {
-                        stringResource(
-                            R.string
-                                .settings_operator,
-                        )
-                    },
-                    style = MaterialTheme.typography
-                        .titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if (email.isNotBlank()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
                     Text(
-                        text = email,
-                        style = MaterialTheme.typography
-                            .bodySmall,
-                        color = MaterialTheme.colorScheme
-                            .onSurfaceVariant,
+                        text = name.ifBlank { stringResource(R.string.settings_operator) },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (email.isNotBlank()) {
+                        Text(
+                            text = email,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                MTStatusBadge(
+                    label = if (shiftType == "day") {
+                        stringResource(R.string.context_shift_day)
+                    } else {
+                        stringResource(R.string.context_shift_night)
+                    },
+                    tone = MTStatusTone.Neutral,
+                )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(AppRadius.lg),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_current_context),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = siteName.ifBlank { "—" },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = shiftDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -286,58 +284,6 @@ private fun OperatorCard(
     }
 }
 
-@Composable
-private fun ShiftContextCard(
-    siteName: String,
-    shiftDate: String,
-    shiftType: String,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme
-                    .secondaryContainer,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-        ) {
-            Text(
-                text = stringResource(
-                    R.string.settings_current_context,
-                ),
-                style = MaterialTheme.typography
-                    .labelMedium,
-                color = MaterialTheme.colorScheme
-                    .onSecondaryContainer,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = siteName.ifBlank { "—" },
-                style = MaterialTheme.typography
-                    .titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = "$shiftDate · " +
-                    if (shiftType == "day") {
-                        stringResource(
-                            R.string.context_shift_day,
-                        )
-                    } else {
-                        stringResource(
-                            R.string.context_shift_night,
-                        )
-                    },
-                style = MaterialTheme.typography
-                    .bodySmall,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsActionItem(
     icon: ImageVector,
@@ -347,75 +293,59 @@ private fun SettingsActionItem(
     isDestructive: Boolean = false,
 ) {
     val tint = if (isDestructive) {
-        MaterialTheme.colorScheme.error
+        MaterialTheme.colorScheme.danger
     } else {
-        MaterialTheme.colorScheme.onSurface
+        MaterialTheme.colorScheme.tertiary
     }
 
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(AppRadius.lg),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment =
-                Alignment.CenterVertically,
+                .padding(AppLayout.cardPadding),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = tint,
-            )
-            Spacer(modifier = Modifier.width(12.dp))
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .background(
+                        color = if (isDestructive) {
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.75f)
+                        } else {
+                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)
+                        },
+                        shape = CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tint,
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography
-                        .bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = tint,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isDestructive) tint else MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography
-                        .bodySmall,
-                    color = MaterialTheme.colorScheme
-                        .onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun AppInfoRow(version: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment =
-            Alignment.CenterVertically,
-    ) {
-        Icon(
-            Icons.Default.Info,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme
-                .onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = stringResource(
-                R.string.settings_version,
-                version,
-            ),
-            style = MaterialTheme.typography
-                .bodySmall,
-            color = MaterialTheme.colorScheme
-                .onSurfaceVariant,
-        )
     }
 }
 
@@ -432,20 +362,12 @@ private fun ConfirmDialog(
         text = { Text(text) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(
-                    stringResource(
-                        R.string.settings_confirm,
-                    ),
-                )
+                Text(stringResource(R.string.settings_confirm))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(
-                    stringResource(
-                        R.string.return_cancel,
-                    ),
-                )
+                Text(stringResource(R.string.return_cancel))
             }
         },
     )
