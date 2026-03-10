@@ -20,6 +20,12 @@ sealed interface Route {
     data object EmployeeSearch : Route
 
     @Serializable
+    data object Maps : Route
+
+    @Serializable
+    data class WorkerDetail(val employeeId: String) : Route
+
+    @Serializable
     data object Issue : Route
 
     @Serializable
@@ -35,6 +41,9 @@ sealed interface Route {
 
     @Serializable
     data object Journal : Route
+
+    @Serializable
+    data object Alerts : Route
 
     @Serializable
     data object Summary : Route

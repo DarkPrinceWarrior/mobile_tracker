@@ -8,6 +8,7 @@ import com.example.mobile_tracker.data.local.secure.SecureStorage
 import com.example.mobile_tracker.data.repository.BindingRepository
 import com.example.mobile_tracker.data.repository.ReferenceRepository
 import com.example.mobile_tracker.data.repository.UploadRepository
+import com.example.mobile_tracker.presentation.alerts.AlertsViewModel
 import com.example.mobile_tracker.presentation.binding.issue.IssueViewModel
 import com.example.mobile_tracker.presentation.binding.return_device.ReturnViewModel
 import com.example.mobile_tracker.presentation.context_selection.ContextSelectionViewModel
@@ -16,9 +17,11 @@ import com.example.mobile_tracker.presentation.employees.EmployeeSearchViewModel
 import com.example.mobile_tracker.presentation.home.HomeViewModel
 import com.example.mobile_tracker.presentation.login.LoginViewModel
 import com.example.mobile_tracker.presentation.journal.JournalViewModel
+import com.example.mobile_tracker.presentation.maps.MapsViewModel
 import com.example.mobile_tracker.presentation.settings.SettingsViewModel
 import com.example.mobile_tracker.presentation.summary.SummaryViewModel
 import com.example.mobile_tracker.presentation.upload.UploadViewModel
+import com.example.mobile_tracker.presentation.worker_detail.WorkerDetailViewModel
 import com.example.mobile_tracker.util.NetworkMonitor
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -56,13 +59,15 @@ val appModule = module {
     }
     single { NetworkMonitor(androidContext()) }
 
-    viewModel { HomeViewModel(get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get()) }
     viewModel {
         DeviceListViewModel(get(), get(), get())
     }
     viewModel {
-        EmployeeSearchViewModel(get(), get(), get())
+        EmployeeSearchViewModel(get(), get(), get(), get(), get())
     }
+    viewModel { MapsViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { WorkerDetailViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel {
         IssueViewModel(get(), get(), get(), get())
     }
@@ -73,6 +78,7 @@ val appModule = module {
         UploadViewModel(get(), get(), get(), get())
     }
     viewModel { JournalViewModel(get(), get()) }
+    viewModel { AlertsViewModel(get(), get(), get(), get()) }
     viewModel { SummaryViewModel(get(), get(), get()) }
     viewModel {
         SettingsViewModel(

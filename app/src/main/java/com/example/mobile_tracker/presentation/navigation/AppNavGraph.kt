@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.mobile_tracker.presentation.alerts.AlertsScreen
 import com.example.mobile_tracker.presentation.binding.issue.IssueScreen
 import com.example.mobile_tracker.presentation.binding.return_device.ReturnScreen
 import com.example.mobile_tracker.presentation.context_selection.ContextSelectionScreen
@@ -13,9 +14,11 @@ import com.example.mobile_tracker.presentation.employees.EmployeeSearchScreen
 import com.example.mobile_tracker.presentation.home.HomeScreen
 import com.example.mobile_tracker.presentation.login.LoginScreen
 import com.example.mobile_tracker.presentation.journal.JournalScreen
+import com.example.mobile_tracker.presentation.maps.MapsScreen
 import com.example.mobile_tracker.presentation.settings.SettingsScreen
 import com.example.mobile_tracker.presentation.summary.SummaryScreen
 import com.example.mobile_tracker.presentation.upload.UploadScreen
+import com.example.mobile_tracker.presentation.worker_detail.WorkerDetailScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +65,9 @@ fun AppNavGraph(
                 onNavigateToEmployees = {
                     navController.navigate(Route.EmployeeSearch)
                 },
+                onNavigateToMaps = {
+                    navController.navigate(Route.Maps)
+                },
                 onNavigateToIssue = {
                     navController.navigate(Route.Issue)
                 },
@@ -77,6 +83,9 @@ fun AppNavGraph(
                 onNavigateToSettings = {
                     navController.navigate(Route.Settings)
                 },
+                onNavigateToAlerts = {
+                    navController.navigate(Route.Alerts)
+                },
             )
         }
 
@@ -88,6 +97,25 @@ fun AppNavGraph(
 
         composable<Route.EmployeeSearch> {
             EmployeeSearchScreen(
+                onBack = { navController.popBackStack() },
+                onOpenWorkerDetail = { employeeId ->
+                    navController.navigate(Route.WorkerDetail(employeeId))
+                },
+            )
+        }
+
+        composable<Route.Maps> {
+            MapsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenWorkerDetail = { employeeId ->
+                    navController.navigate(Route.WorkerDetail(employeeId))
+                },
+            )
+        }
+
+        composable<Route.WorkerDetail> { backStackEntry ->
+            WorkerDetailScreen(
+                employeeId = backStackEntry.arguments?.getString("employeeId").orEmpty(),
                 onBack = { navController.popBackStack() },
             )
         }
@@ -123,6 +151,21 @@ fun AppNavGraph(
         composable<Route.Journal> {
             JournalScreen(
                 onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<Route.Alerts> {
+            AlertsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToDevices = {
+                    navController.navigate(Route.DeviceList)
+                },
+                onNavigateToReturn = {
+                    navController.navigate(Route.Return)
+                },
+                onNavigateToJournal = {
+                    navController.navigate(Route.Journal)
+                },
             )
         }
 

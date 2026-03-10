@@ -2,11 +2,15 @@ package com.example.mobile_tracker.presentation.employees
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.EmployeeDao
+import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
 import com.example.mobile_tracker.data.remote.dto.toDomain
 import com.example.mobile_tracker.data.repository.ReferenceRepository
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -26,6 +30,8 @@ class EmployeeSearchViewModel(
     private val employeeDao: EmployeeDao,
     private val shiftContextDao: ShiftContextDao,
     private val repository: ReferenceRepository,
+    private val bindingDao: BindingDao,
+    private val operationLogDao: OperationLogDao,
 ) : ViewModel() {
 
     private val _state =
@@ -40,6 +46,9 @@ class EmployeeSearchViewModel(
 
     private val queryFlow = MutableStateFlow("")
     private var currentSiteId: String? = null
+    private var currentShiftDate: String? = null
+    private var employeesJob: Job? = null
+    private var signalsJob: Job? = null
 
     init {
         loadSiteContext()
@@ -74,7 +83,9 @@ class EmployeeSearchViewModel(
             val ctx = shiftContextDao.get()
             if (ctx != null) {
                 currentSiteId = ctx.siteId
+                currentShiftDate = ctx.shiftDate
                 loadAllEmployees()
+                observeEmployeeSignals(ctx.siteId, ctx.shiftDate)
             } else {
                 _state.update {
                     it.copy(
@@ -101,7 +112,8 @@ class EmployeeSearchViewModel(
 
     private fun loadAllEmployees() {
         val siteId = currentSiteId ?: return
-        viewModelScope.launch {
+        employeesJob?.cancel()
+        employeesJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             employeeDao.observeBySite(siteId)
                 .collect { entities ->
@@ -117,6 +129,26 @@ class EmployeeSearchViewModel(
                         )
                     }
                 }
+        }
+    }
+
+    private fun observeEmployeeSignals(
+        siteId: String,
+        shiftDate: String,
+    ) {
+        signalsJob?.cancel()
+        signalsJob = viewModelScope.launch {
+            combine(
+                bindingDao.observeActive(siteId),
+                operationLogDao.observeByShift(siteId, shiftDate),
+            ) { bindings, logs ->
+                _state.update {
+                    it.copy(
+                        activeBindings = bindings,
+                        recentLogs = logs,
+                    )
+                }
+            }.collect { }
         }
     }
 

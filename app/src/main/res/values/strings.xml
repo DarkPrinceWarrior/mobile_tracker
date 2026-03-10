@@ -45,21 +45,33 @@
     <string name="home_journal_subtitle">Просмотрите историю всех операций за смену</string>
     <string name="home_more_devices_subtitle">Все часы, привязанные к площадке</string>
     <string name="home_more_employees_subtitle">База сотрудников подрядчиков</string>
+    <string name="home_more_maps_subtitle">Карта площадки и позиции работников</string>
     <string name="home_more_summary_subtitle">Статистика текущей смены</string>
+    <string name="home_more_alerts_subtitle">Ошибки синхронизации, очередь и конфликты смены</string>
+    <string name="home_more_alerts_subtitle_count">Инцидентов, требующих проверки: %1$d</string>
     <string name="home_more_settings_subtitle">Профиль, контекст, выход</string>
     <string name="home_overview_title">Смена на площадке</string>
     <string name="home_metric_network">Сеть</string>
     <string name="home_metric_queue">Очередь</string>
     <string name="home_metric_shift">Смена</string>
+    <string name="home_metric_active">Активные выдачи</string>
+    <string name="home_metric_active_subtitle">Требуют выгрузки: %1$d</string>
+    <string name="home_metric_alerts">Инциденты</string>
     <string name="home_network_online">Онлайн</string>
     <string name="home_network_offline">Оффлайн</string>
     <string name="home_queue_ready">Без очереди</string>
     <string name="home_queue_pending">Ожидает отправки</string>
+    <string name="home_alerts_clear">Новых инцидентов нет</string>
+    <string name="home_alerts_breakdown">Крит.: %1$d · Предупр.: %2$d</string>
+    <string name="home_alerts_title">Требуют внимания</string>
+    <string name="home_alerts_subtitle">Критических: %1$d · предупреждений: %2$d · ошибок выгрузки: %3$d · несинхр.: %4$d</string>
+    <string name="home_alerts_open">Открыть</string>
     <string name="home_quick_actions">Быстрые действия</string>
     <string name="home_shortcut_employees_desc">Проверить сотрудника перед выдачей</string>
     <string name="home_shortcut_devices_desc">Открыть список часов на площадке</string>
     <string name="home_shortcut_journal_desc">Посмотреть последние операции смены</string>
     <string name="home_shortcut_summary_desc">Открыть сводку по текущей смене</string>
+    <string name="home_shortcut_alerts_desc">Открыть ошибки, конфликты и очередь синхронизации</string>
     <string name="home_shortcut_settings_desc">Профиль, контекст и служебные действия</string>
     <string name="home_issue_hint">Сценарий выдачи остаётся пошаговым: сначала сотрудник, затем устройство, затем подтверждение.</string>
     <string name="home_return_hint">Возврат проверяет, были ли выгружены данные с часов, прежде чем завершить операцию.</string>
@@ -106,8 +118,19 @@
     <string name="employees_detail_position">Должность</string>
     <string name="employees_detail_brigade">Бригада</string>
     <string name="employees_detail_pass">Пропуск</string>
+    <string name="employees_detail_current_device">Текущие часы</string>
+    <string name="employees_detail_last_operation">Последняя операция</string>
+    <string name="employees_detail_binding_status">Синхронизация</string>
+    <string name="employees_detail_upload_status">Выгрузка данных</string>
+    <string name="employees_detail_recent_activity">Последние операции</string>
+    <string name="employees_detail_no_binding">Нет активной выдачи</string>
+    <string name="employees_detail_no_activity">Операций за текущую смену нет</string>
     <string name="employees_personnel_number">Таб. №: %s</string>
     <string name="employees_brigade">Бригада: %s</string>
+    <string name="employees_current_device">Часы: %1$s</string>
+    <string name="employees_status_active_binding">Часы выданы</string>
+    <string name="employees_status_no_binding">Без выдачи</string>
+    <string name="employees_recent_activity">%1$s · %2$s</string>
 
     <!-- M2: Sync -->
     <string name="sync_action">Синхронизировать</string>
@@ -120,6 +143,8 @@
     <string name="more_title">Дополнительно</string>
     <string name="more_devices">Часы на площадке</string>
     <string name="more_employees">Поиск сотрудника</string>
+    <string name="more_maps">Карта площадки</string>
+    <string name="more_alerts">Инциденты</string>
 
     <!-- M3: Issue -->
     <string name="issue_title">Выдача часов</string>
@@ -238,6 +263,102 @@
     <string name="settings_version">Версия %s</string>
     <string name="settings_confirm">Подтвердить</string>
     <string name="more_settings">Настройки</string>
+
+    <!-- Alerts -->
+    <string name="alerts_title">Инциденты</string>
+    <string name="alerts_subtitle">%1$s · %2$s</string>
+    <string name="alerts_summary_title">Сигналы смены</string>
+    <string name="alerts_filter_all">Все</string>
+    <string name="alerts_filter_critical">Критические</string>
+    <string name="alerts_filter_warning">Предупреждения</string>
+    <string name="alerts_filter_info">Инфо</string>
+    <string name="alerts_empty">Инцидентов для отображения нет</string>
+    <string name="alerts_detail_empty">Выберите инцидент из списка</string>
+    <string name="alerts_open_details">Открыть детали инцидента</string>
+    <string name="alerts_detail_subject">Объект</string>
+    <string name="alerts_detail_message">Описание</string>
+    <string name="alerts_detail_action">Рекомендуемое действие</string>
+    <string name="alerts_action_devices">Открыть часы</string>
+    <string name="alerts_action_return">Открыть возвраты</string>
+    <string name="alerts_action_journal">Открыть журнал</string>
+    <string name="alerts_packet_error_title">Ошибка выгрузки</string>
+    <string name="alerts_packet_pending_title">Пакет в очереди</string>
+    <string name="alerts_binding_unsynced_title">Операция не синхронизирована</string>
+    <string name="alerts_binding_upload_title">Нужна выгрузка данных</string>
+    <string name="alerts_log_error_title">Ошибка операции</string>
+    <string name="alerts_log_pending_title">Операция ожидает завершения</string>
+
+    <!-- Monitoring -->
+    <string name="monitoring_status_active">Активен</string>
+    <string name="monitoring_status_idle">Простой</string>
+    <string name="monitoring_status_offline">Оффлайн</string>
+    <string name="maps_title">Карта площадки</string>
+    <string name="maps_subtitle">%1$s · %2$s</string>
+    <string name="maps_empty">Нет данных для карты площадки</string>
+    <string name="maps_summary_title">Позиции по текущей смене</string>
+    <string name="maps_mode_heatmap">Тепловая карта</string>
+    <string name="maps_mode_workers">Позиции</string>
+    <string name="maps_legend_zones">Зоны площадки</string>
+    <string name="maps_legend_workers">Работники на карте</string>
+    <string name="maps_zone_workers">%1$d чел.</string>
+    <string name="maps_zone_breakdown">Активных: %1$d · простой: %2$d</string>
+    <string name="maps_drag_hint">Перетащите для обзора</string>
+    <string name="maps_workers_empty">Нет активных позиций для отображения</string>
+    <string name="maps_zone_unknown">Нет данных по зоне</string>
+
+    <!-- Worker detail -->
+    <string name="worker_detail_title">Карточка работника</string>
+    <string name="worker_detail_subtitle">%1$s · %2$s</string>
+    <string name="worker_detail_missing">Работник не найден</string>
+    <string name="worker_detail_open_full">Открыть полную карточку</string>
+    <string name="worker_detail_smr">%1$d%% СМР</string>
+    <string name="worker_detail_section_shift">Смена</string>
+    <string name="worker_detail_section_stats">Статистика на площадке</string>
+    <string name="worker_detail_section_watch">Часы</string>
+    <string name="worker_detail_section_route">Маршрут по площадке</string>
+    <string name="worker_detail_section_alerts">Сигналы</string>
+    <string name="worker_detail_shift_start">Начало смены</string>
+    <string name="worker_detail_shift_activity">Активность</string>
+    <string name="worker_detail_heart_rate_unit">уд/мин</string>
+    <string name="worker_detail_temperature_normal">Норма</string>
+    <string name="worker_detail_temperature_no_data">Нет данных</string>
+    <string name="worker_detail_temperature_unit">°C</string>
+    <string name="worker_detail_steps_unit">шагов</string>
+    <string name="worker_detail_watch_missing">Для сотрудника нет активной выдачи часов</string>
+    <string name="worker_detail_watch_battery_value">%1$d%%</string>
+    <string name="worker_detail_watch_device">Модель часов</string>
+    <string name="worker_detail_watch_issued">Выданы в</string>
+    <string name="worker_detail_watch_last_seen">Последняя активность</string>
+    <string name="worker_detail_watch_status">Статус часов</string>
+    <string name="worker_detail_watch_status_on">Активны</string>
+    <string name="worker_detail_watch_status_off">Сняты или недоступны</string>
+    <string name="worker_detail_route_empty">Нет данных о перемещениях по площадке</string>
+    <string name="worker_detail_route_current">Текущая зона</string>
+    <string name="worker_detail_alerts_empty">Сигналов по сотруднику нет</string>
+    <string name="worker_detail_alert_acknowledge">Принять</string>
+    <string name="worker_detail_alert_accepted">Принято</string>
+    <string name="worker_detail_no_data_short">—</string>
+    <string name="worker_detail_seen_now">только что</string>
+    <string name="worker_detail_seen_minutes">%1$d мин назад</string>
+    <string name="worker_detail_seen_hours">%1$d ч назад</string>
+    <string name="worker_detail_incident_packet_error">Ошибка выгрузки</string>
+    <string name="worker_detail_incident_packet_pending">Выгрузка в очереди</string>
+    <string name="worker_detail_incident_binding_unsynced">Операция не синхронизирована</string>
+    <string name="worker_detail_incident_upload_required">Нужна выгрузка данных</string>
+    <string name="worker_detail_incident_low_battery">Низкий заряд батареи</string>
+    <string name="worker_detail_incident_inactive">Длительный простой</string>
+    <string name="worker_detail_incident_watch_off">Часы не отвечают</string>
+    <string name="worker_detail_incident_operation_error">Ошибка операции</string>
+    <string name="worker_detail_incident_operation_pending">Операция ожидает завершения</string>
+    <string name="worker_detail_incident_packet_error_desc">Пакет данных не был доставлен на сервер и требует повторной проверки.</string>
+    <string name="worker_detail_incident_packet_pending_desc">Данные сотрудника сохранены локально и ожидают ближайшую отправку.</string>
+    <string name="worker_detail_incident_binding_unsynced_desc">Привязка часов ещё не подтверждена сервером.</string>
+    <string name="worker_detail_incident_upload_required_desc">Перед закрытием смены стоит выгрузить данные с часов.</string>
+    <string name="worker_detail_incident_low_battery_desc">Уровень заряда близок к порогу, стоит проверить устройство.</string>
+    <string name="worker_detail_incident_inactive_desc">По текущим сигналам сотрудник находится в простое более обычного окна активности.</string>
+    <string name="worker_detail_incident_watch_off_desc">Последние сигналы с часов не поступают, возможен разряд или снятие устройства.</string>
+    <string name="worker_detail_incident_operation_error_desc">Последняя операция по сотруднику завершилась ошибкой и требует внимания.</string>
+    <string name="worker_detail_incident_operation_pending_desc">Операция ещё не завершена и может потребовать повторной синхронизации.</string>
 
     <!-- Upload -->
     <string name="upload_data_title">Выгрузка данных</string>

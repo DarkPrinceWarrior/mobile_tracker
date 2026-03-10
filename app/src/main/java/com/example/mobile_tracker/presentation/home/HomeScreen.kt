@@ -29,10 +29,12 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -115,11 +117,13 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onNavigateToDevices: () -> Unit = {},
     onNavigateToEmployees: () -> Unit = {},
+    onNavigateToMaps: () -> Unit = {},
     onNavigateToIssue: () -> Unit = {},
     onNavigateToReturn: () -> Unit = {},
     onNavigateToJournal: () -> Unit = {},
     onNavigateToSummary: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToAlerts: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state
@@ -188,6 +192,7 @@ fun HomeScreen(
                 HomeBottomBar(
                     selectedDestination = selectedDestination,
                     pendingPacketsCount = state.pendingPacketsCount,
+                    alertCount = state.totalAlertsCount,
                     onDestinationSelected = { selectedDestination = it },
                 )
             }
@@ -202,6 +207,7 @@ fun HomeScreen(
                 HomeNavigationRail(
                     selectedDestination = selectedDestination,
                     pendingPacketsCount = state.pendingPacketsCount,
+                    alertCount = state.totalAlertsCount,
                     onDestinationSelected = { selectedDestination = it },
                 )
             }
@@ -232,6 +238,7 @@ fun HomeScreen(
                                 state = state,
                                 shiftTypeLabel = shiftTypeLabel,
                                 onNavigateToSummary = onNavigateToSummary,
+                                onNavigateToAlerts = onNavigateToAlerts,
                             )
                         }
                         when (destination) {
@@ -253,17 +260,22 @@ fun HomeScreen(
                             HomeDestination.JOURNAL -> JournalTabContent(
                                 onNavigateToJournal = onNavigateToJournal,
                                 onNavigateToSummary = onNavigateToSummary,
-                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToAlerts = onNavigateToAlerts,
                             )
                             HomeDestination.MORE -> MoreTabContent(
                                 onNavigateToDevices =
                                     onNavigateToDevices,
                                 onNavigateToEmployees =
                                     onNavigateToEmployees,
+                                onNavigateToMaps =
+                                    onNavigateToMaps,
                                 onNavigateToSummary =
                                     onNavigateToSummary,
+                                onNavigateToAlerts =
+                                    onNavigateToAlerts,
                                 onNavigateToSettings =
                                     onNavigateToSettings,
+                                alertCount = state.totalAlertsCount,
                             )
                         }
                     }
@@ -278,6 +290,7 @@ private fun HomeOverviewSection(
     state: HomeState,
     shiftTypeLabel: String,
     onNavigateToSummary: () -> Unit,
+    onNavigateToAlerts: () -> Unit,
 ) {
     MTSectionHeader(
         title = stringResource(R.string.home_overview_title),
@@ -363,6 +376,41 @@ private fun HomeOverviewSection(
         )
     }
 
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        MTMetricCard(
+            title = stringResource(R.string.home_metric_active),
+            value = state.activeBindingsCount.toString(),
+            subtitle = stringResource(
+                R.string.home_metric_active_subtitle,
+                state.uploadRequiredCount,
+            ),
+            tone = MTStatusTone.Neutral,
+            modifier = Modifier.weight(1f),
+        )
+        MTMetricCard(
+            title = stringResource(R.string.home_metric_alerts),
+            value = state.totalAlertsCount.toString(),
+            subtitle = if (state.totalAlertsCount == 0) {
+                stringResource(R.string.home_alerts_clear)
+            } else {
+                stringResource(
+                    R.string.home_alerts_breakdown,
+                    state.criticalAlertsCount,
+                    state.warningAlertsCount,
+                )
+            },
+            tone = when {
+                state.criticalAlertsCount > 0 -> MTStatusTone.Danger
+                state.totalAlertsCount > 0 -> MTStatusTone.Warning
+                else -> MTStatusTone.Success
+            },
+            modifier = Modifier.weight(1f),
+        )
+    }
+
     MTCard {
         Text(
             text = stringResource(R.string.home_metric_shift),
@@ -397,12 +445,62 @@ private fun HomeOverviewSection(
             )
         }
     }
+
+    if (state.totalAlertsCount > 0) {
+        Card(
+            onClick = onNavigateToAlerts,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(AppRadius.lg),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+            ),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppLayout.cardPadding),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                ) {
+                    Text(
+                        text = stringResource(R.string.home_alerts_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.home_alerts_subtitle,
+                            state.criticalAlertsCount,
+                            state.warningAlertsCount,
+                            state.errorPacketsCount,
+                            state.unsyncedBindingsCount,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                MTStatusBadge(
+                    label = stringResource(R.string.home_alerts_open),
+                    tone = if (state.criticalAlertsCount > 0) {
+                        MTStatusTone.Danger
+                    } else {
+                        MTStatusTone.Warning
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable
 private fun HomeBottomBar(
     selectedDestination: HomeDestination,
     pendingPacketsCount: Int,
+    alertCount: Int,
     onDestinationSelected: (HomeDestination) -> Unit,
 ) {
     Surface(
@@ -428,6 +526,11 @@ private fun HomeBottomBar(
                             pendingPacketsCount > 0
                     ) {
                         pendingPacketsCount
+                    } else if (
+                        item.destination == HomeDestination.MORE &&
+                            alertCount > 0
+                    ) {
+                        alertCount
                     } else {
                         null
                     },
@@ -443,6 +546,7 @@ private fun HomeBottomBar(
 private fun HomeNavigationRail(
     selectedDestination: HomeDestination,
     pendingPacketsCount: Int,
+    alertCount: Int,
     onDestinationSelected: (HomeDestination) -> Unit,
 ) {
     Surface(
@@ -468,6 +572,11 @@ private fun HomeNavigationRail(
                             pendingPacketsCount > 0
                     ) {
                         pendingPacketsCount
+                    } else if (
+                        item.destination == HomeDestination.MORE &&
+                            alertCount > 0
+                    ) {
+                        alertCount
                     } else {
                         null
                     },
@@ -840,7 +949,7 @@ private fun UploadTabContent(
 private fun JournalTabContent(
     onNavigateToJournal: () -> Unit,
     onNavigateToSummary: () -> Unit,
-    onNavigateToSettings: () -> Unit,
+    onNavigateToAlerts: () -> Unit,
 ) {
     HomePrimaryActionCard(
         icon = Icons.AutoMirrored.Filled.List,
@@ -864,10 +973,10 @@ private fun JournalTabContent(
         },
         second = {
             HomeQuickActionCard(
-                icon = Icons.Default.Settings,
-                title = stringResource(R.string.more_settings),
-                subtitle = stringResource(R.string.home_shortcut_settings_desc),
-                onClick = onNavigateToSettings,
+                icon = Icons.Default.Warning,
+                title = stringResource(R.string.more_alerts),
+                subtitle = stringResource(R.string.home_shortcut_alerts_desc),
+                onClick = onNavigateToAlerts,
             )
         },
     )
@@ -882,8 +991,11 @@ private fun JournalTabContent(
 private fun MoreTabContent(
     onNavigateToDevices: () -> Unit,
     onNavigateToEmployees: () -> Unit,
+    onNavigateToMaps: () -> Unit,
     onNavigateToSummary: () -> Unit,
+    onNavigateToAlerts: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    alertCount: Int,
 ) {
     MTSectionHeader(
         title = stringResource(R.string.more_title),
@@ -902,10 +1014,26 @@ private fun MoreTabContent(
         onClick = onNavigateToEmployees,
     )
     MoreMenuItem(
+        icon = Icons.Default.Map,
+        title = stringResource(R.string.more_maps),
+        subtitle = stringResource(R.string.home_more_maps_subtitle),
+        onClick = onNavigateToMaps,
+    )
+    MoreMenuItem(
         icon = Icons.Default.BarChart,
         title = stringResource(R.string.more_summary),
         subtitle = stringResource(R.string.home_more_summary_subtitle),
         onClick = onNavigateToSummary,
+    )
+    MoreMenuItem(
+        icon = Icons.Default.Warning,
+        title = stringResource(R.string.more_alerts),
+        subtitle = if (alertCount > 0) {
+            stringResource(R.string.home_more_alerts_subtitle_count, alertCount)
+        } else {
+            stringResource(R.string.home_more_alerts_subtitle)
+        },
+        onClick = onNavigateToAlerts,
     )
     MoreMenuItem(
         icon = Icons.Default.Settings,

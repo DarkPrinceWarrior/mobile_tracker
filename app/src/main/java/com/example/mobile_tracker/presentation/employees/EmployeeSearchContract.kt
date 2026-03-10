@@ -1,10 +1,14 @@
 package com.example.mobile_tracker.presentation.employees
 
+import com.example.mobile_tracker.data.local.db.entity.BindingEntity
+import com.example.mobile_tracker.data.local.db.entity.OperationLogEntity
 import com.example.mobile_tracker.domain.model.Employee
 
 data class EmployeeSearchState(
     val query: String = "",
     val results: List<Employee> = emptyList(),
+    val activeBindings: List<BindingEntity> = emptyList(),
+    val recentLogs: List<OperationLogEntity> = emptyList(),
     val selectedEmployeeId: String? = null,
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
