@@ -45,6 +45,7 @@ import com.example.mobile_tracker.presentation.common.LoadingState
 import com.example.mobile_tracker.presentation.common.MTCard
 import com.example.mobile_tracker.presentation.common.MTCompactTopBar
 import com.example.mobile_tracker.presentation.common.MTSectionHeader
+import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.monitoring.MonitoringMapMode
 import com.example.mobile_tracker.presentation.monitoring.MonitoringModeChip
 import com.example.mobile_tracker.presentation.monitoring.MonitoringSiteMap
@@ -65,6 +66,7 @@ fun MapsScreen(
     viewModel: MapsViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val errorMessage = state.error
 
     AppScreenScaffold(
         snackbarMessage = state.error,
@@ -96,13 +98,6 @@ fun MapsScreen(
                     .fillMaxSize()
                     .padding(padding),
             )
-            state.workers.isEmpty() -> EmptyState(
-                title = stringResource(R.string.maps_empty),
-                icon = Icons.Default.Map,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            )
             else -> LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -110,6 +105,11 @@ fun MapsScreen(
                     .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
             ) {
+                if (!errorMessage.isNullOrBlank()) {
+                    item {
+                        StateCard(message = errorMessage, isError = true)
+                    }
+                }
                 item {
                     MapsSummaryCard(state = state)
                 }
@@ -155,7 +155,15 @@ fun MapsScreen(
                         },
                     )
                 }
-                if (state.mode == MonitoringMapMode.Heatmap) {
+                if (state.workers.isEmpty()) {
+                    item {
+                        EmptyState(
+                            title = stringResource(R.string.maps_empty),
+                            icon = Icons.Default.Map,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                } else if (state.mode == MonitoringMapMode.Heatmap) {
                     items(state.zoneSummaries, key = { it.zone.id }) { summary ->
                         MapsZoneRow(summary = summary)
                     }
@@ -373,4 +381,3 @@ private fun zoneIndicatorColor(summary: MonitoringZoneSummary): Color = when {
     summary.totalWorkers > 0 -> Color(0xFF2D9552)
     else -> MaterialTheme.colorScheme.outlineVariant
 }
-

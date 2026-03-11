@@ -6,6 +6,8 @@ import com.example.mobile_tracker.data.local.db.dao.DeviceDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
 import com.example.mobile_tracker.data.remote.dto.toDomain
 import com.example.mobile_tracker.data.repository.ReferenceRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -33,6 +35,7 @@ class DeviceListViewModel(
         _effect.asSharedFlow()
 
     private var currentSiteId: String? = null
+    private var devicesJob: Job? = null
 
     init {
         loadDevices()
@@ -66,7 +69,7 @@ class DeviceListViewModel(
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        error = "Контекст не выбран",
+                        error = "Контекст смены не выбран",
                     )
                 }
                 return@launch
@@ -74,7 +77,9 @@ class DeviceListViewModel(
 
             currentSiteId = ctx.siteId
 
-            deviceDao.observeBySite(ctx.siteId)
+            devicesJob?.cancel()
+            devicesJob = viewModelScope.launch {
+                deviceDao.observeBySite(ctx.siteId)
                 .collect { entities ->
                     val all =
                         entities.map { it.toDomain() }
@@ -104,6 +109,7 @@ class DeviceListViewModel(
                         )
                     }
                 }
+            }
         }
     }
 
@@ -125,13 +131,12 @@ class DeviceListViewModel(
                     _state.update {
                         it.copy(
                             isSyncing = false,
-                            error = e.message,
+                            error = e.message ?: "Не удалось обновить список часов",
                         )
                     }
                     _effect.emit(
                         DeviceListEffect.ShowError(
-                            e.message
-                                ?: "Ошибка синхронизации",
+                            e.message ?: "Не удалось обновить список часов",
                         ),
                     )
                 },

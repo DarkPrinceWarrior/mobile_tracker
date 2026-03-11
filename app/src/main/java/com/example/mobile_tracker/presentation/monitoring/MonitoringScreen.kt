@@ -50,6 +50,7 @@ import com.example.mobile_tracker.R
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.StateCard
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -81,15 +82,16 @@ fun MonitoringScreen(
                     .fillMaxSize()
                     .padding(padding),
             )
-            state.totalWorkers == 0 -> EmptyState(
-                title = stringResource(R.string.monitoring_empty),
-                icon = Icons.Default.People,
+            state.totalWorkers == 0 -> MonitoringEmptyPane(
+                onBack = onBack,
+                error = state.error,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
             )
             else -> MonitoringContent(
                 state = state,
+                error = state.error,
                 onBack = onBack,
                 onNavigateToMaps = onNavigateToMaps,
                 onNavigateToWorkers = onNavigateToWorkers,
@@ -106,6 +108,7 @@ fun MonitoringScreen(
 @Composable
 private fun MonitoringContent(
     state: MonitoringState,
+    error: String?,
     onBack: (() -> Unit)?,
     onNavigateToMaps: () -> Unit,
     onNavigateToWorkers: () -> Unit,
@@ -120,6 +123,9 @@ private fun MonitoringContent(
         verticalArrangement = Arrangement.spacedBy(30.dp),
     ) {
         MonitoringTitleRow(onBack = onBack)
+        if (!error.isNullOrBlank()) {
+            StateCard(message = error, isError = true)
+        }
         ZoneHeaderCard(
             zoneLabel = state.topZoneLabel.ifBlank { stringResource(R.string.maps_zone_unknown) },
             shiftWindow = monitoringShiftWindow(state.shiftType),
@@ -163,6 +169,28 @@ private fun MonitoringContent(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun MonitoringEmptyPane(
+    onBack: (() -> Unit)?,
+    error: String?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        MonitoringTitleRow(onBack = onBack)
+        if (!error.isNullOrBlank()) {
+            StateCard(message = error, isError = true)
+        }
+        EmptyState(
+            title = stringResource(R.string.monitoring_empty),
+            icon = Icons.Default.People,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 

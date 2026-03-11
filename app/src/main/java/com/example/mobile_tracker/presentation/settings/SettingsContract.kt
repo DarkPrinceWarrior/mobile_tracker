@@ -7,6 +7,8 @@ data class SettingsState(
     val shiftDate: String = "",
     val shiftType: String = "day",
     val appVersion: String = "",
+    val notificationsEnabled: Boolean = true,
+    val notificationsPermissionGranted: Boolean = true,
     val isLoading: Boolean = false,
     val showLogoutDialog: Boolean = false,
     val showClearCacheDialog: Boolean = false,
@@ -21,6 +23,7 @@ sealed interface SettingsIntent {
     data object ClearCacheClicked : SettingsIntent
     data object ClearCacheConfirmed : SettingsIntent
     data object ClearCacheDismissed : SettingsIntent
+    data class SetNotificationsEnabled(val enabled: Boolean) : SettingsIntent
     data object DismissError : SettingsIntent
 }
 

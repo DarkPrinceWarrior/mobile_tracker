@@ -25,6 +25,7 @@ import com.example.mobile_tracker.presentation.upload.UploadViewModel
 import com.example.mobile_tracker.presentation.workers.WorkersViewModel
 import com.example.mobile_tracker.presentation.worker_detail.WorkerDetailViewModel
 import com.example.mobile_tracker.util.NetworkMonitor
+import com.example.mobile_tracker.util.OperatorNotificationManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -32,6 +33,7 @@ import org.koin.dsl.module
 val appModule = module {
     single { SecureStorage(androidContext()) }
     single { UserPreferencesManager(androidContext()) }
+    single { OperatorNotificationManager(androidContext(), get()) }
     single {
         ReferenceRepository(
             get(), get(), get(), get(), get(),
@@ -39,7 +41,7 @@ val appModule = module {
     }
     single {
         BindingRepository(
-            get(), get(), get(), get(),
+            get(), get(), get(), get(), get(),
         )
     }
 
@@ -79,7 +81,7 @@ val appModule = module {
         ReturnViewModel(get(), get(), get(), get())
     }
     viewModel {
-        UploadViewModel(get(), get(), get(), get())
+        UploadViewModel(get(), get(), get(), get(), get())
     }
     viewModel { JournalViewModel(get(), get()) }
     viewModel { AlertsViewModel(get(), get(), get(), get()) }

@@ -33,6 +33,18 @@ interface PacketQueueDao {
     )
     fun observeErrorCount(): Flow<Int>
 
+    @Query(
+        "SELECT COUNT(*) FROM packet_queue " +
+            "WHERE status IN ('pending', 'error')",
+    )
+    suspend fun getUnsentCount(): Int
+
+    @Query(
+        "SELECT COUNT(*) FROM packet_queue " +
+            "WHERE status = 'error'",
+    )
+    suspend fun getErrorCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun enqueue(packet: PacketQueueEntity)
 

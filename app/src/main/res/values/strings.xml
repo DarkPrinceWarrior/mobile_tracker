@@ -99,6 +99,8 @@
     <string name="devices_status_issued">Выдан</string>
     <string name="devices_status_discharged">Разряжен</string>
     <string name="devices_status_faulty">Неисправен</string>
+    <string name="devices_status_inspection">На проверке</string>
+    <string name="devices_status_lost">Потерян</string>
     <string name="devices_charge_charged">Заряжен</string>
     <string name="devices_charge_low">Низкий заряд</string>
     <string name="devices_charge_critical">Критический</string>
@@ -173,7 +175,22 @@
     <string name="issue_navigate">Перейти к выдаче</string>
     <string name="issue_select_device">Выберите часы (%d свободных)</string>
     <string name="issue_next">Далее</string>
+    <string name="issue_apply_assignment">Продолжить с предложением</string>
     <string name="issue_selected">Выбрано</string>
+    <string name="issue_assignment_title">Режим назначения часов</string>
+    <string name="issue_assignment_subtitle">Выберите, как система должна предлагать устройство для текущей выдачи.</string>
+    <string name="issue_assignment_queue">По очереди</string>
+    <string name="issue_assignment_random">Случайно</string>
+    <string name="issue_assignment_manual">Вручную</string>
+    <string name="issue_assignment_queue_desc">Система предлагает следующие доступные часы по очереди.</string>
+    <string name="issue_assignment_random_desc">Система предлагает случайные доступные часы без ручного подбора.</string>
+    <string name="issue_assignment_manual_desc">Оператор сам выбирает устройство из списка доступных часов.</string>
+    <string name="issue_assignment_queue_hint">Подходит для линейной раздачи устройств на старте смены.</string>
+    <string name="issue_assignment_random_hint">Подходит, когда нет строгой очередности выдачи по стеллажу или зарядке.</string>
+    <string name="issue_assignment_manual_hint">Используйте этот режим, если нужно выбрать конкретные часы по QR, серийному номеру или состоянию.</string>
+    <string name="issue_scan_nfc">Сканировать NFC-пропуск</string>
+    <string name="issue_scan_nfc_subtitle">Идентификация сотрудника по RFID/NFC вместо ручного ввода</string>
+    <string name="issue_scan_qr">Сканировать QR часов</string>
 
     <!-- M3: Return -->
     <string name="return_title">Возврат часов</string>
@@ -197,6 +214,21 @@
     <string name="return_issued_at">Выдано: %s</string>
     <string name="return_data_uploaded">Данные выгружены</string>
     <string name="return_data_pending">Данные не выгружены</string>
+    <string name="return_mark_problem">Проблема</string>
+    <string name="return_problem_title">Проблема при возврате</string>
+    <string name="return_problem_subtitle">Зафиксируйте причину, чтобы часы не вернулись в оборот до проверки.</string>
+    <string name="return_problem_comment_label">Комментарий</string>
+    <string name="return_problem_comment_placeholder">Например, экран разбит, часы не выходят на связь, нет зарядки…</string>
+    <string name="return_problem_confirm">Сохранить причину</string>
+    <string name="return_problem_lost">Потеря</string>
+    <string name="return_problem_faulty">Поломка</string>
+    <string name="return_problem_no_connection">Нет связи</string>
+    <string name="return_problem_other">Другое</string>
+    <string name="return_problem_lost_desc">Часы у сотрудника отсутствуют, возврат невозможен.</string>
+    <string name="return_problem_faulty_desc">Устройство физически повреждено и требует проверки.</string>
+    <string name="return_problem_no_connection_desc">Часы на руках, но не отвечают или не подключаются.</string>
+    <string name="return_problem_other_desc">Нестандартная ситуация, которую нужно описать вручную.</string>
+    <string name="return_scan_qr">Сканировать QR для возврата</string>
 
     <!-- M3: Binding sync -->
     <string name="binding_pending_sync">Ожидает синхронизации</string>
@@ -254,6 +286,9 @@
     <string name="settings_subtitle">Профиль, контекст и служебные действия</string>
     <string name="settings_operator">Оператор</string>
     <string name="settings_current_context">Текущий контекст</string>
+    <string name="settings_notifications">Уведомления</string>
+    <string name="settings_notifications_desc">Критичные события, очередь пакетов и результаты фоновой синхронизации</string>
+    <string name="settings_notifications_permission_required">Для системных уведомлений нужно разрешение ОС</string>
     <string name="settings_change_context">Сменить контекст</string>
     <string name="settings_change_context_desc">Выбрать другую площадку или смену</string>
     <string name="settings_clear_cache">Очистить кэш</string>
@@ -420,6 +455,7 @@
     <string name="upload_done_status">Выгрузка завершена</string>
     <string name="upload_device_label">Устройство: %s</string>
     <string name="upload_start_button">Начать выгрузку</string>
+    <string name="upload_scan_qr">Сканировать QR часов</string>
     <string name="upload_error_title">Ошибка выгрузки</string>
     <string name="upload_retry_button">Повторить</string>
     <string name="upload_done_title">Данные выгружены</string>
@@ -451,4 +487,73 @@
     <string name="action_open_return_details">Открыть детали возврата</string>
     <string name="action_select_employee">Выбрать сотрудника</string>
     <string name="action_select_device">Выбрать устройство</string>
+
+    <!-- QR scan -->
+    <string name="qr_scan_title">Сканирование QR</string>
+    <string name="qr_scan_subtitle_issue">Выдача часов по QR-коду устройства</string>
+    <string name="qr_scan_subtitle_return">Возврат часов по QR-коду устройства</string>
+    <string name="qr_scan_subtitle_upload">Выбор часов для BLE-выгрузки по QR</string>
+    <string name="qr_scan_hero_title">Наведите рамку на QR-код</string>
+    <string name="qr_scan_instruction_issue">Сканируйте код на корпусе часов или введите значение вручную, чтобы сразу выбрать устройство для выдачи.</string>
+    <string name="qr_scan_instruction_return">Сканируйте код часов, чтобы быстро найти активную выдачу и перейти к возврату.</string>
+    <string name="qr_scan_instruction_upload">Сканируйте код часов, чтобы начать выгрузку данных по конкретному устройству.</string>
+    <string name="qr_scan_badge_ready">Камера готова</string>
+    <string name="qr_scan_badge_permission">Нужен доступ</string>
+    <string name="qr_scan_permission_button">Разрешить камеру</string>
+    <string name="qr_scan_permission_hint">Без доступа к камере можно продолжить вручную: введите device_id или серийный номер с наклейки часов.</string>
+    <string name="qr_scan_camera_ready">Режим сканирования активен</string>
+    <string name="qr_scan_camera_waiting">Ожидается доступ к камере</string>
+    <string name="qr_scan_frame_hint">QR-код должен полностью помещаться в рамке. Также можно использовать ручной ввод.</string>
+    <string name="qr_scan_manual_title">Ручной ввод</string>
+    <string name="qr_scan_manual_subtitle">Если сканирование недоступно, введите код часов вручную.</string>
+    <string name="qr_scan_manual_label">Значение QR</string>
+    <string name="qr_scan_manual_placeholder">Например, WT-0007 или серийный номер</string>
+    <string name="qr_scan_fill_demo">Использовать пример</string>
+    <string name="qr_scan_confirm">Продолжить со значением</string>
+
+    <!-- NFC scan -->
+    <string name="nfc_scan_title">Сканирование пропуска</string>
+    <string name="nfc_scan_subtitle_issue">Идентификация сотрудника по RFID/NFC</string>
+    <string name="nfc_scan_hero_title">Поднесите пропуск к устройству</string>
+    <string name="nfc_scan_instruction">Используйте NFC-пропуск сотрудника для быстрой идентификации. Если считывание недоступно, номер пропуска можно ввести вручную.</string>
+    <string name="nfc_scan_badge_ready">NFC активно</string>
+    <string name="nfc_scan_badge_disabled">NFC выключено</string>
+    <string name="nfc_scan_badge_unsupported">NFC недоступно</string>
+    <string name="nfc_scan_not_supported_hint">На этом устройстве нет NFC-модуля. Используйте ручной ввод номера пропуска.</string>
+    <string name="nfc_scan_disabled_hint">NFC-модуль обнаружен, но выключен в настройках устройства. При необходимости можно продолжить через ручной ввод номера пропуска.</string>
+    <string name="nfc_scan_ready">Готово к считыванию</string>
+    <string name="nfc_scan_waiting">Ожидается включение NFC</string>
+    <string name="nfc_scan_frame_hint">Поднесите RFID-пропуск к задней крышке устройства. Если считывание не сработало, используйте ручной ввод.</string>
+    <string name="nfc_scan_manual_title">Ручной ввод номера пропуска</string>
+    <string name="nfc_scan_manual_subtitle">Используйте этот вариант, если пропуск нужно ввести вручную.</string>
+    <string name="nfc_scan_manual_label">Номер пропуска</string>
+    <string name="nfc_scan_manual_placeholder">Например, A-1001</string>
+    <string name="nfc_scan_fill_demo">Использовать пример</string>
+    <string name="nfc_scan_confirm">Найти сотрудника</string>
+    <string name="permissions_open_app_settings">Открыть настройки приложения</string>
+    <string name="permissions_open_nfc_settings">Включить NFC в настройках</string>
+    <string name="permissions_open_bluetooth_settings">Открыть настройки Bluetooth</string>
+    <string name="permissions_ble_required">Нужны BLE-разрешения</string>
+    <string name="permissions_ble_required_hint">Для поиска и чтения часов приложению нужны Bluetooth-разрешения. Без них выгрузка данных не начнётся.</string>
+    <string name="permissions_ble_denied_hint">Bluetooth-разрешения были отклонены. Продолжить выгрузку можно после выдачи доступа в настройках приложения.</string>
+    <string name="permissions_ble_unsupported">BLE недоступен</string>
+    <string name="permissions_ble_unsupported_hint">На этом устройстве нет поддержки Bluetooth Low Energy. Сценарии работы с часами здесь недоступны.</string>
+    <string name="permissions_bluetooth_off">Bluetooth выключен</string>
+    <string name="permissions_bluetooth_off_hint">Bluetooth отключён в системе. Для связи с часами включите его и повторите операцию.</string>
+
+    <!-- Notifications -->
+    <string name="notifications_channel_sync_title">Синхронизация</string>
+    <string name="notifications_channel_sync_desc">Результаты фоновой синхронизации и состояние очереди</string>
+    <string name="notifications_channel_errors_title">Критичные события</string>
+    <string name="notifications_channel_errors_desc">Ошибки выгрузки, конфликты привязки и другие важные сигналы</string>
+    <string name="notifications_pending_packets_title">Есть несинхронизированные пакеты</string>
+    <string name="notifications_pending_packets_body">В очереди остаётся %1$d пакетов. Проверьте сеть и повторите синхронизацию.</string>
+    <string name="notifications_upload_error_title">Ошибка выгрузки данных</string>
+    <string name="notifications_upload_error_body">Не удалось отправить пакет для часов %1$s.</string>
+    <string name="notifications_binding_conflict_title">Конфликт привязки</string>
+    <string name="notifications_binding_conflict_body">По часам %1$s сервер вернул конфликт привязки. Нужна проверка оператора.</string>
+    <string name="notifications_sync_complete_title">Синхронизация завершена</string>
+    <string name="notifications_sync_complete_body">Успешно обработано объектов: %1$d.</string>
+    <string name="notifications_reference_sync_error_title">Ошибка обновления справочников</string>
+    <string name="notifications_reference_sync_error_body">Фоновая синхронизация справочников завершилась ошибкой.</string>
 </resources>

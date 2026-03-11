@@ -48,6 +48,7 @@ import com.example.mobile_tracker.R
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.monitoring.MonitoringBottomBar
 import com.example.mobile_tracker.presentation.monitoring.MonitoringTab
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringSnapshot
@@ -84,13 +85,6 @@ fun WorkersScreen(
                     .fillMaxSize()
                     .padding(padding),
             )
-            state.workers.isEmpty() -> EmptyState(
-                title = stringResource(R.string.workers_empty),
-                icon = Icons.Default.People,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            )
             else -> WorkersContent(
                 state = state,
                 onBack = onBack,
@@ -118,6 +112,9 @@ private fun WorkersContent(
         verticalArrangement = Arrangement.spacedBy(30.dp),
     ) {
         WorkersTitleRow(onBack = onBack)
+        if (!state.error.isNullOrBlank()) {
+            StateCard(message = state.error, isError = true)
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             WorkersSearchField(
@@ -147,7 +144,13 @@ private fun WorkersContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
             )
 
-            if (state.filteredWorkers.isEmpty()) {
+            if (state.workers.isEmpty()) {
+                EmptyState(
+                    title = stringResource(R.string.workers_empty),
+                    icon = Icons.Default.People,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else if (state.filteredWorkers.isEmpty()) {
                 EmptyState(
                     title = stringResource(R.string.workers_filtered_empty),
                     icon = Icons.Default.People,

@@ -1,7 +1,11 @@
 package com.example.mobile_tracker.presentation.settings
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mobile_tracker.data.local.datastore.UserPreferencesManager
@@ -9,6 +13,7 @@ import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
 import com.example.mobile_tracker.data.local.secure.SecureStorage
 import com.example.mobile_tracker.data.repository.ReferenceRepository
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,6 +63,8 @@ class SettingsViewModel(
                 _state.update {
                     it.copy(showClearCacheDialog = false)
                 }
+            is SettingsIntent.SetNotificationsEnabled ->
+                setNotificationsEnabled(intent.enabled)
             SettingsIntent.DismissError ->
                 _state.update { it.copy(error = null) }
         }
@@ -94,6 +101,8 @@ class SettingsViewModel(
                                     context?.shiftType
                                         ?: "day",
                                 appVersion = version,
+                                notificationsEnabled = prefs.notificationsEnabled,
+                                notificationsPermissionGranted = areNotificationsGranted(),
                             )
                         }
                     }
@@ -169,5 +178,28 @@ class SettingsViewModel(
                 }
             }
         }
+    }
+
+    private fun setNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setNotificationsEnabled(enabled)
+            _state.update {
+                it.copy(
+                    notificationsEnabled = enabled,
+                    notificationsPermissionGranted = areNotificationsGranted(),
+                )
+            }
+        }
+    }
+
+    private fun areNotificationsGranted(): Boolean {
+        if (!NotificationManagerCompat.from(appContext).areNotificationsEnabled()) return false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return ContextCompat.checkSelfPermission(
+                appContext,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+        return true
     }
 }

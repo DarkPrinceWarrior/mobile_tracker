@@ -1,5 +1,10 @@
 package com.example.mobile_tracker.presentation.upload
 
+import android.bluetooth.BluetoothManager
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -22,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +44,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +65,7 @@ import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
 import com.example.mobile_tracker.ui.theme.AppSpacing
+import kotlinx.coroutines.flow.collect
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -65,15 +75,23 @@ fun UploadScreen(
     employeeName: String? = null,
     bindingId: Long? = null,
     onBack: (() -> Unit)? = null,
+    onCompleted: (() -> Unit)? = null,
+    onOpenQrScan: () -> Unit = {},
     viewModel: UploadViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val packageManager = context.packageManager
+    val bleSupported = packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)
+    val bluetoothEnabled =
+        context.getSystemService(BluetoothManager::class.java)?.adapter?.isEnabled == true
+    var permissionDenied by rememberSaveable { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
         if (results.values.all { it }) {
+            permissionDenied = false
             viewModel.onIntent(
                 UploadIntent.StartUpload(
                     deviceId = deviceId,
@@ -82,6 +100,8 @@ fun UploadScreen(
                     bindingId = bindingId,
                 ),
             )
+        } else {
+            permissionDenied = true
         }
     }
 
@@ -98,6 +118,15 @@ fun UploadScreen(
                 )
             } else {
                 permissionLauncher.launch(BlePermissionManager.requiredPermissions().toTypedArray())
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                UploadEffect.UploadComplete -> Unit
+                is UploadEffect.ShowError -> Unit
             }
         }
     }
@@ -137,6 +166,10 @@ fun UploadScreen(
                 UploadStep.Idle -> IdleUploadContent(
                     deviceId = deviceId,
                     employeeName = employeeName,
+                    bleSupported = bleSupported,
+                    bluetoothEnabled = bluetoothEnabled,
+                    blePermissionGranted = BlePermissionManager.hasPermissions(context),
+                    permissionDenied = permissionDenied,
                     onStart = {
                         if (BlePermissionManager.hasPermissions(context)) {
                             viewModel.onIntent(
@@ -153,6 +186,21 @@ fun UploadScreen(
                             )
                         }
                     },
+                    onOpenQrScan = onOpenQrScan,
+                    onOpenBluetoothSettings = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    },
+                    onOpenAppSettings = {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null),
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    },
                 )
                 UploadStep.Error -> ErrorUploadContent(
                     error = state.error ?: stringResource(R.string.error_unknown),
@@ -162,6 +210,7 @@ fun UploadScreen(
                 UploadStep.Done -> DoneUploadContent(
                     isServerUploaded = state.isServerUploaded,
                     packetId = state.packetId,
+                    onDone = { (onCompleted ?: onBack)?.invoke() },
                 )
                 else -> ProgressUploadContent(state = state)
             }
@@ -173,75 +222,153 @@ fun UploadScreen(
 private fun IdleUploadContent(
     deviceId: String,
     employeeName: String?,
+    bleSupported: Boolean,
+    bluetoothEnabled: Boolean,
+    blePermissionGranted: Boolean,
+    permissionDenied: Boolean,
     onStart: () -> Unit,
+    onOpenQrScan: () -> Unit,
+    onOpenBluetoothSettings: () -> Unit,
+    onOpenAppSettings: () -> Unit,
 ) {
-    Card(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppRadius.xl),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-        ),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
     ) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(AppRadius.xl),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+            ),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+            Column(
+                modifier = Modifier.padding(AppSpacing.lg),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
             ) {
-                MTStatusBadge(
-                    label = stringResource(R.string.upload_idle_status),
-                    tone = MTStatusTone.Success,
-                )
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                    MTStatusBadge(
+                        label = when {
+                            !bleSupported -> stringResource(R.string.permissions_ble_unsupported)
+                            !blePermissionGranted -> stringResource(R.string.permissions_ble_required)
+                            !bluetoothEnabled -> stringResource(R.string.permissions_bluetooth_off)
+                            else -> stringResource(R.string.upload_idle_status)
+                        },
+                        tone = when {
+                            !bleSupported -> MTStatusTone.Neutral
+                            !blePermissionGranted || !bluetoothEnabled -> MTStatusTone.Warning
+                            else -> MTStatusTone.Success
+                        },
                     )
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                }
+
+                Text(
+                    text = stringResource(R.string.upload_data_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+                Text(
+                    text = stringResource(R.string.home_upload_subtitle),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.74f),
+                )
+
+                if (deviceId.isNotBlank()) {
+                    UploadMetaPill(label = stringResource(R.string.upload_device_label, deviceId))
+                }
+                if (!employeeName.isNullOrBlank()) {
+                    UploadMetaPill(label = employeeName)
+                }
+
+                if (deviceId.isBlank()) {
+                    OutlinedButton(
+                        onClick = onOpenQrScan,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = RoundedCornerShape(AppRadius.xl),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        Icon(imageVector = Icons.Default.QrCodeScanner, contentDescription = null)
+                        Spacer(modifier = Modifier.size(AppSpacing.xs))
+                        Text(text = stringResource(R.string.upload_scan_qr))
+                    }
+                }
+
+                Button(
+                    onClick = onStart,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(AppRadius.xl),
+                    enabled = bleSupported && bluetoothEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimary,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                ) {
+                    Icon(imageVector = Icons.Default.CloudUpload, contentDescription = null)
+                    Spacer(modifier = Modifier.size(AppSpacing.xs))
+                    Text(text = stringResource(R.string.upload_start_button))
                 }
             }
+        }
 
-            Text(
-                text = stringResource(R.string.upload_data_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
+        when {
+            !bleSupported -> StateCard(
+                message = stringResource(R.string.permissions_ble_unsupported_hint),
+                isError = true,
             )
-            Text(
-                text = stringResource(R.string.home_upload_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.74f),
-            )
-
-            if (deviceId.isNotBlank()) {
-                UploadMetaPill(label = stringResource(R.string.upload_device_label, deviceId))
+            !blePermissionGranted -> {
+                StateCard(
+                    message = if (permissionDenied) {
+                        stringResource(R.string.permissions_ble_denied_hint)
+                    } else {
+                        stringResource(R.string.permissions_ble_required_hint)
+                    },
+                    isError = false,
+                )
+                if (permissionDenied) {
+                    OutlinedButton(
+                        onClick = onOpenAppSettings,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(AppRadius.xl),
+                    ) {
+                        Text(text = stringResource(R.string.permissions_open_app_settings))
+                    }
+                }
             }
-            if (!employeeName.isNullOrBlank()) {
-                UploadMetaPill(label = employeeName)
-            }
-
-            Button(
-                onClick = onStart,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(AppRadius.xl),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onPrimary,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ),
-            ) {
-                Icon(imageVector = Icons.Default.CloudUpload, contentDescription = null)
-                Spacer(modifier = Modifier.size(AppSpacing.xs))
-                Text(text = stringResource(R.string.upload_start_button))
+            !bluetoothEnabled -> {
+                StateCard(
+                    message = stringResource(R.string.permissions_bluetooth_off_hint),
+                    isError = false,
+                )
+                OutlinedButton(
+                    onClick = onOpenBluetoothSettings,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(AppRadius.xl),
+                ) {
+                    Text(text = stringResource(R.string.permissions_open_bluetooth_settings))
+                }
             }
         }
     }
@@ -416,6 +543,7 @@ private fun ErrorUploadContent(
 private fun DoneUploadContent(
     isServerUploaded: Boolean,
     packetId: String?,
+    onDone: (() -> Unit)?,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -463,6 +591,17 @@ private fun DoneUploadContent(
             )
             if (packetId != null) {
                 UploadMetaPill(label = stringResource(R.string.upload_packet_id, packetId))
+            }
+            if (onDone != null) {
+                Button(
+                    onClick = onDone,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(AppRadius.xl),
+                ) {
+                    Text(text = stringResource(R.string.context_ready))
+                }
             }
         }
     }

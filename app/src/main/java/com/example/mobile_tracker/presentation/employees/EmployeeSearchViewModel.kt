@@ -11,6 +11,7 @@ import com.example.mobile_tracker.data.repository.ReferenceRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -89,7 +90,7 @@ class EmployeeSearchViewModel(
             } else {
                 _state.update {
                     it.copy(
-                        error = "Контекст не выбран",
+                        error = "Контекст смены не выбран",
                     )
                 }
             }
@@ -211,13 +212,12 @@ class EmployeeSearchViewModel(
                     _state.update {
                         it.copy(
                             isSyncing = false,
-                            error = e.message,
+                            error = e.message ?: "Не удалось обновить список сотрудников",
                         )
                     }
                     _effect.emit(
                         EmployeeSearchEffect.ShowError(
-                            e.message
-                                ?: "Ошибка синхронизации",
+                            e.message ?: "Не удалось обновить список сотрудников",
                         ),
                     )
                 },

@@ -22,7 +22,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Watch
@@ -35,6 +37,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,6 +71,7 @@ import com.example.mobile_tracker.presentation.common.rememberIsTablet
 import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
 import com.example.mobile_tracker.ui.theme.AppSpacing
+import kotlinx.coroutines.flow.collect
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -76,6 +80,9 @@ import java.util.Locale
 @Composable
 fun ReturnScreen(
     onBack: (() -> Unit)? = null,
+    onCompleted: () -> Unit = {},
+    scannedDeviceId: String? = null,
+    onOpenQrScan: () -> Unit = {},
     viewModel: ReturnViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -83,7 +90,18 @@ fun ReturnScreen(
     val selectedBinding = state.activeBindings.firstOrNull { it.id == state.selectedBindingId }
 
     LaunchedEffect(Unit) {
-        viewModel.effect.collect { }
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is ReturnEffect.ShowSuccess -> onCompleted()
+                is ReturnEffect.ShowError -> Unit
+            }
+        }
+    }
+
+    LaunchedEffect(scannedDeviceId, state.activeBindings) {
+        if (!scannedDeviceId.isNullOrBlank()) {
+            viewModel.onIntent(ReturnIntent.ApplyScannedDevice(scannedDeviceId))
+        }
     }
 
     if (state.showConfirmWithoutUpload) {
@@ -100,6 +118,25 @@ fun ReturnScreen(
                 TextButton(onClick = { viewModel.onIntent(ReturnIntent.DismissConfirmDialog) }) {
                     Text(stringResource(R.string.return_cancel))
                 }
+            },
+        )
+    }
+
+    if (state.showProblemDialog) {
+        ReturnProblemDialog(
+            selectedReason = state.selectedProblemReason,
+            comment = state.problemComment,
+            onReasonSelected = {
+                viewModel.onIntent(ReturnIntent.SelectProblemReason(it))
+            },
+            onCommentChanged = {
+                viewModel.onIntent(ReturnIntent.UpdateProblemComment(it))
+            },
+            onDismiss = {
+                viewModel.onIntent(ReturnIntent.DismissProblemDialog)
+            },
+            onConfirm = {
+                viewModel.onIntent(ReturnIntent.ConfirmProblemReturn)
             },
         )
     }
@@ -134,6 +171,7 @@ fun ReturnScreen(
             ReturnSummaryCard(
                 totalCount = state.activeBindings.size,
                 selectedBinding = selectedBinding,
+                onOpenQrScan = onOpenQrScan,
             )
 
             if (state.error != null) {
@@ -166,8 +204,8 @@ fun ReturnScreen(
                                             viewModel.onIntent(ReturnIntent.SelectBinding(binding))
                                         },
                                         onReturn = { viewModel.onIntent(ReturnIntent.ConfirmReturn) },
-                                        onMarkLost = {
-                                            viewModel.onIntent(ReturnIntent.MarkLost(binding))
+                                        onOpenProblemFlow = {
+                                            viewModel.onIntent(ReturnIntent.OpenProblemFlow(binding))
                                         },
                                     )
                                 }
@@ -181,9 +219,9 @@ fun ReturnScreen(
                             binding = selectedBinding,
                             isReturning = state.isReturning,
                             onReturn = { viewModel.onIntent(ReturnIntent.ConfirmReturn) },
-                            onMarkLost = {
+                            onOpenProblemFlow = {
                                 selectedBinding?.let {
-                                    viewModel.onIntent(ReturnIntent.MarkLost(it))
+                                    viewModel.onIntent(ReturnIntent.OpenProblemFlow(it))
                                 }
                             },
                         )
@@ -198,6 +236,7 @@ fun ReturnScreen(
 private fun ReturnSummaryCard(
     totalCount: Int,
     selectedBinding: DeviceBinding?,
+    onOpenQrScan: () -> Unit,
 ) {
     MTCard {
         Row(
@@ -251,6 +290,24 @@ private fun ReturnSummaryCard(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
+        Button(
+            onClick = onOpenQrScan,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(AppRadius.xl),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+        ) {
+            Icon(
+                imageVector = Icons.Default.QrCodeScanner,
+                contentDescription = null,
+            )
+            Spacer(modifier = Modifier.size(AppSpacing.xs))
+            Text(text = stringResource(R.string.return_scan_qr))
+        }
     }
 }
 
@@ -262,7 +319,7 @@ private fun BindingCard(
     showInlineActions: Boolean,
     onSelect: () -> Unit,
     onReturn: () -> Unit,
-    onMarkLost: () -> Unit,
+    onOpenProblemFlow: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -342,7 +399,7 @@ private fun BindingCard(
                 ReturnActionRow(
                     isReturning = isReturning,
                     onReturn = onReturn,
-                    onMarkLost = onMarkLost,
+                    onOpenProblemFlow = onOpenProblemFlow,
                 )
             }
         }
@@ -355,7 +412,7 @@ private fun ReturnDetailPane(
     binding: DeviceBinding?,
     isReturning: Boolean,
     onReturn: () -> Unit,
-    onMarkLost: () -> Unit,
+    onOpenProblemFlow: () -> Unit,
 ) {
     if (binding == null) {
         EmptyState(
@@ -437,7 +494,7 @@ private fun ReturnDetailPane(
             ReturnActionRow(
                 isReturning = isReturning,
                 onReturn = onReturn,
-                onMarkLost = onMarkLost,
+                onOpenProblemFlow = onOpenProblemFlow,
             )
         }
     }
@@ -447,7 +504,7 @@ private fun ReturnDetailPane(
 private fun ReturnActionRow(
     isReturning: Boolean,
     onReturn: () -> Unit,
-    onMarkLost: () -> Unit,
+    onOpenProblemFlow: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -476,12 +533,117 @@ private fun ReturnActionRow(
             }
         }
         OutlinedButton(
-            onClick = onMarkLost,
+            onClick = onOpenProblemFlow,
             modifier = Modifier.height(52.dp),
             enabled = !isReturning,
             shape = RoundedCornerShape(AppRadius.xl),
         ) {
-            Text(stringResource(R.string.return_mark_lost))
+            Icon(
+                imageVector = Icons.Default.Construction,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(modifier = Modifier.size(AppSpacing.xs))
+            Text(stringResource(R.string.return_mark_problem))
+        }
+    }
+}
+
+@Composable
+private fun ReturnProblemDialog(
+    selectedReason: ReturnProblemReason,
+    comment: String,
+    onReasonSelected: (ReturnProblemReason) -> Unit,
+    onCommentChanged: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.return_problem_title)) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Text(
+                    text = stringResource(R.string.return_problem_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                ) {
+                    ReturnProblemReason.entries.forEach { reason ->
+                        ProblemReasonRow(
+                            reason = reason,
+                            selected = reason == selectedReason,
+                            onClick = { onReasonSelected(reason) },
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = comment,
+                    onValueChange = onCommentChanged,
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = {
+                        Text(stringResource(R.string.return_problem_comment_label))
+                    },
+                    placeholder = {
+                        Text(stringResource(R.string.return_problem_comment_placeholder))
+                    },
+                    shape = RoundedCornerShape(AppRadius.lg),
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text(stringResource(R.string.return_problem_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.return_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun ProblemReasonRow(
+    reason: ReturnProblemReason,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(AppRadius.lg),
+        color = if (selected) {
+            MaterialTheme.colorScheme.surfaceContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerLowest
+        },
+        border = if (selected) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f))
+        } else {
+            null
+        },
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = problemReasonLabel(reason),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = problemReasonDescription(reason),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -537,6 +699,22 @@ private fun ReturnDetailRow(
             )
         }
     }
+}
+
+@Composable
+private fun problemReasonLabel(reason: ReturnProblemReason): String = when (reason) {
+    ReturnProblemReason.Lost -> stringResource(R.string.return_problem_lost)
+    ReturnProblemReason.Faulty -> stringResource(R.string.return_problem_faulty)
+    ReturnProblemReason.NoConnection -> stringResource(R.string.return_problem_no_connection)
+    ReturnProblemReason.Other -> stringResource(R.string.return_problem_other)
+}
+
+@Composable
+private fun problemReasonDescription(reason: ReturnProblemReason): String = when (reason) {
+    ReturnProblemReason.Lost -> stringResource(R.string.return_problem_lost_desc)
+    ReturnProblemReason.Faulty -> stringResource(R.string.return_problem_faulty_desc)
+    ReturnProblemReason.NoConnection -> stringResource(R.string.return_problem_no_connection_desc)
+    ReturnProblemReason.Other -> stringResource(R.string.return_problem_other_desc)
 }
 
 private fun formatTime(timestampMs: Long): String {

@@ -10,6 +10,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.example.mobile_tracker.data.repository.BindingRepository
+import com.example.mobile_tracker.util.OperatorNotificationManager
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import timber.log.Timber
@@ -21,6 +22,7 @@ class SyncBindingsWorker(
 ) : CoroutineWorker(context, params), KoinComponent {
 
     private val bindingRepository: BindingRepository by inject()
+    private val notificationManager: OperatorNotificationManager by inject()
 
     override suspend fun doWork(): Result {
         Timber.d("SyncBindingsWorker started")
@@ -29,6 +31,9 @@ class SyncBindingsWorker(
                 Timber.d(
                     "SyncBindingsWorker: synced $count",
                 )
+                if (count > 0) {
+                    notificationManager.notifySyncCompleted(count)
+                }
                 Result.success()
             },
             onFailure = { e ->

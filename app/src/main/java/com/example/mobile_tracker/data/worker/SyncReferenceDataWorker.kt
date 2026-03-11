@@ -11,6 +11,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.example.mobile_tracker.data.local.datastore.UserPreferencesManager
 import com.example.mobile_tracker.data.repository.ReferenceRepository
+import com.example.mobile_tracker.util.OperatorNotificationManager
 import kotlinx.coroutines.flow.first
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -24,6 +25,7 @@ class SyncReferenceDataWorker(
 
     private val repository: ReferenceRepository by inject()
     private val prefs: UserPreferencesManager by inject()
+    private val notificationManager: OperatorNotificationManager by inject()
 
     override suspend fun doWork(): Result {
         Timber.d("SyncReferenceDataWorker started")
@@ -49,6 +51,7 @@ class SyncReferenceDataWorker(
             },
             onFailure = { e ->
                 Timber.e(e, "Reference sync failed")
+                notificationManager.notifyReferenceSyncFailed()
                 if (runAttemptCount < MAX_RETRIES) {
                     Result.retry()
                 } else {

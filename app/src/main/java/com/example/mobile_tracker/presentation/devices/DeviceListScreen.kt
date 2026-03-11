@@ -545,6 +545,8 @@ private fun DeviceStatusBadge(status: String) {
         "issued" -> stringResource(R.string.devices_status_issued) to MTStatusTone.Warning
         "discharged" -> stringResource(R.string.devices_status_discharged) to MTStatusTone.Danger
         "faulty" -> stringResource(R.string.devices_status_faulty) to MTStatusTone.Neutral
+        "inspection" -> stringResource(R.string.devices_status_inspection) to MTStatusTone.Warning
+        "lost" -> stringResource(R.string.devices_status_lost) to MTStatusTone.Danger
         else -> status to MTStatusTone.Neutral
     }
     MTStatusBadge(label = label, tone = tone)
@@ -619,6 +621,8 @@ private fun deviceStatusContainerColor(status: String): Color {
         "available" -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)
         "issued" -> MaterialTheme.colorScheme.secondaryContainer
         "discharged" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+        "inspection" -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+        "lost" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
         else -> MaterialTheme.colorScheme.surfaceContainer
     }
 }
@@ -629,6 +633,8 @@ private fun deviceStatusContentColor(status: String): Color {
         "available" -> MaterialTheme.colorScheme.tertiary
         "issued" -> MaterialTheme.colorScheme.onSecondaryContainer
         "discharged" -> MaterialTheme.colorScheme.danger
+        "inspection" -> MaterialTheme.colorScheme.warning
+        "lost" -> MaterialTheme.colorScheme.danger
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 }

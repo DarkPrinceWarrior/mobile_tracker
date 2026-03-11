@@ -29,7 +29,7 @@ class App : Application() {
             networkModule
         }
 
-        startKoin {
+        val koinApp = startKoin {
             androidLogger()
             androidContext(this@App)
             modules(
@@ -38,6 +38,9 @@ class App : Application() {
                 databaseModule,
             )
         }
+
+        koinApp.koin.get<com.example.mobile_tracker.util.OperatorNotificationManager>()
+            .createChannels()
 
         val workManager = WorkManager.getInstance(this)
 

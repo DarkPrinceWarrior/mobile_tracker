@@ -7,6 +7,7 @@ import com.example.mobile_tracker.data.ble.BleProtocol
 import com.example.mobile_tracker.data.local.datastore.UserPreferencesManager
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
 import com.example.mobile_tracker.data.repository.UploadRepository
+import com.example.mobile_tracker.util.OperatorNotificationManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -24,6 +25,7 @@ class UploadViewModel(
     private val shiftContextDao: ShiftContextDao,
     private val userPreferencesManager:
         UserPreferencesManager,
+    private val notificationManager: OperatorNotificationManager,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UploadState())
@@ -183,20 +185,27 @@ class UploadViewModel(
                         isServerUploaded = uploaded,
                     )
                 }
+                if (!uploaded) {
+                    notificationManager.notifyPendingPackets(1)
+                }
                 _effect.emit(UploadEffect.UploadComplete)
             } catch (e: BleException) {
                 Timber.e(e, "BLE upload error")
-                handleError(e.message ?: "BLE error")
+                handleError(
+                    deviceId = intent.deviceId,
+                    message = e.message ?: "BLE error",
+                )
             } catch (e: Exception) {
                 Timber.e(e, "Upload error")
                 handleError(
-                    e.message ?: "Unknown error",
+                    deviceId = intent.deviceId,
+                    message = e.message ?: "Unknown error",
                 )
             }
         }
     }
 
-    private fun handleError(message: String) {
+    private fun handleError(deviceId: String, message: String) {
         bleProtocol.disconnect()
         _state.update {
             it.copy(
@@ -205,6 +214,10 @@ class UploadViewModel(
             )
         }
         viewModelScope.launch {
+            notificationManager.notifyPacketUploadError(
+                deviceId = deviceId,
+                error = message,
+            )
             _effect.emit(
                 UploadEffect.ShowError(message),
             )

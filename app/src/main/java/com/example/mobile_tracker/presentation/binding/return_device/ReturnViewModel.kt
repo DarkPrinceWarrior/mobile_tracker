@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.DeviceDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
+import com.example.mobile_tracker.data.repository.ReturnDeviceProblemOutcome
 import com.example.mobile_tracker.data.remote.dto.toDomain
 import com.example.mobile_tracker.data.repository.BindingRepository
 import com.example.mobile_tracker.domain.model.DeviceBinding
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -43,6 +45,8 @@ class ReturnViewModel(
         when (intent) {
             is ReturnIntent.SelectBinding ->
                 selectBinding(intent.binding)
+            is ReturnIntent.ApplyScannedDevice ->
+                applyScannedDevice(intent.value)
             ReturnIntent.ConfirmReturn ->
                 confirmReturn()
             ReturnIntent.CancelReturn ->
@@ -55,8 +59,22 @@ class ReturnViewModel(
                         showConfirmWithoutUpload = false,
                     )
                 }
-            is ReturnIntent.MarkLost ->
-                markLost(intent.binding)
+            is ReturnIntent.OpenProblemFlow ->
+                openProblemFlow(intent.binding)
+            is ReturnIntent.SelectProblemReason ->
+                _state.update { it.copy(selectedProblemReason = intent.reason) }
+            is ReturnIntent.UpdateProblemComment ->
+                _state.update { it.copy(problemComment = intent.value) }
+            ReturnIntent.ConfirmProblemReturn ->
+                confirmProblemReturn()
+            ReturnIntent.DismissProblemDialog ->
+                _state.update {
+                    it.copy(
+                        showProblemDialog = false,
+                        problemComment = "",
+                        selectedProblemReason = ReturnProblemReason.Lost,
+                    )
+                }
             ReturnIntent.DismissError ->
                 _state.update { it.copy(error = null) }
         }
@@ -100,6 +118,23 @@ class ReturnViewModel(
                 selectedBindingId = binding.id,
                 error = null,
             )
+        }
+    }
+
+    private fun applyScannedDevice(value: String) {
+        val normalized = value.trim()
+        if (normalized.isBlank()) return
+        val matchedBinding = _state.value.activeBindings.firstOrNull { binding ->
+            binding.deviceId.equals(normalized, ignoreCase = true)
+        }
+        if (matchedBinding != null) {
+            selectBinding(matchedBinding)
+        } else {
+            _state.update {
+                it.copy(
+                    error = "Для этих часов не найдена активная выдача",
+                )
+            }
         }
     }
 
@@ -174,29 +209,62 @@ class ReturnViewModel(
         }
     }
 
-    private fun markLost(binding: DeviceBinding) {
+    private fun openProblemFlow(binding: DeviceBinding) {
+        _state.update {
+            it.copy(
+                selectedBinding = binding,
+                selectedBindingId = binding.id,
+                showProblemDialog = true,
+                selectedProblemReason = ReturnProblemReason.Lost,
+                problemComment = "",
+                error = null,
+            )
+        }
+    }
+
+    private fun confirmProblemReturn() {
+        val binding = _state.value.selectedBinding ?: return
+        val reason = _state.value.selectedProblemReason
+        val comment = _state.value.problemComment.trim().ifBlank { null }
+
         viewModelScope.launch {
-            _state.update { it.copy(isReturning = true) }
+            _state.update {
+                it.copy(
+                    isReturning = true,
+                    showProblemDialog = false,
+                    error = null,
+                )
+            }
             try {
-                bindingDao.closeBinding(
-                    binding.id,
-                    System.currentTimeMillis(),
-                )
-                deviceDao.updateLocalStatus(
-                    deviceId = binding.deviceId,
-                    status = "lost",
-                    empId = null,
-                    empName = null,
-                )
+                bindingRepository.returnDeviceWithProblem(
+                    bindingId = binding.id,
+                    siteId = siteId,
+                    shiftDate = shiftDate,
+                    outcome = when (reason) {
+                        ReturnProblemReason.Lost -> ReturnDeviceProblemOutcome.Lost
+                        ReturnProblemReason.Faulty -> ReturnDeviceProblemOutcome.Faulty
+                        ReturnProblemReason.NoConnection -> ReturnDeviceProblemOutcome.NoConnection
+                        ReturnProblemReason.Other -> ReturnDeviceProblemOutcome.Other
+                    },
+                    comment = comment,
+                ).getOrThrow()
                 _state.update {
                     it.copy(
                         isReturning = false,
                         selectedBinding = null,
                         selectedBindingId = null,
+                        selectedProblemReason = ReturnProblemReason.Lost,
+                        problemComment = "",
                     )
                 }
+                _effect.emit(
+                    ReturnEffect.ShowSuccess(
+                        deviceId = binding.deviceId,
+                        employeeName = binding.employeeName,
+                    ),
+                )
             } catch (e: Exception) {
-                Timber.e(e, "Mark lost failed")
+                Timber.e(e, "Problem return failed")
                 _state.update {
                     it.copy(
                         isReturning = false,

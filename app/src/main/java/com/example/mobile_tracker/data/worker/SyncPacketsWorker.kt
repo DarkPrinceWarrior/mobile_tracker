@@ -14,6 +14,7 @@ import com.example.mobile_tracker.data.remote.api.GatewayApi
 import com.example.mobile_tracker.data.remote.dto.GatewayDeviceInfo
 import com.example.mobile_tracker.data.remote.dto.UploadPacketRequest
 import com.example.mobile_tracker.data.remote.dto.UploadPacketResponse
+import com.example.mobile_tracker.util.OperatorNotificationManager
 import io.ktor.client.call.body
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -27,6 +28,7 @@ class SyncPacketsWorker(
 
     private val packetQueueDao: PacketQueueDao by inject()
     private val gatewayApi: GatewayApi by inject()
+    private val notificationManager: OperatorNotificationManager by inject()
 
     override suspend fun doWork(): Result {
         Timber.d("SyncPacketsWorker started")
@@ -35,6 +37,9 @@ class SyncPacketsWorker(
             Timber.d("No pending packets")
             return Result.success()
         }
+
+        var uploadedCount = 0
+        var errorCount = 0
 
         for (packet in pending) {
             try {
@@ -73,6 +78,7 @@ class SyncPacketsWorker(
                             body.status,
                             System.currentTimeMillis(),
                         )
+                        uploadedCount++
                         Timber.d(
                             "Packet ${packet.packetId}" +
                                 " uploaded",
@@ -84,6 +90,7 @@ class SyncPacketsWorker(
                             "accepted",
                             System.currentTimeMillis(),
                         )
+                        uploadedCount++
                     }
                     code in 400..499 -> {
                         packetQueueDao.updateStatus(
@@ -91,6 +98,11 @@ class SyncPacketsWorker(
                             "error",
                             packet.attempt + 1,
                             "HTTP $code",
+                        )
+                        errorCount++
+                        notificationManager.notifyPacketUploadError(
+                            deviceId = packet.deviceId,
+                            error = "HTTP $code",
                         )
                     }
                     else -> {
@@ -115,7 +127,20 @@ class SyncPacketsWorker(
                     packet.attempt + 1,
                     e.message,
                 )
+                errorCount++
+                notificationManager.notifyPacketUploadError(
+                    deviceId = packet.deviceId,
+                    error = e.message,
+                )
             }
+        }
+
+        val unsentCount = packetQueueDao.getUnsentCount()
+        if (uploadedCount > 0) {
+            notificationManager.notifySyncCompleted(uploadedCount)
+        }
+        if (unsentCount > 0 || errorCount > 0) {
+            notificationManager.notifyPendingPackets(unsentCount)
         }
         return Result.success()
     }

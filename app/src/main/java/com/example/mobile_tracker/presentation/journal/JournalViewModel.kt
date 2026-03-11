@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
 import com.example.mobile_tracker.data.local.db.entity.OperationLogEntity
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -29,6 +31,7 @@ class JournalViewModel(
 
     private var siteId: String = ""
     private var shiftDate: String = ""
+    private var logsJob: Job? = null
 
     init {
         loadContext()
@@ -71,7 +74,8 @@ class JournalViewModel(
     }
 
     private fun observeLogs() {
-        viewModelScope.launch {
+        logsJob?.cancel()
+        logsJob = viewModelScope.launch {
             operationLogDao.observeByShift(siteId, shiftDate)
                 .collect { logs ->
                     _state.update {
@@ -140,35 +144,6 @@ class JournalViewModel(
 
     private fun refresh() {
         _state.update { it.copy(isLoading = true) }
-        viewModelScope.launch {
-            try {
-                val logs = operationLogDao.observeByShift(
-                    siteId,
-                    shiftDate,
-                )
-                logs.collect { list ->
-                    _state.update {
-                        it.copy(
-                            logs = list,
-                            isLoading = false,
-                            availableTypes = list
-                                .map { l -> l.type }
-                                .distinct()
-                                .sorted(),
-                        )
-                    }
-                    applyFilters()
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Journal refresh failed")
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = e.message
-                            ?: "Ошибка загрузки журнала",
-                    )
-                }
-            }
-        }
+        observeLogs()
     }
 }

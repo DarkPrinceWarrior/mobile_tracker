@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -24,8 +26,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Button
@@ -68,17 +72,40 @@ import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
 import com.example.mobile_tracker.ui.theme.AppSpacing
+import kotlinx.coroutines.flow.collect
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun IssueScreen(
     onBack: (() -> Unit)? = null,
+    onCompleted: () -> Unit = {},
+    scannedDeviceId: String? = null,
+    scannedPassNumber: String? = null,
+    onOpenQrScan: () -> Unit = {},
+    onOpenNfcScan: () -> Unit = {},
     viewModel: IssueViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        viewModel.effect.collect { }
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is IssueEffect.ShowSuccess -> onCompleted()
+                is IssueEffect.ShowError -> Unit
+            }
+        }
+    }
+
+    LaunchedEffect(scannedDeviceId, state.availableDevices, state.step) {
+        if (!scannedDeviceId.isNullOrBlank() && state.step != IssueStep.IDENTIFY_EMPLOYEE) {
+            viewModel.onIntent(IssueIntent.ApplyScannedDevice(scannedDeviceId))
+        }
+    }
+
+    LaunchedEffect(scannedPassNumber, state.step) {
+        if (!scannedPassNumber.isNullOrBlank() && state.step == IssueStep.IDENTIFY_EMPLOYEE) {
+            viewModel.onIntent(IssueIntent.ApplyScannedPass(scannedPassNumber))
+        }
     }
 
     AppScreenScaffold(
@@ -127,10 +154,12 @@ fun IssueScreen(
                         IssueStep.IDENTIFY_EMPLOYEE -> IdentifyEmployeeContent(
                             state = state,
                             onIntent = viewModel::onIntent,
+                            onOpenNfcScan = onOpenNfcScan,
                         )
                         IssueStep.SELECT_DEVICE -> SelectDeviceContent(
                             state = state,
                             onIntent = viewModel::onIntent,
+                            onOpenQrScan = onOpenQrScan,
                         )
                         IssueStep.CONFIRM -> ConfirmContent(
                             state = state,
@@ -257,6 +286,7 @@ private fun IssueContextCard(state: IssueState) {
 private fun IdentifyEmployeeContent(
     state: IssueState,
     onIntent: (IssueIntent) -> Unit,
+    onOpenNfcScan: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -285,6 +315,39 @@ private fun IdentifyEmployeeContent(
                 onSearch = { onIntent(IssueIntent.SearchByName) },
             ),
         )
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onOpenNfcScan,
+            shape = RoundedCornerShape(AppRadius.lg),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Badge,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.issue_scan_nfc),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.issue_scan_nfc_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
 
         if (state.isSearching) {
             CircularProgressIndicator(
@@ -451,6 +514,7 @@ private fun IssueEmployeeResultCard(
 private fun SelectDeviceContent(
     state: IssueState,
     onIntent: (IssueIntent) -> Unit,
+    onOpenQrScan: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -469,22 +533,63 @@ private fun SelectDeviceContent(
         if (state.error != null) {
             StateCard(message = state.error, isError = true)
         }
+        if (state.validationError != null) {
+            StateCard(message = state.validationError, isError = true)
+        }
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        AssignmentModeCard(
+            selectedMode = state.assignmentMode,
+            selectedDevice = state.selectedDevice,
+            onSelectMode = { onIntent(IssueIntent.SetAssignmentMode(it)) },
+        )
+
+        Button(
+            onClick = onOpenQrScan,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(AppRadius.xl),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
         ) {
-            items(state.availableDevices, key = { it.deviceId }) { device ->
-                IssueDeviceResultCard(
-                    device = device,
-                    isSelected = state.selectedDevice?.deviceId == device.deviceId,
-                    onClick = { onIntent(IssueIntent.SelectDevice(device)) },
-                )
+            Icon(
+                imageVector = Icons.Default.QrCodeScanner,
+                contentDescription = null,
+            )
+            Spacer(modifier = Modifier.width(AppSpacing.xs))
+            Text(text = stringResource(R.string.issue_scan_qr))
+        }
+
+        if (state.assignmentMode == AssignmentMode.Manual) {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                items(state.availableDevices, key = { it.deviceId }) { device ->
+                    IssueDeviceResultCard(
+                        device = device,
+                        isSelected = state.selectedDevice?.deviceId == device.deviceId,
+                        onClick = { onIntent(IssueIntent.SelectDevice(device)) },
+                    )
+                }
             }
+        } else {
+            state.selectedDevice?.let { device ->
+                RecommendedDeviceCard(
+                    device = device,
+                    assignmentMode = state.assignmentMode,
+                )
+            } ?: StateCard(
+                message = stringResource(R.string.issue_no_devices_site),
+                isError = true,
+            )
+            Spacer(modifier = Modifier.weight(1f))
         }
 
         Button(
-            onClick = { onIntent(IssueIntent.AutoAssignDevice) },
+            onClick = { onIntent(IssueIntent.ContinueWithSelectedDevice) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),
@@ -502,8 +607,153 @@ private fun SelectDeviceContent(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text(text = stringResource(R.string.issue_next))
+                Text(
+                    text = if (state.assignmentMode == AssignmentMode.Manual) {
+                        stringResource(R.string.issue_next)
+                    } else {
+                        stringResource(R.string.issue_apply_assignment)
+                    },
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun AssignmentModeCard(
+    selectedMode: AssignmentMode,
+    selectedDevice: Device?,
+    onSelectMode: (AssignmentMode) -> Unit,
+) {
+    MTCard {
+        Text(
+            text = stringResource(R.string.issue_assignment_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(R.string.issue_assignment_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            AssignmentMode.entries.forEach { mode ->
+                AssignmentModeChip(
+                    mode = mode,
+                    selected = selectedMode == mode,
+                    onClick = { onSelectMode(mode) },
+                )
+            }
+        }
+        if (selectedMode != AssignmentMode.Manual && selectedDevice != null) {
+            Surface(
+                shape = RoundedCornerShape(AppRadius.lg),
+                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.42f),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = assignmentModeDescription(selectedMode),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                    Text(
+                        text = selectedDevice.deviceId,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = selectedDevice.model ?: selectedDevice.serialNumber.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AssignmentModeChip(
+    mode: AssignmentMode,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(AppRadius.pill),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
+    ) {
+        Text(
+            text = assignmentModeLabel(mode),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.labelLarge,
+            color = if (selected) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        )
+    }
+}
+
+@Composable
+private fun RecommendedDeviceCard(
+    device: Device,
+    assignmentMode: AssignmentMode,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AppRadius.lg),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+    ) {
+        Column(
+            modifier = Modifier.padding(AppLayout.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            MTStatusBadge(
+                label = assignmentModeLabel(assignmentMode),
+                tone = if (assignmentMode == AssignmentMode.Random) {
+                    MTStatusTone.Warning
+                } else {
+                    MTStatusTone.Success
+                },
+            )
+            Text(
+                text = device.deviceId,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (!device.model.isNullOrBlank()) {
+                Text(
+                    text = device.model,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            if (!device.serialNumber.isNullOrBlank()) {
+                Text(
+                    text = stringResource(R.string.devices_serial, device.serialNumber),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = assignmentModeHint(assignmentMode),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -738,6 +988,27 @@ private fun stepShortTitle(step: IssueStep): String = when (step) {
     IssueStep.IDENTIFY_EMPLOYEE -> stringResource(R.string.issue_step_employee_short)
     IssueStep.SELECT_DEVICE -> stringResource(R.string.issue_step_device_short)
     IssueStep.CONFIRM -> stringResource(R.string.issue_step_confirm_short)
+}
+
+@Composable
+private fun assignmentModeLabel(mode: AssignmentMode): String = when (mode) {
+    AssignmentMode.Queue -> stringResource(R.string.issue_assignment_queue)
+    AssignmentMode.Random -> stringResource(R.string.issue_assignment_random)
+    AssignmentMode.Manual -> stringResource(R.string.issue_assignment_manual)
+}
+
+@Composable
+private fun assignmentModeDescription(mode: AssignmentMode): String = when (mode) {
+    AssignmentMode.Queue -> stringResource(R.string.issue_assignment_queue_desc)
+    AssignmentMode.Random -> stringResource(R.string.issue_assignment_random_desc)
+    AssignmentMode.Manual -> stringResource(R.string.issue_assignment_manual_desc)
+}
+
+@Composable
+private fun assignmentModeHint(mode: AssignmentMode): String = when (mode) {
+    AssignmentMode.Queue -> stringResource(R.string.issue_assignment_queue_hint)
+    AssignmentMode.Random -> stringResource(R.string.issue_assignment_random_hint)
+    AssignmentMode.Manual -> stringResource(R.string.issue_assignment_manual_hint)
 }
 
 @Composable

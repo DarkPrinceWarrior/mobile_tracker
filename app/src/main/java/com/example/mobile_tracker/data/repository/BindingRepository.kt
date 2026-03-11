@@ -11,16 +11,27 @@ import com.example.mobile_tracker.data.remote.dto.CloseBindingRequest
 import com.example.mobile_tracker.data.remote.dto.CreateBindingRequest
 import com.example.mobile_tracker.data.remote.dto.toDomain
 import com.example.mobile_tracker.domain.model.DeviceBinding
+import com.example.mobile_tracker.util.OperatorNotificationManager
 import io.ktor.client.call.body
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
+
+enum class ReturnDeviceProblemOutcome(
+    val deviceStatus: String,
+) {
+    Lost(deviceStatus = "lost"),
+    Faulty(deviceStatus = "faulty"),
+    NoConnection(deviceStatus = "inspection"),
+    Other(deviceStatus = "inspection"),
+}
 
 class BindingRepository(
     private val bindingApi: BindingApi,
     private val bindingDao: BindingDao,
     private val deviceDao: DeviceDao,
     private val operationLogDao: OperationLogDao,
+    private val notificationManager: OperatorNotificationManager,
 ) {
 
     fun observeActiveBindings(
@@ -139,6 +150,7 @@ class BindingRepository(
                     bindingDao.update(
                         binding.copy(isSynced = true),
                     )
+                    notificationManager.notifyBindingConflict(deviceId)
                     Timber.d(
                         "Binding conflict (409), " +
                             "marked as synced",
@@ -229,6 +241,94 @@ class BindingRepository(
         ).toDomain()
     }
 
+    suspend fun returnDeviceWithProblem(
+        bindingId: Long,
+        siteId: String,
+        shiftDate: String,
+        outcome: ReturnDeviceProblemOutcome,
+        comment: String?,
+    ): Result<DeviceBinding> = runCatching {
+        val binding = bindingDao.findActiveByIdSync(bindingId)
+        requireNotNull(binding) {
+            "Привязка #$bindingId не найдена"
+        }
+        require(binding.status == "active") {
+            "Привязка уже закрыта"
+        }
+
+        val now = System.currentTimeMillis()
+        bindingDao.closeBinding(bindingId, now)
+
+        deviceDao.updateLocalStatus(
+            deviceId = binding.deviceId,
+            status = outcome.deviceStatus,
+            empId = null,
+            empName = null,
+        )
+
+        val details = buildString {
+            append("Возврат с проблемой: ")
+            append(
+                when (outcome) {
+                    ReturnDeviceProblemOutcome.Lost -> "потеря"
+                    ReturnDeviceProblemOutcome.Faulty -> "поломка"
+                    ReturnDeviceProblemOutcome.NoConnection -> "нет связи"
+                    ReturnDeviceProblemOutcome.Other -> "другое"
+                },
+            )
+            if (!comment.isNullOrBlank()) {
+                append(". ")
+                append(comment.trim())
+            }
+        }
+
+        operationLogDao.insert(
+            OperationLogEntity(
+                type = "status_change",
+                deviceId = binding.deviceId,
+                employeeId = binding.employeeId,
+                employeeName = binding.employeeName,
+                siteId = siteId,
+                shiftDate = shiftDate,
+                status = "success",
+                details = details,
+                createdAt = now,
+            ),
+        )
+
+        if (binding.serverId != null) {
+            try {
+                val response = bindingApi.closeBinding(
+                    binding.serverId,
+                    CloseBindingRequest(),
+                )
+                val code = response.status.value
+                if (code in 200..299) {
+                    bindingDao.update(
+                        binding.copy(
+                            status = "closed",
+                            unboundAt = now,
+                            isSynced = true,
+                        ),
+                    )
+                    Timber.d("Problem return synced: ${binding.serverId}")
+                } else {
+                    Timber.w("Problem return sync failed: HTTP $code")
+                }
+            } catch (e: Exception) {
+                Timber.w(
+                    e,
+                    "Problem return sync failed, will retry later",
+                )
+            }
+        }
+
+        binding.copy(
+            status = "closed",
+            unboundAt = now,
+        ).toDomain()
+    }
+
     suspend fun syncUnsynced(): Result<Int> = runCatching {
         val unsynced = bindingDao.getUnsynced()
         var count = 0
@@ -259,6 +359,7 @@ class BindingRepository(
                         bindingDao.update(
                             b.copy(isSynced = true),
                         )
+                        notificationManager.notifyBindingConflict(b.deviceId)
                         count++
                     }
                 } else if (

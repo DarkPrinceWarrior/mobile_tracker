@@ -24,6 +24,7 @@ data class UserPreferences(
     val scopeType: String = "",
     val scopeIds: List<String> = emptyList(),
     val isLoggedIn: Boolean = false,
+    val notificationsEnabled: Boolean = true,
     val lastSyncTimestamp: Long = 0L,
     val serverBaseUrl: String = "",
 )
@@ -41,6 +42,7 @@ class UserPreferencesManager(
         val SCOPE_TYPE = stringPreferencesKey("scope_type")
         val SCOPE_IDS = stringPreferencesKey("scope_ids")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+        val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val LAST_SYNC = longPreferencesKey("last_sync_timestamp")
         val SERVER_URL = stringPreferencesKey("server_base_url")
     }
@@ -57,6 +59,7 @@ class UserPreferencesManager(
                     json.decodeFromString<List<String>>(it)
                 } ?: emptyList(),
                 isLoggedIn = prefs[Keys.IS_LOGGED_IN] ?: false,
+                notificationsEnabled = prefs[Keys.NOTIFICATIONS_ENABLED] ?: true,
                 lastSyncTimestamp = prefs[Keys.LAST_SYNC] ?: 0L,
                 serverBaseUrl = prefs[Keys.SERVER_URL] ?: "",
             )
@@ -90,6 +93,12 @@ class UserPreferencesManager(
     suspend fun updateLastSync(timestamp: Long) {
         context.dataStore.edit { prefs ->
             prefs[Keys.LAST_SYNC] = timestamp
+        }
+    }
+
+    suspend fun setNotificationsEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.NOTIFICATIONS_ENABLED] = enabled
         }
     }
 

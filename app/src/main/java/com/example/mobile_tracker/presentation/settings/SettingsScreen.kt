@@ -1,5 +1,12 @@
 package com.example.mobile_tracker.presentation.settings
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
@@ -28,6 +36,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,6 +61,7 @@ import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
 import com.example.mobile_tracker.ui.theme.AppSpacing
 import com.example.mobile_tracker.ui.theme.danger
+import kotlinx.coroutines.flow.collect
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -62,6 +72,12 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        viewModel.onIntent(SettingsIntent.SetNotificationsEnabled(granted))
+    }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -132,6 +148,47 @@ fun SettingsScreen(
                 shiftType = state.shiftType,
             )
 
+            SettingsActionItem(
+                icon = Icons.Default.Notifications,
+                title = stringResource(R.string.settings_notifications),
+                subtitle = if (state.notificationsPermissionGranted) {
+                    stringResource(R.string.settings_notifications_desc)
+                } else {
+                    stringResource(R.string.settings_notifications_permission_required)
+                },
+                trailing = {
+                    Switch(
+                        checked = state.notificationsEnabled && state.notificationsPermissionGranted,
+                        onCheckedChange = { checked ->
+                            if (!checked) {
+                                viewModel.onIntent(SettingsIntent.SetNotificationsEnabled(false))
+                            } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                                state.notificationsPermissionGranted
+                            ) {
+                                viewModel.onIntent(SettingsIntent.SetNotificationsEnabled(true))
+                            } else {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        },
+                    )
+                },
+                onClick = {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                        state.notificationsPermissionGranted
+                    ) {
+                        viewModel.onIntent(
+                            SettingsIntent.SetNotificationsEnabled(!state.notificationsEnabled),
+                        )
+                    } else {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null),
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                },
+            )
             SettingsActionItem(
                 icon = Icons.Default.SwapHoriz,
                 title = stringResource(R.string.settings_change_context),
@@ -291,6 +348,7 @@ private fun SettingsActionItem(
     subtitle: String,
     onClick: () -> Unit,
     isDestructive: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val tint = if (isDestructive) {
         MaterialTheme.colorScheme.danger
@@ -345,6 +403,7 @@ private fun SettingsActionItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            trailing?.invoke()
         }
     }
 }

@@ -62,12 +62,18 @@ class IssueViewModel(
                 searchByPersonnel()
             IssueIntent.SearchByName ->
                 searchByName()
+            is IssueIntent.ApplyScannedPass ->
+                applyScannedPass(intent.value)
             is IssueIntent.SelectEmployee ->
                 selectEmployee(intent.employee)
-            IssueIntent.AutoAssignDevice ->
-                autoAssignDevice()
+            is IssueIntent.SetAssignmentMode ->
+                setAssignmentMode(intent.mode)
             is IssueIntent.SelectDevice ->
                 selectDevice(intent.device)
+            is IssueIntent.ApplyScannedDevice ->
+                applyScannedDevice(intent.value)
+            IssueIntent.ContinueWithSelectedDevice ->
+                continueWithSelectedDevice()
             IssueIntent.ConfirmIssue ->
                 confirmIssue()
             IssueIntent.GoBack ->
@@ -124,8 +130,7 @@ class IssueViewModel(
                     it.copy(
                         searchResults = emptyList(),
                         isSearching = false,
-                        error = "Сотрудник с таб. №" +
-                            " $query не найден",
+                        error = "Сотрудник с табельным номером $query не найден",
                     )
                 }
             }
@@ -147,11 +152,43 @@ class IssueViewModel(
                         results.map { e -> e.toDomain() },
                     isSearching = false,
                     error = if (results.isEmpty()) {
-                        "Сотрудники не найдены"
+                        "По запросу ничего не найдено"
                     } else {
                         null
                     },
                 )
+            }
+        }
+    }
+
+    private fun applyScannedPass(value: String) {
+        val normalized = value.trim()
+        if (normalized.isBlank()) return
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    isSearching = true,
+                    error = null,
+                    personnelQuery = normalized,
+                )
+            }
+            val entity = employeeDao.findByPassNumber(normalized)
+            if (entity != null) {
+                selectEmployee(entity.toDomain())
+                _state.update {
+                    it.copy(
+                        isSearching = false,
+                        nameQuery = "",
+                        searchResults = listOf(entity.toDomain()),
+                    )
+                }
+            } else {
+                _state.update {
+                    it.copy(
+                        isSearching = false,
+                        error = "Сотрудник по номеру пропуска не найден",
+                    )
+                }
             }
         }
     }
@@ -174,10 +211,15 @@ class IssueViewModel(
             val entities = deviceDao.getAvailable(siteId)
             val devices = entities.map { it.toDomain() }
             _state.update {
+                val recommendation = recommendedDevice(
+                    devices = devices,
+                    mode = it.assignmentMode,
+                    employee = it.selectedEmployee,
+                )
                 it.copy(
                     availableDevices = devices,
                     isLoading = false,
-                    selectedDevice = devices.firstOrNull(),
+                    selectedDevice = recommendation,
                     error = if (devices.isEmpty()) {
                         "Нет свободных часов"
                     } else {
@@ -188,21 +230,18 @@ class IssueViewModel(
         }
     }
 
-    private fun autoAssignDevice() {
-        val devices = _state.value.availableDevices
-        if (devices.isNotEmpty()) {
-            _state.update {
-                it.copy(
-                    selectedDevice = devices.first(),
-                    step = IssueStep.CONFIRM,
-                )
-            }
-        } else {
-            _state.update {
-                it.copy(
-                    error = "Нет свободных часов на площадке",
-                )
-            }
+    private fun setAssignmentMode(mode: AssignmentMode) {
+        _state.update { current ->
+            val recommendation = recommendedDevice(
+                devices = current.availableDevices,
+                mode = mode,
+                employee = current.selectedEmployee,
+            )
+            current.copy(
+                assignmentMode = mode,
+                selectedDevice = recommendation,
+                validationError = null,
+            )
         }
     }
 
@@ -210,9 +249,52 @@ class IssueViewModel(
         _state.update {
             it.copy(
                 selectedDevice = device,
-                step = IssueStep.CONFIRM,
+                assignmentMode = AssignmentMode.Manual,
                 validationError = null,
             )
+        }
+    }
+
+    private fun continueWithSelectedDevice() {
+        val selected = _state.value.selectedDevice
+        if (selected != null) {
+            _state.update {
+                it.copy(
+                    step = IssueStep.CONFIRM,
+                    validationError = null,
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    validationError = "Выберите часы для продолжения",
+                )
+            }
+        }
+    }
+
+    private fun applyScannedDevice(value: String) {
+        val normalized = value.trim()
+        if (normalized.isBlank()) return
+        val matchedDevice = _state.value.availableDevices.firstOrNull { device ->
+            device.deviceId.equals(normalized, ignoreCase = true) ||
+                device.serialNumber.equals(normalized, ignoreCase = true)
+        }
+        if (matchedDevice != null) {
+            _state.update {
+                it.copy(
+                    assignmentMode = AssignmentMode.Manual,
+                    selectedDevice = matchedDevice,
+                    step = IssueStep.CONFIRM,
+                    validationError = null,
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    validationError = "Сканированные часы не найдены среди доступных устройств",
+                )
+            }
         }
     }
 
@@ -286,5 +368,22 @@ class IssueViewModel(
 
     private fun reset() {
         _state.update { IssueState() }
+    }
+
+    private fun recommendedDevice(
+        devices: List<Device>,
+        mode: AssignmentMode,
+        employee: Employee?,
+    ): Device? {
+        if (devices.isEmpty()) return null
+        return when (mode) {
+            AssignmentMode.Queue -> devices.first()
+            AssignmentMode.Random -> {
+                val seed = "${employee?.id.orEmpty()}|$shiftDate|$siteId".hashCode().toLong()
+                val index = kotlin.math.abs(seed % devices.size).toInt()
+                devices[index]
+            }
+            AssignmentMode.Manual -> devices.firstOrNull()
+        }
     }
 }
