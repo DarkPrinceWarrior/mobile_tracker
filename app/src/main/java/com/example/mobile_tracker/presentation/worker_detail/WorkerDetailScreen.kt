@@ -1,5 +1,6 @@
 package com.example.mobile_tracker.presentation.worker_detail
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,8 +39,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -256,17 +258,21 @@ private fun WorkerVitalsSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(152.dp)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF08130F),
-                                Color(0xFF0F2C1A),
-                            ),
-                        ),
-                    )
-                    .padding(16.dp),
+                    .clip(RoundedCornerShape(AppRadius.lg)),
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ecg_panel),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF08130F).copy(alpha = 0.12f)),
+                )
                 Column(
+                    modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
                     Icon(
@@ -403,50 +409,50 @@ private fun WorkerWatchSection(
             Surface(
                 modifier = Modifier.size(128.dp),
                 shape = RoundedCornerShape(AppRadius.lg),
-                color = MaterialTheme.colorScheme.surfaceContainer,
+                color = Color.Transparent,
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween,
+                        .clip(RoundedCornerShape(AppRadius.lg))
+                        .background(MaterialTheme.colorScheme.surfaceContainer),
                 ) {
-                    Box(
+                    Image(
+                        painter = painterResource(id = R.drawable.watch_render),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Surface(
                         modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)),
-                        contentAlignment = Alignment.Center,
+                            .align(Alignment.BottomCenter)
+                            .padding(8.dp),
+                        shape = RoundedCornerShape(AppRadius.pill),
+                        color = Color.White.copy(alpha = 0.88f),
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Watch,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.tertiary,
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Bolt,
-                            contentDescription = null,
-                            tint = if (worker.batteryPercent > 20) {
-                                workerStatusColor(Active)
-                            } else {
-                                workerStatusColor(WorkerMonitoringStatus.Idle)
-                            },
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.worker_detail_watch_battery_value,
-                                worker.batteryPercent,
-                            ),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Bolt,
+                                contentDescription = null,
+                                tint = if (worker.batteryPercent > 20) {
+                                    workerStatusColor(Active)
+                                } else {
+                                    workerStatusColor(WorkerMonitoringStatus.Idle)
+                                },
+                            )
+                            Text(
+                                text = stringResource(
+                                    R.string.worker_detail_watch_battery_value,
+                                    worker.batteryPercent,
+                                ),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
                     }
                 }
             }

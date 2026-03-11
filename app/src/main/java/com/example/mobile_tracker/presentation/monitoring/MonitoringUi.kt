@@ -1,5 +1,6 @@
 package com.example.mobile_tracker.presentation.monitoring
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -110,30 +113,33 @@ fun MonitoringSiteMap(
                 .fillMaxWidth()
                 .height(360.dp)
                 .clip(RoundedCornerShape(AppRadius.xl))
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.96f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.88f),
-                            Color(0xFF092114),
-                        ),
-                    ),
-                )
-                .padding(12.dp),
+                .background(Color(0xFF092114)),
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.site_heatmap_map),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(AppRadius.lg))
                     .background(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color(0x66C8F5D9),
-                                Color(0x220D2417),
-                                Color(0x4408120D),
+                                Color(0x22B6F5D4),
+                                Color(0x330D2417),
+                                Color(0x8A08120D),
                             ),
                         ),
                     ),
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF062115).copy(alpha = if (mode == MonitoringMapMode.Heatmap) 0.16f else 0.26f)),
             )
 
             Box(
