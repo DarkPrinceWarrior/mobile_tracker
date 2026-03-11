@@ -18,9 +18,11 @@ import com.example.mobile_tracker.presentation.home.HomeViewModel
 import com.example.mobile_tracker.presentation.login.LoginViewModel
 import com.example.mobile_tracker.presentation.journal.JournalViewModel
 import com.example.mobile_tracker.presentation.maps.MapsViewModel
+import com.example.mobile_tracker.presentation.monitoring.MonitoringViewModel
 import com.example.mobile_tracker.presentation.settings.SettingsViewModel
 import com.example.mobile_tracker.presentation.summary.SummaryViewModel
 import com.example.mobile_tracker.presentation.upload.UploadViewModel
+import com.example.mobile_tracker.presentation.workers.WorkersViewModel
 import com.example.mobile_tracker.presentation.worker_detail.WorkerDetailViewModel
 import com.example.mobile_tracker.util.NetworkMonitor
 import org.koin.android.ext.koin.androidContext
@@ -66,6 +68,8 @@ val appModule = module {
     viewModel {
         EmployeeSearchViewModel(get(), get(), get(), get(), get())
     }
+    viewModel { MonitoringViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { WorkersViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { MapsViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { WorkerDetailViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel {

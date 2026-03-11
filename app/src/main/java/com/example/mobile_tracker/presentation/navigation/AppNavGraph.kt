@@ -15,9 +15,11 @@ import com.example.mobile_tracker.presentation.home.HomeScreen
 import com.example.mobile_tracker.presentation.login.LoginScreen
 import com.example.mobile_tracker.presentation.journal.JournalScreen
 import com.example.mobile_tracker.presentation.maps.MapsScreen
+import com.example.mobile_tracker.presentation.monitoring.MonitoringScreen
 import com.example.mobile_tracker.presentation.settings.SettingsScreen
 import com.example.mobile_tracker.presentation.summary.SummaryScreen
 import com.example.mobile_tracker.presentation.upload.UploadScreen
+import com.example.mobile_tracker.presentation.workers.WorkersScreen
 import com.example.mobile_tracker.presentation.worker_detail.WorkerDetailScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,6 +67,9 @@ fun AppNavGraph(
                 onNavigateToEmployees = {
                     navController.navigate(Route.EmployeeSearch)
                 },
+                onNavigateToMonitoring = {
+                    navController.navigate(Route.Monitoring)
+                },
                 onNavigateToMaps = {
                     navController.navigate(Route.Maps)
                 },
@@ -98,6 +103,42 @@ fun AppNavGraph(
         composable<Route.EmployeeSearch> {
             EmployeeSearchScreen(
                 onBack = { navController.popBackStack() },
+                onOpenWorkerDetail = { employeeId ->
+                    navController.navigate(Route.WorkerDetail(employeeId))
+                },
+            )
+        }
+
+        composable<Route.Monitoring> {
+            MonitoringScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToWorkers = {
+                    navController.navigate(Route.Workers)
+                },
+                onNavigateToMaps = {
+                    navController.navigate(Route.Maps)
+                },
+                onNavigateToAlerts = {
+                    navController.navigate(Route.Alerts)
+                },
+                onOpenWorkerDetail = { employeeId ->
+                    navController.navigate(Route.WorkerDetail(employeeId))
+                },
+            )
+        }
+
+        composable<Route.Workers> {
+            WorkersScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToMonitoring = {
+                    navController.navigate(Route.Monitoring)
+                },
+                onNavigateToMaps = {
+                    navController.navigate(Route.Maps)
+                },
+                onNavigateToAlerts = {
+                    navController.navigate(Route.Alerts)
+                },
                 onOpenWorkerDetail = { employeeId ->
                     navController.navigate(Route.WorkerDetail(employeeId))
                 },
@@ -165,6 +206,9 @@ fun AppNavGraph(
                 },
                 onNavigateToJournal = {
                     navController.navigate(Route.Journal)
+                },
+                onNavigateToWorkerDetail = { employeeId ->
+                    navController.navigate(Route.WorkerDetail(employeeId))
                 },
             )
         }

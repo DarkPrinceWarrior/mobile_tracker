@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Map
@@ -117,6 +118,7 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onNavigateToDevices: () -> Unit = {},
     onNavigateToEmployees: () -> Unit = {},
+    onNavigateToMonitoring: () -> Unit = {},
     onNavigateToMaps: () -> Unit = {},
     onNavigateToIssue: () -> Unit = {},
     onNavigateToReturn: () -> Unit = {},
@@ -267,6 +269,8 @@ fun HomeScreen(
                                     onNavigateToDevices,
                                 onNavigateToEmployees =
                                     onNavigateToEmployees,
+                                onNavigateToMonitoring =
+                                    onNavigateToMonitoring,
                                 onNavigateToMaps =
                                     onNavigateToMaps,
                                 onNavigateToSummary =
@@ -991,6 +995,7 @@ private fun JournalTabContent(
 private fun MoreTabContent(
     onNavigateToDevices: () -> Unit,
     onNavigateToEmployees: () -> Unit,
+    onNavigateToMonitoring: () -> Unit,
     onNavigateToMaps: () -> Unit,
     onNavigateToSummary: () -> Unit,
     onNavigateToAlerts: () -> Unit,
@@ -1001,6 +1006,12 @@ private fun MoreTabContent(
         title = stringResource(R.string.more_title),
     )
 
+    MoreMenuItem(
+        icon = Icons.Default.Bolt,
+        title = stringResource(R.string.more_monitoring),
+        subtitle = stringResource(R.string.home_more_monitoring_subtitle),
+        onClick = onNavigateToMonitoring,
+    )
     MoreMenuItem(
         icon = Icons.Default.Devices,
         title = stringResource(R.string.more_devices),

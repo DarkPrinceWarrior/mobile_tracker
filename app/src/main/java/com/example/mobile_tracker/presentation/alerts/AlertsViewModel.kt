@@ -20,10 +20,17 @@ enum class AlertSeverity {
     Info,
 }
 
+enum class AlertReviewStatus {
+    New,
+    InProgress,
+    Closed,
+}
+
 enum class AlertDestination {
     Devices,
     Return,
     Journal,
+    WorkerDetail,
 }
 
 enum class AlertCategory {
@@ -43,21 +50,41 @@ data class OperatorAlertItem(
     val details: String,
     val timestamp: Long,
     val destination: AlertDestination,
-)
+    val employeeId: String? = null,
+    val deviceId: String? = null,
+    val reviewStatus: AlertReviewStatus = AlertReviewStatus.New,
+    val comment: String = "",
+) {
+    val searchBlob: String
+        get() = listOfNotNull(
+            subject,
+            details,
+            employeeId,
+            deviceId,
+        ).joinToString(" ")
+}
 
 data class AlertsState(
     val siteName: String = "",
     val shiftDate: String = "",
     val isLoading: Boolean = true,
+    val query: String = "",
     val selectedSeverity: AlertSeverity? = null,
+    val selectedReviewStatus: AlertReviewStatus? = null,
     val selectedAlertId: String? = null,
+    val draftComment: String = "",
     val alerts: List<OperatorAlertItem> = emptyList(),
     val error: String? = null,
 ) {
     val filteredAlerts: List<OperatorAlertItem>
-        get() = selectedSeverity?.let { severity ->
-            alerts.filter { it.severity == severity }
-        } ?: alerts
+        get() = alerts.filter { alert ->
+            val matchesSeverity = selectedSeverity == null || alert.severity == selectedSeverity
+            val matchesReviewStatus = selectedReviewStatus == null || alert.reviewStatus == selectedReviewStatus
+            val normalizedQuery = query.trim()
+            val matchesQuery = normalizedQuery.isBlank() ||
+                alert.searchBlob.contains(normalizedQuery, ignoreCase = true)
+            matchesSeverity && matchesReviewStatus && matchesQuery
+        }
 
     val criticalCount: Int
         get() = alerts.count { it.severity == AlertSeverity.Critical }
@@ -67,11 +94,25 @@ data class AlertsState(
 
     val infoCount: Int
         get() = alerts.count { it.severity == AlertSeverity.Info }
+
+    val newCount: Int
+        get() = alerts.count { it.reviewStatus == AlertReviewStatus.New }
+
+    val inProgressCount: Int
+        get() = alerts.count { it.reviewStatus == AlertReviewStatus.InProgress }
+
+    val closedCount: Int
+        get() = alerts.count { it.reviewStatus == AlertReviewStatus.Closed }
 }
 
 sealed interface AlertsIntent {
     data class SelectAlert(val id: String) : AlertsIntent
     data class SetSeverity(val severity: AlertSeverity?) : AlertsIntent
+    data class SetReviewStatusFilter(val status: AlertReviewStatus?) : AlertsIntent
+    data class UpdateQuery(val query: String) : AlertsIntent
+    data class UpdateDraftComment(val comment: String) : AlertsIntent
+    data class UpdateSelectedAlertStatus(val status: AlertReviewStatus) : AlertsIntent
+    data object SaveDraftComment : AlertsIntent
     data object DismissError : AlertsIntent
 }
 
@@ -85,6 +126,9 @@ class AlertsViewModel(
     private val _state = MutableStateFlow(AlertsState())
     val state: StateFlow<AlertsState> = _state.asStateFlow()
 
+    private val reviewStatusOverrides = MutableStateFlow<Map<String, AlertReviewStatus>>(emptyMap())
+    private val commentOverrides = MutableStateFlow<Map<String, String>>(emptyMap())
+
     private var alertsJob: Job? = null
 
     init {
@@ -93,15 +137,48 @@ class AlertsViewModel(
 
     fun onIntent(intent: AlertsIntent) {
         when (intent) {
-            is AlertsIntent.SelectAlert -> _state.update { it.copy(selectedAlertId = intent.id) }
-            is AlertsIntent.SetSeverity -> _state.update { state ->
-                val filtered = intent.severity?.let { severity ->
-                    state.alerts.filter { it.severity == severity }
-                } ?: state.alerts
-                state.copy(
-                    selectedSeverity = intent.severity,
-                    selectedAlertId = filtered.firstOrNull()?.id,
-                )
+            is AlertsIntent.SelectAlert -> {
+                _state.update { current ->
+                    val selected = current.filteredAlerts.firstOrNull { it.id == intent.id }
+                    current.copy(
+                        selectedAlertId = intent.id,
+                        draftComment = selected?.comment.orEmpty(),
+                    )
+                }
+            }
+            is AlertsIntent.SetSeverity -> {
+                _state.update { current ->
+                    val updated = current.copy(selectedSeverity = intent.severity)
+                    updated.alignSelection()
+                }
+            }
+            is AlertsIntent.SetReviewStatusFilter -> {
+                _state.update { current ->
+                    val updated = current.copy(selectedReviewStatus = intent.status)
+                    updated.alignSelection()
+                }
+            }
+            is AlertsIntent.UpdateQuery -> {
+                _state.update { current ->
+                    val updated = current.copy(query = intent.query)
+                    updated.alignSelection()
+                }
+            }
+            is AlertsIntent.UpdateDraftComment -> _state.update { it.copy(draftComment = intent.comment) }
+            is AlertsIntent.UpdateSelectedAlertStatus -> {
+                val alertId = _state.value.selectedAlertId ?: return
+                reviewStatusOverrides.update { it + (alertId to intent.status) }
+                _state.update { current ->
+                    val updated = current.copy()
+                    updated.alignSelection()
+                }
+            }
+            AlertsIntent.SaveDraftComment -> {
+                val alertId = _state.value.selectedAlertId ?: return
+                commentOverrides.update { it + (alertId to _state.value.draftComment.trim()) }
+                _state.update { current ->
+                    current.copy(error = null)
+                }
             }
             AlertsIntent.DismissError -> _state.update { it.copy(error = null) }
         }
@@ -144,108 +221,131 @@ class AlertsViewModel(
                 packetQueueDao.observeUnsent(siteId),
                 bindingDao.observeByShift(siteId, shiftDate),
                 operationLogDao.observeByShift(siteId, shiftDate),
-            ) { packets, bindings, logs ->
-                buildList {
-                    packets.forEach { packet ->
-                        add(
-                            OperatorAlertItem(
-                                id = "packet-${packet.packetId}",
-                                severity = if (packet.status == "error") {
-                                    AlertSeverity.Critical
-                                } else {
-                                    AlertSeverity.Warning
-                                },
-                                category = if (packet.status == "error") {
-                                    AlertCategory.PacketError
-                                } else {
-                                    AlertCategory.PacketPending
-                                },
-                                subject = packet.deviceId,
-                                details = packet.lastError
-                                    ?: packet.serverStatus
-                                    ?: if (packet.status == "error") {
-                                        "Пакет не был отправлен на сервер"
-                                    } else {
-                                        "Пакет сохранён локально и ожидает сеть"
-                                    },
-                                timestamp = packet.createdAt,
-                                destination = AlertDestination.Devices,
-                            ),
-                        )
-                    }
-
-                    bindings
-                        .filter { !it.isSynced }
-                        .forEach { binding ->
-                            add(
-                                OperatorAlertItem(
-                                    id = "binding-sync-${binding.id}",
-                                    severity = AlertSeverity.Warning,
-                                    category = AlertCategory.BindingUnsynced,
-                                    subject = "${binding.deviceId} · ${binding.employeeName}",
-                                    details = "Операция выдачи или возврата ещё не подтверждена сервером",
-                                    timestamp = binding.createdAt,
-                                    destination = AlertDestination.Return,
-                                ),
-                            )
-                        }
-
-                    bindings
-                        .filter { it.status == "active" && !it.dataUploaded }
-                        .forEach { binding ->
-                            add(
-                                OperatorAlertItem(
-                                    id = "binding-upload-${binding.id}",
-                                    severity = AlertSeverity.Info,
-                                    category = AlertCategory.BindingUploadRequired,
-                                    subject = "${binding.deviceId} · ${binding.employeeName}",
-                                    details = "Данные с часов ещё не выгружены и могут потребоваться перед возвратом",
-                                    timestamp = binding.boundAt,
-                                    destination = AlertDestination.Devices,
-                                ),
-                            )
-                        }
-
-                    logs
-                        .filter { it.status != "success" }
-                        .forEach { log ->
-                            add(
-                                OperatorAlertItem(
-                                    id = "log-${log.id}",
-                                    severity = if (log.status == "error") {
-                                        AlertSeverity.Critical
-                                    } else {
-                                        AlertSeverity.Warning
-                                    },
-                                    category = if (log.status == "error") {
-                                        AlertCategory.LogError
-                                    } else {
-                                        AlertCategory.LogPending
-                                    },
-                                    subject = listOfNotNull(log.employeeName, log.deviceId)
-                                        .joinToString(" · ")
-                                        .ifBlank { log.type },
-                                    details = log.errorMessage
-                                        ?: log.details
-                                        ?: "Операция требует внимания оператора",
-                                    timestamp = log.createdAt,
-                                    destination = AlertDestination.Journal,
-                                ),
-                            )
-                        }
+                reviewStatusOverrides,
+                commentOverrides,
+            ) { packets, bindings, logs, statusOverrides, commentOverridesMap ->
+                buildBaseAlerts(
+                    packets = packets,
+                    bindings = bindings,
+                    logs = logs,
+                ).map { alert ->
+                    alert.copy(
+                        reviewStatus = statusOverrides[alert.id] ?: alert.reviewStatus,
+                        comment = commentOverridesMap[alert.id] ?: alert.comment,
+                    )
                 }.sortedByDescending { it.timestamp }
             }.collect { alerts ->
                 _state.update { current ->
+                    val selectedId = current.selectedAlertId
+                        ?.takeIf { id -> alerts.any { it.id == id } }
+                        ?: alerts.firstOrNull()?.id
                     current.copy(
                         isLoading = false,
                         alerts = alerts,
-                        selectedAlertId = current.selectedAlertId
-                            ?.takeIf { selectedId -> alerts.any { it.id == selectedId } }
-                            ?: alerts.firstOrNull()?.id,
+                        selectedAlertId = selectedId,
+                        draftComment = alerts.firstOrNull { it.id == selectedId }?.comment.orEmpty(),
                         error = null,
                     )
                 }
             }
         }
     }
+}
+
+private fun buildBaseAlerts(
+    packets: List<com.example.mobile_tracker.data.local.db.entity.PacketQueueEntity>,
+    bindings: List<com.example.mobile_tracker.data.local.db.entity.BindingEntity>,
+    logs: List<com.example.mobile_tracker.data.local.db.entity.OperationLogEntity>,
+): List<OperatorAlertItem> = buildList {
+    packets.forEach { packet ->
+        add(
+            OperatorAlertItem(
+                id = "packet-${packet.packetId}",
+                severity = if (packet.status == "error") AlertSeverity.Critical else AlertSeverity.Warning,
+                category = if (packet.status == "error") AlertCategory.PacketError else AlertCategory.PacketPending,
+                subject = packet.deviceId,
+                details = packet.lastError
+                    ?: packet.serverStatus
+                    ?: if (packet.status == "error") {
+                        "Пакет не был отправлен на сервер"
+                    } else {
+                        "Пакет сохранён локально и ожидает сеть"
+                    },
+                timestamp = packet.createdAt,
+                destination = AlertDestination.Devices,
+                employeeId = packet.employeeId,
+                deviceId = packet.deviceId,
+            ),
+        )
+    }
+
+    bindings
+        .filter { !it.isSynced }
+        .forEach { binding ->
+            add(
+                OperatorAlertItem(
+                    id = "binding-sync-${binding.id}",
+                    severity = AlertSeverity.Warning,
+                    category = AlertCategory.BindingUnsynced,
+                    subject = "${binding.employeeName} · ${binding.deviceId}",
+                    details = "Операция выдачи или возврата ещё не подтверждена сервером",
+                    timestamp = binding.createdAt,
+                    destination = AlertDestination.Return,
+                    employeeId = binding.employeeId,
+                    deviceId = binding.deviceId,
+                ),
+            )
+        }
+
+    bindings
+        .filter { it.status == "active" && !it.dataUploaded }
+        .forEach { binding ->
+            add(
+                OperatorAlertItem(
+                    id = "binding-upload-${binding.id}",
+                    severity = AlertSeverity.Info,
+                    category = AlertCategory.BindingUploadRequired,
+                    subject = "${binding.employeeName} · ${binding.deviceId}",
+                    details = "Данные с часов ещё не выгружены и могут потребоваться перед возвратом",
+                    timestamp = binding.boundAt,
+                    destination = AlertDestination.WorkerDetail,
+                    employeeId = binding.employeeId,
+                    deviceId = binding.deviceId,
+                ),
+            )
+        }
+
+    logs
+        .filter { it.status != "success" }
+        .forEach { log ->
+            add(
+                OperatorAlertItem(
+                    id = "log-${log.id}",
+                    severity = if (log.status == "error") AlertSeverity.Critical else AlertSeverity.Warning,
+                    category = if (log.status == "error") AlertCategory.LogError else AlertCategory.LogPending,
+                    subject = listOfNotNull(log.employeeName, log.deviceId)
+                        .joinToString(" · ")
+                        .ifBlank { log.type },
+                    details = log.errorMessage
+                        ?: log.details
+                        ?: "Операция требует внимания оператора",
+                    timestamp = log.createdAt,
+                    destination = if (!log.employeeId.isNullOrBlank()) {
+                        AlertDestination.WorkerDetail
+                    } else {
+                        AlertDestination.Journal
+                    },
+                    employeeId = log.employeeId,
+                    deviceId = log.deviceId,
+                ),
+            )
+        }
+}
+
+private fun AlertsState.alignSelection(): AlertsState {
+    val selected = filteredAlerts.firstOrNull { it.id == selectedAlertId } ?: filteredAlerts.firstOrNull()
+    return copy(
+        selectedAlertId = selected?.id,
+        draftComment = selected?.comment.orEmpty(),
+    )
 }

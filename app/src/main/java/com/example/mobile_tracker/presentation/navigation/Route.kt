@@ -20,6 +20,12 @@ sealed interface Route {
     data object EmployeeSearch : Route
 
     @Serializable
+    data object Monitoring : Route
+
+    @Serializable
+    data object Workers : Route
+
+    @Serializable
     data object Maps : Route
 
     @Serializable

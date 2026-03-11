@@ -34,6 +34,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,6 +60,7 @@ import com.example.mobile_tracker.presentation.common.MTCard
 import com.example.mobile_tracker.presentation.common.MTCompactTopBar
 import com.example.mobile_tracker.presentation.common.MTStatusBadge
 import com.example.mobile_tracker.presentation.common.MTStatusTone
+import com.example.mobile_tracker.presentation.common.SearchField
 import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.common.rememberIsTablet
 import com.example.mobile_tracker.ui.theme.AppLayout
@@ -77,6 +79,7 @@ fun AlertsScreen(
     onNavigateToDevices: () -> Unit = {},
     onNavigateToReturn: () -> Unit = {},
     onNavigateToJournal: () -> Unit = {},
+    onNavigateToWorkerDetail: (String) -> Unit = {},
     viewModel: AlertsViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -116,10 +119,23 @@ fun AlertsScreen(
         ) {
             AlertsSummaryCard(state = state)
 
+            SearchField(
+                query = state.query,
+                onQueryChange = { viewModel.onIntent(AlertsIntent.UpdateQuery(it)) },
+                placeholder = stringResource(R.string.alerts_search_hint),
+            )
+
             AlertsFilterRow(
                 selectedSeverity = state.selectedSeverity,
                 onSelected = { severity ->
                     viewModel.onIntent(AlertsIntent.SetSeverity(severity))
+                },
+            )
+
+            AlertsWorkflowFilterRow(
+                selectedStatus = state.selectedReviewStatus,
+                onSelected = { status ->
+                    viewModel.onIntent(AlertsIntent.SetReviewStatusFilter(status))
                 },
             )
 
@@ -156,6 +172,7 @@ fun AlertsScreen(
                                                 onNavigateToDevices = onNavigateToDevices,
                                                 onNavigateToReturn = onNavigateToReturn,
                                                 onNavigateToJournal = onNavigateToJournal,
+                                                onNavigateToWorkerDetail = onNavigateToWorkerDetail,
                                             )
                                         },
                                     )
@@ -168,6 +185,16 @@ fun AlertsScreen(
                         AlertDetailPane(
                             modifier = paneModifier.padding(start = AppSpacing.sm),
                             alert = selectedAlert,
+                            draftComment = state.draftComment,
+                            onCommentChange = {
+                                viewModel.onIntent(AlertsIntent.UpdateDraftComment(it))
+                            },
+                            onSaveComment = {
+                                viewModel.onIntent(AlertsIntent.SaveDraftComment)
+                            },
+                            onUpdateStatus = {
+                                viewModel.onIntent(AlertsIntent.UpdateSelectedAlertStatus(it))
+                            },
                             onOpenTarget = {
                                 selectedAlert?.let { alert ->
                                     openAlertDestination(
@@ -175,6 +202,7 @@ fun AlertsScreen(
                                         onNavigateToDevices = onNavigateToDevices,
                                         onNavigateToReturn = onNavigateToReturn,
                                         onNavigateToJournal = onNavigateToJournal,
+                                        onNavigateToWorkerDetail = onNavigateToWorkerDetail,
                                     )
                                 }
                             },
@@ -219,6 +247,29 @@ private fun AlertsSummaryCard(
                 color = MaterialTheme.colorScheme.info,
             )
         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            WorkflowCountTile(
+                modifier = Modifier.weight(1f),
+                label = stringResource(R.string.alerts_status_new),
+                value = state.newCount.toString(),
+                tone = MTStatusTone.Warning,
+            )
+            WorkflowCountTile(
+                modifier = Modifier.weight(1f),
+                label = stringResource(R.string.alerts_status_in_progress),
+                value = state.inProgressCount.toString(),
+                tone = MTStatusTone.Info,
+            )
+            WorkflowCountTile(
+                modifier = Modifier.weight(1f),
+                label = stringResource(R.string.alerts_status_closed),
+                value = state.closedCount.toString(),
+                tone = MTStatusTone.Success,
+            )
+        }
     }
 }
 
@@ -255,6 +306,45 @@ private fun AlertCountTile(
 }
 
 @Composable
+private fun WorkflowCountTile(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    tone: MTStatusTone,
+) {
+    val valueColor = when (tone) {
+        MTStatusTone.Warning -> MaterialTheme.colorScheme.warning
+        MTStatusTone.Info -> MaterialTheme.colorScheme.info
+        MTStatusTone.Success -> MaterialTheme.colorScheme.success
+        MTStatusTone.Danger -> MaterialTheme.colorScheme.danger
+        MTStatusTone.Neutral -> MaterialTheme.colorScheme.onSurface
+    }
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(AppRadius.lg),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                color = valueColor,
+            )
+        }
+    }
+}
+
+@Composable
 private fun AlertsFilterRow(
     selectedSeverity: AlertSeverity?,
     onSelected: (AlertSeverity?) -> Unit,
@@ -284,6 +374,40 @@ private fun AlertsFilterRow(
             label = stringResource(R.string.alerts_filter_info),
             selected = selectedSeverity == AlertSeverity.Info,
             onClick = { onSelected(AlertSeverity.Info) },
+        )
+    }
+}
+
+@Composable
+private fun AlertsWorkflowFilterRow(
+    selectedStatus: AlertReviewStatus?,
+    onSelected: (AlertReviewStatus?) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        AlertsFilterChip(
+            label = stringResource(R.string.alerts_filter_any_status),
+            selected = selectedStatus == null,
+            onClick = { onSelected(null) },
+        )
+        AlertsFilterChip(
+            label = stringResource(R.string.alerts_status_new),
+            selected = selectedStatus == AlertReviewStatus.New,
+            onClick = { onSelected(AlertReviewStatus.New) },
+        )
+        AlertsFilterChip(
+            label = stringResource(R.string.alerts_status_in_progress),
+            selected = selectedStatus == AlertReviewStatus.InProgress,
+            onClick = { onSelected(AlertReviewStatus.InProgress) },
+        )
+        AlertsFilterChip(
+            label = stringResource(R.string.alerts_status_closed),
+            selected = selectedStatus == AlertReviewStatus.Closed,
+            onClick = { onSelected(AlertReviewStatus.Closed) },
         )
     }
 }
@@ -401,9 +525,27 @@ private fun AlertCard(
                         label = alertSeverityLabel(alert.severity),
                         tone = alertTone(alert.severity),
                     )
+                    MTStatusBadge(
+                        label = reviewStatusLabel(alert.reviewStatus),
+                        tone = reviewStatusTone(alert.reviewStatus),
+                    )
                     Text(
                         text = formatTimestamp(alert.timestamp, pattern = "HH:mm"),
                         style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            if (alert.comment.isNotBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(AppRadius.lg),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                ) {
+                    Text(
+                        text = alert.comment,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -436,6 +578,10 @@ private fun AlertCard(
 private fun AlertDetailPane(
     modifier: Modifier,
     alert: OperatorAlertItem?,
+    draftComment: String,
+    onCommentChange: (String) -> Unit,
+    onSaveComment: () -> Unit,
+    onUpdateStatus: (AlertReviewStatus) -> Unit,
     onOpenTarget: () -> Unit,
 ) {
     if (alert == null) {
@@ -491,9 +637,19 @@ private fun AlertDetailPane(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
                 MTStatusBadge(
                     label = alertSeverityLabel(alert.severity),
                     tone = alertTone(alert.severity),
+                )
+                MTStatusBadge(
+                    label = reviewStatusLabel(alert.reviewStatus),
+                    tone = reviewStatusTone(alert.reviewStatus),
                 )
             }
 
@@ -510,20 +666,106 @@ private fun AlertDetailPane(
                 value = alertActionLabel(alert.destination),
             )
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = onOpenTarget,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(AppRadius.xl),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+            Text(
+                text = stringResource(R.string.alerts_status_section),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                Text(text = alertActionLabel(alert.destination))
+                WorkflowActionChip(
+                    label = stringResource(R.string.alerts_status_new),
+                    selected = alert.reviewStatus == AlertReviewStatus.New,
+                    onClick = { onUpdateStatus(AlertReviewStatus.New) },
+                )
+                WorkflowActionChip(
+                    label = stringResource(R.string.alerts_status_in_progress),
+                    selected = alert.reviewStatus == AlertReviewStatus.InProgress,
+                    onClick = { onUpdateStatus(AlertReviewStatus.InProgress) },
+                )
+                WorkflowActionChip(
+                    label = stringResource(R.string.alerts_status_closed),
+                    selected = alert.reviewStatus == AlertReviewStatus.Closed,
+                    onClick = { onUpdateStatus(AlertReviewStatus.Closed) },
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.alerts_comment_label),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            OutlinedTextField(
+                value = draftComment,
+                onValueChange = onCommentChange,
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                placeholder = {
+                    Text(stringResource(R.string.alerts_comment_placeholder))
+                },
+                shape = RoundedCornerShape(AppRadius.lg),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                Button(
+                    onClick = onSaveComment,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(AppRadius.xl),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary,
+                    ),
+                ) {
+                    Text(text = stringResource(R.string.alerts_comment_save))
+                }
+                Button(
+                    onClick = onOpenTarget,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(AppRadius.xl),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) {
+                    Text(text = alertActionLabel(alert.destination))
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun WorkflowActionChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(AppRadius.pill),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.labelLarge,
+            color = if (selected) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        )
     }
 }
 
@@ -561,11 +803,13 @@ private fun openAlertDestination(
     onNavigateToDevices: () -> Unit,
     onNavigateToReturn: () -> Unit,
     onNavigateToJournal: () -> Unit,
+    onNavigateToWorkerDetail: (String) -> Unit,
 ) {
     when (alert.destination) {
         AlertDestination.Devices -> onNavigateToDevices()
         AlertDestination.Return -> onNavigateToReturn()
         AlertDestination.Journal -> onNavigateToJournal()
+        AlertDestination.WorkerDetail -> alert.employeeId?.let(onNavigateToWorkerDetail) ?: onNavigateToJournal()
     }
 }
 
@@ -577,10 +821,18 @@ private fun alertSeverityLabel(severity: AlertSeverity): String = when (severity
 }
 
 @Composable
+private fun reviewStatusLabel(status: AlertReviewStatus): String = when (status) {
+    AlertReviewStatus.New -> stringResource(R.string.alerts_status_new)
+    AlertReviewStatus.InProgress -> stringResource(R.string.alerts_status_in_progress)
+    AlertReviewStatus.Closed -> stringResource(R.string.alerts_status_closed)
+}
+
+@Composable
 private fun alertActionLabel(destination: AlertDestination): String = when (destination) {
     AlertDestination.Devices -> stringResource(R.string.alerts_action_devices)
     AlertDestination.Return -> stringResource(R.string.alerts_action_return)
     AlertDestination.Journal -> stringResource(R.string.alerts_action_journal)
+    AlertDestination.WorkerDetail -> stringResource(R.string.alerts_action_worker)
 }
 
 @Composable
@@ -603,6 +855,12 @@ private fun alertTone(severity: AlertSeverity): MTStatusTone = when (severity) {
     AlertSeverity.Critical -> MTStatusTone.Danger
     AlertSeverity.Warning -> MTStatusTone.Warning
     AlertSeverity.Info -> MTStatusTone.Info
+}
+
+private fun reviewStatusTone(status: AlertReviewStatus): MTStatusTone = when (status) {
+    AlertReviewStatus.New -> MTStatusTone.Warning
+    AlertReviewStatus.InProgress -> MTStatusTone.Info
+    AlertReviewStatus.Closed -> MTStatusTone.Success
 }
 
 private fun alertIcon(category: AlertCategory): ImageVector = when (category) {
