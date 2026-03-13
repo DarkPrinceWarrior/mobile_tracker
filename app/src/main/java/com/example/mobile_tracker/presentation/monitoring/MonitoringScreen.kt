@@ -1,6 +1,7 @@
 package com.example.mobile_tracker.presentation.monitoring
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -45,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
@@ -52,6 +55,9 @@ import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
 import com.example.mobile_tracker.presentation.common.StateCard
 import org.koin.androidx.compose.koinViewModel
+
+/** Accent color for the "Online" badge, as specified in the Figma design. */
+private val OnlineAccentColor = Color(0xFF00A36A)
 
 @Composable
 fun MonitoringScreen(
@@ -204,24 +210,18 @@ private fun MonitoringTitleRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (onBack != null) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = onBack),
-                contentAlignment = Alignment.Center,
-            ) {
+            IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
         Text(
             text = stringResource(R.string.monitoring_title),
             style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
@@ -272,7 +272,7 @@ private fun ZoneHeaderCard(
                                 .clip(CircleShape)
                                 .background(
                                     if (isOnline) {
-                                        workerStatusColor(WorkerMonitoringStatus.Active)
+                                        OnlineAccentColor
                                     } else {
                                         workerStatusColor(WorkerMonitoringStatus.Idle)
                                     },
@@ -286,7 +286,7 @@ private fun ZoneHeaderCard(
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (isOnline) {
-                                MaterialTheme.colorScheme.primary
+                                OnlineAccentColor
                             } else {
                                 workerStatusColor(WorkerMonitoringStatus.Idle)
                             },
@@ -314,7 +314,7 @@ private fun SectionLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
     )
 }
@@ -367,67 +367,65 @@ private fun StatisticsPanel(
 private fun EfficiencyHeroCard(
     efficiencyPercent: Int,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFF122C1E))
+            .border(1.dp, Color(0x5500A36A), RoundedCornerShape(8.dp)),
     ) {
+        // Inset glow — Figma: inset 0 0 30.6px #00A36A
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(136.dp)
+                .matchParentSize()
                 .background(
-                    brush = Brush.horizontalGradient(
+                    Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFF122C1E),
-                            Color(0xFF092114),
-                            Color(0xFF122C1E),
+                            Color(0x3300A36A),
+                            Color.Transparent,
                         ),
                     ),
                 ),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(Color(0x6600A36A), Color.Transparent),
-                        ),
-                    ),
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 8.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
+                modifier = Modifier.width(132.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                Column(
-                    modifier = Modifier.width(132.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
-                ) {
-                    Text(
-                        text = (efficiencyPercent - 1).coerceAtLeast(0).toString(),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = Color(0x4DAFFF69),
-                    )
-                    Text(
-                        text = efficiencyPercent.toString(),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = Color(0xFFAFFF69),
-                    )
-                    Text(
-                        text = (efficiencyPercent + 1).coerceAtMost(100).toString(),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = Color(0x4DAFFF69),
-                    )
-                }
+                // Adjacent number above — 30% opacity, Figma: 70px
                 Text(
-                    text = stringResource(R.string.monitoring_efficiency_compact_label),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White,
+                    text = (efficiencyPercent - 1).coerceAtLeast(0).toString(),
+                    style = MaterialTheme.typography.displayLarge,
+                    color = Color(0x4DAFFF69),
+                )
+                // Hero number — Figma: 86px
+                Text(
+                    text = efficiencyPercent.toString(),
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 86.sp,
+                        lineHeight = 86.sp,
+                    ),
+                    color = Color(0xFFAFFF69),
+                )
+                // Adjacent number below — 30% opacity, Figma: 70px
+                Text(
+                    text = (efficiencyPercent + 1).coerceAtMost(100).toString(),
+                    style = MaterialTheme.typography.displayLarge,
+                    color = Color(0x4DAFFF69),
                 )
             }
+            Text(
+                text = stringResource(R.string.monitoring_efficiency_compact_label),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFFF9F9F9),
+            )
         }
     }
 }
@@ -499,7 +497,7 @@ private fun MonitoringSectionHeader(
                         text = badge,
                         modifier = Modifier.padding(horizontal = 6.dp),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
                     )
                 }
@@ -509,7 +507,8 @@ private fun MonitoringSectionHeader(
             text = actionLabel,
             modifier = Modifier.clickable(onClick = onActionClick),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            color = OnlineAccentColor,
         )
     }
 }
@@ -538,64 +537,63 @@ private fun AlertsPanel(
                 )
             }
         } else {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(221.dp)
                     .padding(start = 5.dp, top = 8.dp, end = 8.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    alerts.forEach { alert ->
-                        Card(
-                            onClick = onClick,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.45f),
-                            ),
+                alerts.forEach { alert ->
+                    Card(
+                        onClick = onClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.45f),
+                        ),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Row(
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                    .width(4.dp)
+                                    .height(49.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(alertSeverityColor(alert.severity).copy(alpha = 0.5f)),
+                            )
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(4.dp)
-                                        .height(49.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(alertSeverityColor(alert.severity).copy(alpha = 0.5f)),
+                                Text(
+                                    text = alert.employeeName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    Text(
-                                        text = alert.employeeName,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = alert.description,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
+                                Text(
+                                    text = alert.description,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                             }
+                            // Alert time — matches Figma/TS design
+                            Text(
+                                text = formatMonitoringTime(alert.timestamp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            )
                         }
                     }
                 }
-                VerticalPreviewScrollbar(trackHeight = 205.dp, thumbHeight = 38.dp)
             }
         }
     }
@@ -625,113 +623,86 @@ private fun WorkersPanel(
                 )
             }
         } else {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(252.dp)
                     .padding(start = 5.dp, top = 8.dp, end = 8.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    workers.forEach { worker ->
-                        Card(
-                            onClick = { onOpenWorkerDetail(worker.employeeId) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.45f),
-                            ),
+                workers.forEach { worker ->
+                    Card(
+                        onClick = { onOpenWorkerDetail(worker.employeeId) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.45f),
+                        ),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            Text(
+                                text = buildAnnotatedString {
+                                    append(worker.fullName)
+                                    append(" ")
+                                    withStyle(
+                                        SpanStyle(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                        ),
+                                    ) {
+                                        append(worker.roleLabel)
+                                    }
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(
-                                    text = buildAnnotatedString {
-                                        append(worker.fullName)
-                                        append(" ")
-                                        withStyle(
-                                            SpanStyle(
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                                            ),
-                                        ) {
-                                            append(worker.roleLabel)
-                                        }
-                                    },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Favorite,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                                            modifier = Modifier.size(16.dp),
-                                        )
-                                        Text(
-                                            text = worker.heartRate?.toString()
-                                                ?: stringResource(R.string.worker_detail_no_data_short),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                                        )
-                                    }
-                                    Surface(
-                                        shape = RoundedCornerShape(48.dp),
-                                        color = Color(0x2B60D188),
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.worker_detail_smr, worker.smrPercent),
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = workerStatusColor(WorkerMonitoringStatus.Active),
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Favorite,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Text(
+                                        text = worker.heartRate?.toString()
+                                            ?: stringResource(R.string.worker_detail_no_data_short),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(48.dp),
+                                    color = Color(0x2B60D188),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.worker_detail_smr, worker.smrPercent),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = workerStatusColor(WorkerMonitoringStatus.Active),
+                                    )
                                 }
                             }
                         }
                     }
                 }
-                VerticalPreviewScrollbar(trackHeight = 236.dp, thumbHeight = 44.dp)
             }
         }
     }
 }
 
-@Composable
-private fun VerticalPreviewScrollbar(
-    trackHeight: Dp,
-    thumbHeight: Dp,
-) {
-    Box(
-        modifier = Modifier
-            .width(6.dp)
-            .height(trackHeight)
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(thumbHeight)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)),
-        )
-    }
-}
+// VerticalPreviewScrollbar removed — panels now wrap content dynamically.
 
 private fun monitoringShiftWindow(shiftType: String): String = if (shiftType == "night") {
     "смена от 19:00 до 06:30"
