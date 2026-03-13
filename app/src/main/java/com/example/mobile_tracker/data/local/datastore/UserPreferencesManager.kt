@@ -70,8 +70,8 @@ class UserPreferencesManager(
         email: String,
         name: String,
         role: String,
-        scopeType: String,
-        scopeIds: List<String>,
+        scopeType: String = "",
+        scopeIds: List<String> = emptyList(),
     ) {
         context.dataStore.edit { prefs ->
             prefs[Keys.USER_ID] = userId

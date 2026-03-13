@@ -21,7 +21,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import okhttp3.CertificatePinner
 import timber.log.Timber
 
 class NetworkClient(
@@ -33,25 +32,8 @@ class NetworkClient(
         isLenient = true
     }
 
-    private val certificatePinner =
-        CertificatePinner.Builder()
-            .add(
-                "api.activity-tracker.example.com",
-                "sha256/AAAAAAAAAAAAAAAAAAAAAA" +
-                    "AAAAAAAAAAAAAAAAAAAAAA=",
-            )
-            .build()
-
     val httpClient: HttpClient by lazy {
         HttpClient(OkHttp) {
-            engine {
-                config {
-                    certificatePinner(
-                        certificatePinner,
-                    )
-                }
-            }
-
             install(ContentNegotiation) {
                 json(jsonConfig)
             }
@@ -104,7 +86,7 @@ class NetworkClient(
 
         return try {
             val response: HttpResponse = httpClient.post(
-                "/api/v1/auth/refresh",
+                "/api/v1/auth/device/refresh",
             ) {
                 header("Authorization", "")
                 setBody(

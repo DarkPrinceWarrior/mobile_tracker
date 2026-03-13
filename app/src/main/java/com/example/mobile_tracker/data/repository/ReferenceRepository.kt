@@ -21,17 +21,17 @@ class ReferenceRepository(
             var page = 1
             var total = 0
             do {
-                val response = referenceApi.getEmployees(
+                val employees = referenceApi.getEmployees(
                     siteId = siteId,
                     page = page,
                 )
-                val entities = response.data.map {
+                val entities = employees.map {
                     it.toEntity(now)
                 }
                 employeeDao.upsertAll(entities)
                 total += entities.size
                 page++
-            } while (page <= response.totalPages)
+            } while (employees.size >= 100)
 
             val staleBefore =
                 now - STALE_THRESHOLD_MS
@@ -53,13 +53,16 @@ class ReferenceRepository(
                     siteId = siteId,
                     page = page,
                 )
-                val entities = response.data.map {
+                val entities = response.elements.map {
                     it.toEntity(now)
                 }
                 deviceDao.upsertAll(entities)
                 total += entities.size
                 page++
-            } while (page <= response.totalPages)
+            } while (
+                entities.isNotEmpty() &&
+                total < response.totalElements
+            )
 
             Timber.d(
                 "Synced $total devices for site $siteId",

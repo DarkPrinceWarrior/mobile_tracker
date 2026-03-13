@@ -28,7 +28,7 @@ android {
     buildTypes {
         debug {
             buildConfigField(
-                "boolean", "USE_DEMO", "true",
+                "boolean", "USE_DEMO", "false",
             )
         }
         release {

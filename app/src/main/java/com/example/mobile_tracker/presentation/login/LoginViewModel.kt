@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobile_tracker.data.local.datastore.UserPreferencesManager
 import com.example.mobile_tracker.data.local.secure.SecureStorage
 import com.example.mobile_tracker.data.remote.api.AuthApi
-import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
 import kotlinx.coroutines.channels.Channel
@@ -71,21 +70,22 @@ class LoginViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
 
             try {
-                val response = authApi.loginParsed(
+                // Шаг 1: Логин — получаем access_token
+                val loginResponse = authApi.loginParsed(
                     email = current.email.trim(),
                     password = current.password,
                 )
 
-                secureStorage.accessToken = response.accessToken
-                secureStorage.refreshToken = response.refreshToken
+                secureStorage.accessToken = loginResponse.accessToken
+
+                // Шаг 2: Получаем данные пользователя через GET /auth/me
+                val user = authApi.getMe()
 
                 preferencesManager.saveUserData(
-                    userId = response.user.id,
-                    email = response.user.email,
-                    name = response.user.fullName,
-                    role = response.user.role,
-                    scopeType = response.user.scopeType,
-                    scopeIds = response.user.scopeIds,
+                    userId = user.id,
+                    email = user.email,
+                    name = user.fullName,
+                    role = user.role,
                 )
 
                 _state.update { it.copy(isLoading = false) }
@@ -96,7 +96,7 @@ class LoginViewModel(
                 val code = e.response.status.value
                 val msg = when (code) {
                     401 -> "Неверный email или пароль"
-                    423 -> "Аккаунт заблокирован. " +
+                    403 -> "Аккаунт заблокирован. " +
                         "Обратитесь к администратору."
                     else -> "Ошибка авторизации (код $code)"
                 }

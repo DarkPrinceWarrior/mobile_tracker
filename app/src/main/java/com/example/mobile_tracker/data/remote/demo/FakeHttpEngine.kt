@@ -90,17 +90,7 @@ object FakeHttpEngine {
     private fun loginResponse() = """
     {
       "access_token": "demo-access-token-123",
-      "refresh_token": "demo-refresh-token-456",
-      "token_type": "Bearer",
-      "expires_in": 86400,
-      "user": {
-        "id": "user-demo-1",
-        "email": "demo@tracker.local",
-        "full_name": "Демо Оператор",
-        "role": "operator",
-        "scope_type": "site",
-        "scope_ids": ["site-demo-1", "site-demo-2"]
-      }
+      "token_type": "Bearer"
     }
     """.trimIndent()
 
@@ -110,8 +100,7 @@ object FakeHttpEngine {
       "email": "demo@tracker.local",
       "full_name": "Демо Оператор",
       "role": "operator",
-      "scope_type": "site",
-      "scope_ids": ["site-demo-1", "site-demo-2"]
+      "status": "active"
     }
     """.trimIndent()
 
@@ -127,7 +116,7 @@ object FakeHttpEngine {
 
     private fun employeesResponse() = """
     {
-      "data": [
+      "items": [
         {
           "id": "emp-1",
           "full_name": "Иванов Иван Иванович",
@@ -196,14 +185,13 @@ object FakeHttpEngine {
       ],
       "page": 1,
       "page_size": 200,
-      "total_count": 5,
-      "total_pages": 1
+      "total": 5
     }
     """.trimIndent()
 
     private fun devicesResponse() = """
     {
-      "data": [
+      "items": [
         {
           "device_id": "dev-watch-01",
           "serial_number": "GW8-SN-00101",
@@ -262,8 +250,7 @@ object FakeHttpEngine {
       ],
       "page": 1,
       "page_size": 100,
-      "total_count": 5,
-      "total_pages": 1
+      "total": 5
     }
     """.trimIndent()
 

@@ -62,14 +62,20 @@ class ContextSelectionViewModel(
 
             val allSites = siteDao.observeAll().first()
             val sites = allSites
-                .filter { it.id in scopeIds }
-                .map { it.toDomain() }
-                .ifEmpty {
-                    scopeIds.mapIndexed { i, id ->
-                        Site(
-                            id = id,
-                            name = "Площадка ${i + 1}",
-                        )
+                .let { list ->
+                    if (scopeIds.isEmpty()) {
+                        list.map { it.toDomain() }
+                    } else {
+                        list.filter { it.id in scopeIds }
+                            .map { it.toDomain() }
+                            .ifEmpty {
+                                scopeIds.mapIndexed { i, id ->
+                                    Site(
+                                        id = id,
+                                        name = "Площадка ${i + 1}",
+                                    )
+                                }
+                            }
                     }
                 }
 

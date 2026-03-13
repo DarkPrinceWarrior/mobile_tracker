@@ -15,13 +15,13 @@ class ReferenceApi(private val client: HttpClient) {
     suspend fun getEmployees(
         siteId: String,
         page: Int = 1,
-        pageSize: Int = 200,
-    ): PaginatedResponse<EmployeeDto> =
-        client.get("/api/v1/employees") {
+        pageSize: Int = 100,
+    ): List<EmployeeDto> =
+        client.get("/api/v1/employees/") {
             parameter("site_id", siteId)
             parameter("status", "active")
-            parameter("page", page)
-            parameter("page_size", pageSize)
+            parameter("limit", pageSize)
+            parameter("offset", (page - 1) * pageSize)
         }.body()
 
     suspend fun getDevices(
@@ -37,8 +37,8 @@ class ReferenceApi(private val client: HttpClient) {
         }.body()
 
     suspend fun getSites(): List<SiteDto> =
-        client.get("/api/v1/sites").body()
+        client.get("/api/v1/sites/").body()
 
     suspend fun getDowntimeReasons(): List<DowntimeReasonDto> =
-        client.get("/api/v1/downtime-reasons").body()
+        client.get("/api/v1/downtime-reasons/").body()
 }

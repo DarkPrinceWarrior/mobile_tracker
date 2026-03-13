@@ -12,7 +12,7 @@ import com.example.mobile_tracker.domain.model.Site
 
 fun EmployeeDto.toEntity(syncedAt: Long): EmployeeEntity =
     EmployeeEntity(
-        id = id,
+        id = effectiveId,
         fullName = fullName,
         companyId = companyId,
         companyName = companyName,
@@ -70,7 +70,7 @@ fun DeviceEntity.toDomain(): Device =
 
 fun SiteDto.toEntity(syncedAt: Long): SiteEntity =
     SiteEntity(
-        id = id,
+        id = effectiveId,
         name = name,
         address = address,
         timezone = timezone,
@@ -90,7 +90,7 @@ fun DowntimeReasonDto.toEntity(
     syncedAt: Long,
 ): DowntimeReasonEntity =
     DowntimeReasonEntity(
-        id = id,
+        id = effectiveId,
         name = name,
         syncedAt = syncedAt,
     )

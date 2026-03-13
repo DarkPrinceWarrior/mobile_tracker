@@ -9,23 +9,27 @@ data class LoginRequest(
     val password: String,
 )
 
+/**
+ * Реальный бэкенд POST /auth/login возвращает только access_token + token_type.
+ * Нет refresh_token, нет user, нет expires_in.
+ */
 @Serializable
 data class LoginResponse(
     @SerialName("access_token") val accessToken: String,
-    @SerialName("refresh_token") val refreshToken: String,
     @SerialName("token_type") val tokenType: String,
-    @SerialName("expires_in") val expiresIn: Long,
-    val user: UserDto,
 )
 
+/**
+ * GET /auth/me — информация о текущем пользователе.
+ * Реальный бэкенд возвращает: id, email, full_name, role, status.
+ */
 @Serializable
 data class UserDto(
     val id: String,
     val email: String,
     @SerialName("full_name") val fullName: String,
     val role: String,
-    @SerialName("scope_type") val scopeType: String,
-    @SerialName("scope_ids") val scopeIds: List<String>,
+    val status: String = "active",
 )
 
 @Serializable
