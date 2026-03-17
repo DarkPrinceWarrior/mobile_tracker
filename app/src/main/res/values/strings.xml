@@ -161,6 +161,7 @@
     <string name="issue_personnel_label">Табельный номер</string>
     <string name="issue_personnel_short">Таб. № %s</string>
     <string name="issue_name_label">Поиск по ФИО</string>
+    <string name="issue_search_employee_label">ФИО, должность или табельный номер</string>
     <string name="issue_confirm_title">Подтверждение выдачи</string>
     <string name="issue_confirm_employee">Сотрудник</string>
     <string name="issue_confirm_device">Часы</string>
@@ -188,8 +189,7 @@
     <string name="issue_assignment_queue_hint">Подходит для линейной раздачи устройств на старте смены.</string>
     <string name="issue_assignment_random_hint">Подходит, когда нет строгой очередности выдачи по стеллажу или зарядке.</string>
     <string name="issue_assignment_manual_hint">Используйте этот режим, если нужно выбрать конкретные часы по QR, серийному номеру или состоянию.</string>
-    <string name="issue_scan_nfc">Сканировать NFC-пропуск</string>
-    <string name="issue_scan_nfc_subtitle">Идентификация сотрудника по RFID/NFC вместо ручного ввода</string>
+
     <string name="issue_scan_qr">Сканировать QR часов</string>
 
     <!-- M3: Return -->
@@ -511,27 +511,7 @@
     <string name="qr_scan_fill_demo">Использовать пример</string>
     <string name="qr_scan_confirm">Продолжить со значением</string>
 
-    <!-- NFC scan -->
-    <string name="nfc_scan_title">Сканирование пропуска</string>
-    <string name="nfc_scan_subtitle_issue">Идентификация сотрудника по RFID/NFC</string>
-    <string name="nfc_scan_hero_title">Поднесите пропуск к устройству</string>
-    <string name="nfc_scan_instruction">Используйте NFC-пропуск сотрудника для быстрой идентификации. Если считывание недоступно, номер пропуска можно ввести вручную.</string>
-    <string name="nfc_scan_badge_ready">NFC активно</string>
-    <string name="nfc_scan_badge_disabled">NFC выключено</string>
-    <string name="nfc_scan_badge_unsupported">NFC недоступно</string>
-    <string name="nfc_scan_not_supported_hint">На этом устройстве нет NFC-модуля. Используйте ручной ввод номера пропуска.</string>
-    <string name="nfc_scan_disabled_hint">NFC-модуль обнаружен, но выключен в настройках устройства. При необходимости можно продолжить через ручной ввод номера пропуска.</string>
-    <string name="nfc_scan_ready">Готово к считыванию</string>
-    <string name="nfc_scan_waiting">Ожидается включение NFC</string>
-    <string name="nfc_scan_frame_hint">Поднесите RFID-пропуск к задней крышке устройства. Если считывание не сработало, используйте ручной ввод.</string>
-    <string name="nfc_scan_manual_title">Ручной ввод номера пропуска</string>
-    <string name="nfc_scan_manual_subtitle">Используйте этот вариант, если пропуск нужно ввести вручную.</string>
-    <string name="nfc_scan_manual_label">Номер пропуска</string>
-    <string name="nfc_scan_manual_placeholder">Например, A-1001</string>
-    <string name="nfc_scan_fill_demo">Использовать пример</string>
-    <string name="nfc_scan_confirm">Найти сотрудника</string>
     <string name="permissions_open_app_settings">Открыть настройки приложения</string>
-    <string name="permissions_open_nfc_settings">Включить NFC в настройках</string>
     <string name="permissions_open_bluetooth_settings">Открыть настройки Bluetooth</string>
     <string name="permissions_ble_required">Нужны BLE-разрешения</string>
     <string name="permissions_ble_required_hint">Для поиска и чтения часов приложению нужны Bluetooth-разрешения. Без них выгрузка данных не начнётся.</string>

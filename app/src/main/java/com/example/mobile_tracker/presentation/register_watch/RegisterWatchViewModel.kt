@@ -29,8 +29,9 @@ data class RegisterWatchState(
     val firmware: String? = null,
     val appVersion: String? = null,
     val searchQuery: String = "",
-    val searchResults: List<Employee> = emptyList(),
-    val isSearching: Boolean = false,
+    val allEmployees: List<Employee> = emptyList(),
+    val filteredEmployees: List<Employee> = emptyList(),
+    val isLoadingEmployees: Boolean = false,
     val selectedEmployee: Employee? = null,
     val isRegistering: Boolean = false,
     val isRegistered: Boolean = false,
@@ -66,8 +67,25 @@ class RegisterWatchViewModel(
             val ctx = shiftContextDao.get()
             if (ctx != null) {
                 siteId = ctx.siteId
+                loadEmployees()
             } else {
                 _state.update { it.copy(error = "Контекст смены не выбран") }
+            }
+        }
+    }
+
+    private fun loadEmployees() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoadingEmployees = true) }
+            employeeDao.observeBySite(siteId).collect { entities ->
+                val employees = entities.map { it.toDomain() }
+                _state.update {
+                    it.copy(
+                        allEmployees = employees,
+                        filteredEmployees = filterByQuery(employees, it.searchQuery),
+                        isLoadingEmployees = false,
+                    )
+                }
             }
         }
     }
@@ -86,22 +104,12 @@ class RegisterWatchViewModel(
     }
 
     fun updateSearchQuery(query: String) {
-        _state.update { it.copy(searchQuery = query, error = null) }
-    }
-
-    fun searchEmployees() {
-        val query = _state.value.searchQuery.trim()
-        if (query.isBlank()) return
-        viewModelScope.launch {
-            _state.update { it.copy(isSearching = true, error = null) }
-            val results = employeeDao.search(query, siteId)
-            _state.update {
-                it.copy(
-                    searchResults = results.map { e -> e.toDomain() },
-                    isSearching = false,
-                    error = if (results.isEmpty()) "По запросу ничего не найдено" else null,
-                )
-            }
+        _state.update {
+            it.copy(
+                searchQuery = query,
+                filteredEmployees = filterByQuery(it.allEmployees, query),
+                error = null,
+            )
         }
     }
 
@@ -189,6 +197,15 @@ class RegisterWatchViewModel(
         _state.update { RegisterWatchState() }
     }
 
+    private fun filterByQuery(employees: List<Employee>, query: String): List<Employee> {
+        val q = query.trim().lowercase()
+        if (q.isBlank()) return employees
+        return employees.filter { emp ->
+            emp.fullName.lowercase().contains(q) ||
+                emp.position?.lowercase()?.contains(q) == true
+        }
+    }
+
     private fun parseQrPayload(raw: String): QrData {
         return try {
             val json = Json { ignoreUnknownKeys = true }
@@ -200,7 +217,6 @@ class RegisterWatchViewModel(
                 appVersion = obj["app_version"]?.jsonPrimitive?.content,
             )
         } catch (_: Exception) {
-            // If not JSON, treat the raw value as device_id
             QrData(deviceId = raw.trim())
         }
     }

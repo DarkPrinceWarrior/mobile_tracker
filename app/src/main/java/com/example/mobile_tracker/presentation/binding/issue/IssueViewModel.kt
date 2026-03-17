@@ -44,30 +44,12 @@ class IssueViewModel(
 
     fun onIntent(intent: IssueIntent) {
         when (intent) {
-            is IssueIntent.UpdatePersonnelQuery ->
-                _state.update {
-                    it.copy(
-                        personnelQuery = intent.query,
-                        error = null,
-                    )
-                }
-            is IssueIntent.UpdateNameQuery ->
-                _state.update {
-                    it.copy(
-                        nameQuery = intent.query,
-                        error = null,
-                    )
-                }
-            IssueIntent.SearchByPersonnel ->
-                searchByPersonnel()
-            IssueIntent.SearchByName ->
-                searchByName()
-            is IssueIntent.ApplyScannedPass ->
-                applyScannedPass(intent.value)
+            is IssueIntent.UpdateSearchQuery ->
+                updateSearchQuery(intent.query)
+            is IssueIntent.UpdateDeviceSearchQuery ->
+                updateDeviceSearchQuery(intent.query)
             is IssueIntent.SelectEmployee ->
                 selectEmployee(intent.employee)
-            is IssueIntent.SetAssignmentMode ->
-                setAssignmentMode(intent.mode)
             is IssueIntent.SelectDevice ->
                 selectDevice(intent.device)
             is IssueIntent.ApplyScannedDevice ->
@@ -98,6 +80,7 @@ class IssueViewModel(
                 shiftDate = ctx.shiftDate
                 shiftType = ctx.shiftType
                 operatorId = ctx.operatorId
+                loadEmployees()
             } else {
                 _state.update {
                     it.copy(
@@ -108,88 +91,58 @@ class IssueViewModel(
         }
     }
 
-    private fun searchByPersonnel() {
-        val query = _state.value.personnelQuery.trim()
-        if (query.isBlank()) return
+    private fun loadEmployees() {
         viewModelScope.launch {
-            _state.update {
-                it.copy(isSearching = true, error = null)
-            }
-            val entity =
-                employeeDao.findByPersonnelNumber(query)
-            if (entity != null) {
+            _state.update { it.copy(isLoadingEmployees = true) }
+            employeeDao.observeBySite(siteId).collect { entities ->
+                val employees = entities.map { it.toDomain() }
                 _state.update {
                     it.copy(
-                        searchResults =
-                            listOf(entity.toDomain()),
-                        isSearching = false,
-                    )
-                }
-            } else {
-                _state.update {
-                    it.copy(
-                        searchResults = emptyList(),
-                        isSearching = false,
-                        error = "Сотрудник с табельным номером $query не найден",
+                        allEmployees = employees,
+                        filteredEmployees = filterEmployees(employees, it.searchQuery),
+                        isLoadingEmployees = false,
                     )
                 }
             }
         }
     }
 
-    private fun searchByName() {
-        val query = _state.value.nameQuery.trim()
-        if (query.isBlank()) return
-        viewModelScope.launch {
-            _state.update {
-                it.copy(isSearching = true, error = null)
-            }
-            val results =
-                employeeDao.search(query, siteId)
-            _state.update {
-                it.copy(
-                    searchResults =
-                        results.map { e -> e.toDomain() },
-                    isSearching = false,
-                    error = if (results.isEmpty()) {
-                        "По запросу ничего не найдено"
-                    } else {
-                        null
-                    },
-                )
-            }
+    private fun updateSearchQuery(query: String) {
+        _state.update {
+            it.copy(
+                searchQuery = query,
+                filteredEmployees = filterEmployees(it.allEmployees, query),
+                error = null,
+            )
         }
     }
 
-    private fun applyScannedPass(value: String) {
-        val normalized = value.trim()
-        if (normalized.isBlank()) return
-        viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    isSearching = true,
-                    error = null,
-                    personnelQuery = normalized,
-                )
-            }
-            val entity = employeeDao.findByPassNumber(normalized)
-            if (entity != null) {
-                selectEmployee(entity.toDomain())
-                _state.update {
-                    it.copy(
-                        isSearching = false,
-                        nameQuery = "",
-                        searchResults = listOf(entity.toDomain()),
-                    )
-                }
-            } else {
-                _state.update {
-                    it.copy(
-                        isSearching = false,
-                        error = "Сотрудник по номеру пропуска не найден",
-                    )
-                }
-            }
+    private fun filterEmployees(employees: List<Employee>, query: String): List<Employee> {
+        val q = query.trim().lowercase()
+        if (q.isBlank()) return employees
+        return employees.filter { emp ->
+            emp.fullName.lowercase().contains(q) ||
+                emp.personnelNumber?.lowercase()?.contains(q) == true ||
+                emp.position?.lowercase()?.contains(q) == true
+        }
+    }
+
+    private fun updateDeviceSearchQuery(query: String) {
+        _state.update {
+            it.copy(
+                deviceSearchQuery = query,
+                filteredDevices = filterDevices(it.availableDevices, query),
+            )
+        }
+    }
+
+    private fun filterDevices(devices: List<Device>, query: String): List<Device> {
+        val q = query.trim().lowercase()
+        if (q.isBlank()) return devices
+        return devices.filter { device ->
+            device.deviceId.lowercase().contains(q) ||
+                device.serialNumber?.lowercase()?.contains(q) == true ||
+                device.model?.lowercase()?.contains(q) == true
         }
     }
 
@@ -211,37 +164,13 @@ class IssueViewModel(
             val entities = deviceDao.getAvailable(siteId)
             val devices = entities.map { it.toDomain() }
             _state.update {
-                val recommendation = recommendedDevice(
-                    devices = devices,
-                    mode = it.assignmentMode,
-                    employee = it.selectedEmployee,
-                )
                 it.copy(
                     availableDevices = devices,
+                    filteredDevices = filterDevices(devices, it.deviceSearchQuery),
                     isLoading = false,
-                    selectedDevice = recommendation,
-                    error = if (devices.isEmpty()) {
-                        "Нет свободных часов"
-                    } else {
-                        null
-                    },
+                    selectedDevice = null,
                 )
             }
-        }
-    }
-
-    private fun setAssignmentMode(mode: AssignmentMode) {
-        _state.update { current ->
-            val recommendation = recommendedDevice(
-                devices = current.availableDevices,
-                mode = mode,
-                employee = current.selectedEmployee,
-            )
-            current.copy(
-                assignmentMode = mode,
-                selectedDevice = recommendation,
-                validationError = null,
-            )
         }
     }
 
@@ -249,7 +178,6 @@ class IssueViewModel(
         _state.update {
             it.copy(
                 selectedDevice = device,
-                assignmentMode = AssignmentMode.Manual,
                 validationError = null,
             )
         }
@@ -283,7 +211,6 @@ class IssueViewModel(
         if (matchedDevice != null) {
             _state.update {
                 it.copy(
-                    assignmentMode = AssignmentMode.Manual,
                     selectedDevice = matchedDevice,
                     step = IssueStep.CONFIRM,
                     validationError = null,
@@ -292,7 +219,7 @@ class IssueViewModel(
         } else {
             _state.update {
                 it.copy(
-                    validationError = "Сканированные часы не найдены среди доступных устройств",
+                    validationError = "Устройство не найдено среди доступных",
                 )
             }
         }
@@ -353,6 +280,7 @@ class IssueViewModel(
                 it.copy(
                     step = IssueStep.IDENTIFY_EMPLOYEE,
                     selectedDevice = null,
+                    deviceSearchQuery = "",
                     validationError = null,
                 )
             }
@@ -368,22 +296,5 @@ class IssueViewModel(
 
     private fun reset() {
         _state.update { IssueState() }
-    }
-
-    private fun recommendedDevice(
-        devices: List<Device>,
-        mode: AssignmentMode,
-        employee: Employee?,
-    ): Device? {
-        if (devices.isEmpty()) return null
-        return when (mode) {
-            AssignmentMode.Queue -> devices.first()
-            AssignmentMode.Random -> {
-                val seed = "${employee?.id.orEmpty()}|$shiftDate|$siteId".hashCode().toLong()
-                val index = kotlin.math.abs(seed % devices.size).toInt()
-                devices[index]
-            }
-            AssignmentMode.Manual -> devices.firstOrNull()
-        }
     }
 }

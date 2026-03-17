@@ -8,10 +8,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
@@ -42,6 +45,7 @@ fun MTTopStatusBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.xs)
                 .border(
                     width = 1.dp,
@@ -81,6 +85,7 @@ fun MTCompactTopBar(
     title: String,
     subtitle: String? = null,
     modifier: Modifier = Modifier,
+    applyStatusBarInsets: Boolean = true,
     navigationIcon: (@Composable () -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
@@ -91,6 +96,13 @@ fun MTCompactTopBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(
+                    if (applyStatusBarInsets) {
+                        Modifier.windowInsetsPadding(WindowInsets.statusBars)
+                    } else {
+                        Modifier
+                    },
+                )
                 .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {

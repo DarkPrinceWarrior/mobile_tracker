@@ -9,50 +9,34 @@ enum class IssueStep {
     CONFIRM,
 }
 
-enum class AssignmentMode {
-    Queue,
-    Random,
-    Manual,
-}
-
 data class IssueState(
     val step: IssueStep = IssueStep.IDENTIFY_EMPLOYEE,
-    val personnelQuery: String = "",
-    val nameQuery: String = "",
-    val searchResults: List<Employee> = emptyList(),
+    val searchQuery: String = "",
+    val allEmployees: List<Employee> = emptyList(),
+    val filteredEmployees: List<Employee> = emptyList(),
+    val isLoadingEmployees: Boolean = false,
     val selectedEmployee: Employee? = null,
-    val assignmentMode: AssignmentMode = AssignmentMode.Queue,
+    val deviceSearchQuery: String = "",
     val availableDevices: List<Device> = emptyList(),
+    val filteredDevices: List<Device> = emptyList(),
     val selectedDevice: Device? = null,
     val isLoading: Boolean = false,
     val isIssuing: Boolean = false,
     val error: String? = null,
     val validationError: String? = null,
-    val isSearching: Boolean = false,
 )
 
 sealed interface IssueIntent {
-    data class UpdatePersonnelQuery(
+    data class UpdateSearchQuery(
         val query: String,
     ) : IssueIntent
 
-    data class UpdateNameQuery(
+    data class UpdateDeviceSearchQuery(
         val query: String,
-    ) : IssueIntent
-
-    data object SearchByPersonnel : IssueIntent
-    data object SearchByName : IssueIntent
-
-    data class ApplyScannedPass(
-        val value: String,
     ) : IssueIntent
 
     data class SelectEmployee(
         val employee: Employee,
-    ) : IssueIntent
-
-    data class SetAssignmentMode(
-        val mode: AssignmentMode,
     ) : IssueIntent
 
     data class SelectDevice(

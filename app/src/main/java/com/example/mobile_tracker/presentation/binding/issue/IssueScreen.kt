@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,18 +17,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Button
@@ -43,7 +37,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,8 +48,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -80,9 +71,7 @@ fun IssueScreen(
     onBack: (() -> Unit)? = null,
     onCompleted: () -> Unit = {},
     scannedDeviceId: String? = null,
-    scannedPassNumber: String? = null,
     onOpenQrScan: () -> Unit = {},
-    onOpenNfcScan: () -> Unit = {},
     viewModel: IssueViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -102,14 +91,8 @@ fun IssueScreen(
         }
     }
 
-    LaunchedEffect(scannedPassNumber, state.step) {
-        if (!scannedPassNumber.isNullOrBlank() && state.step == IssueStep.IDENTIFY_EMPLOYEE) {
-            viewModel.onIntent(IssueIntent.ApplyScannedPass(scannedPassNumber))
-        }
-    }
-
     AppScreenScaffold(
-        snackbarMessage = state.error ?: state.validationError,
+        snackbarMessage = state.validationError,
         topBar = {
             MTCompactTopBar(
                 title = stringResource(R.string.issue_title),
@@ -154,12 +137,10 @@ fun IssueScreen(
                         IssueStep.IDENTIFY_EMPLOYEE -> IdentifyEmployeeContent(
                             state = state,
                             onIntent = viewModel::onIntent,
-                            onOpenNfcScan = onOpenNfcScan,
                         )
                         IssueStep.SELECT_DEVICE -> SelectDeviceContent(
                             state = state,
                             onIntent = viewModel::onIntent,
-                            onOpenQrScan = onOpenQrScan,
                         )
                         IssueStep.CONFIRM -> ConfirmContent(
                             state = state,
@@ -286,153 +267,62 @@ private fun IssueContextCard(state: IssueState) {
 private fun IdentifyEmployeeContent(
     state: IssueState,
     onIntent: (IssueIntent) -> Unit,
-    onOpenNfcScan: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        SearchBlock(
-            label = stringResource(R.string.issue_personnel_label),
-            value = state.personnelQuery,
-            onValueChange = { onIntent(IssueIntent.UpdatePersonnelQuery(it)) },
-            onSearch = { onIntent(IssueIntent.SearchByPersonnel) },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Search,
-            ),
-            keyboardActions = KeyboardActions(
-                onSearch = { onIntent(IssueIntent.SearchByPersonnel) },
-            ),
-        )
-        SearchBlock(
-            label = stringResource(R.string.issue_name_label),
-            value = state.nameQuery,
-            onValueChange = { onIntent(IssueIntent.UpdateNameQuery(it)) },
-            onSearch = { onIntent(IssueIntent.SearchByName) },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(
-                onSearch = { onIntent(IssueIntent.SearchByName) },
-            ),
-        )
-
-        Surface(
+        OutlinedTextField(
+            value = state.searchQuery,
+            onValueChange = { onIntent(IssueIntent.UpdateSearchQuery(it)) },
             modifier = Modifier.fillMaxWidth(),
-            onClick = onOpenNfcScan,
-            shape = RoundedCornerShape(AppRadius.lg),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            singleLine = true,
+            label = {
+                Text(text = stringResource(R.string.issue_search_employee_label))
+            },
+            leadingIcon = {
                 Icon(
-                    imageVector = Icons.Default.Badge,
+                    imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.issue_scan_nfc),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(R.string.issue_scan_nfc_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+            },
+            shape = RoundedCornerShape(AppRadius.lg),
+        )
 
-        if (state.isSearching) {
-            CircularProgressIndicator(
+        if (state.isLoadingEmployees) {
+            Box(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
+                    .fillMaxWidth()
                     .padding(vertical = AppSpacing.sm),
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-        }
-        if (state.error != null) {
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+        } else if (state.error != null) {
             StateCard(message = state.error, isError = true)
+        } else if (state.filteredEmployees.isEmpty()) {
+            StateCard(
+                message = if (state.searchQuery.isNotBlank()) {
+                    "По запросу «${state.searchQuery}» ничего не найдено"
+                } else {
+                    "Список сотрудников пуст"
+                },
+                isError = false,
+            )
         }
 
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            items(state.searchResults, key = { it.id }) { employee ->
+            items(state.filteredEmployees, key = { it.id }) { employee ->
                 IssueEmployeeResultCard(
                     employee = employee,
                     onClick = { onIntent(IssueIntent.SelectEmployee(employee)) },
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SearchBlock(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    onSearch: () -> Unit,
-    keyboardOptions: KeyboardOptions,
-    keyboardActions: KeyboardActions,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                keyboardOptions = keyboardOptions,
-                keyboardActions = keyboardActions,
-                trailingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                shape = RoundedCornerShape(AppRadius.lg),
-            )
-            Surface(
-                modifier = Modifier.clickable(onClick = onSearch),
-                shape = RoundedCornerShape(AppRadius.lg),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.tertiary,
-                    )
-                    Text(
-                        text = stringResource(R.string.action_search),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
             }
         }
     }
@@ -514,7 +404,6 @@ private fun IssueEmployeeResultCard(
 private fun SelectDeviceContent(
     state: IssueState,
     onIntent: (IssueIntent) -> Unit,
-    onOpenQrScan: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -530,62 +419,61 @@ private fun SelectDeviceContent(
             )
         }
 
-        if (state.error != null) {
-            StateCard(message = state.error, isError = true)
-        }
         if (state.validationError != null) {
             StateCard(message = state.validationError, isError = true)
         }
 
-        AssignmentModeCard(
-            selectedMode = state.assignmentMode,
-            selectedDevice = state.selectedDevice,
-            onSelectMode = { onIntent(IssueIntent.SetAssignmentMode(it)) },
+        OutlinedTextField(
+            value = state.deviceSearchQuery,
+            onValueChange = { onIntent(IssueIntent.UpdateDeviceSearchQuery(it)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = {
+                Text(text = stringResource(R.string.devices_search_hint))
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            shape = RoundedCornerShape(AppRadius.lg),
         )
 
-        Button(
-            onClick = onOpenQrScan,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(AppRadius.xl),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ),
-        ) {
-            Icon(
-                imageVector = Icons.Default.QrCodeScanner,
-                contentDescription = null,
+        if (state.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = AppSpacing.sm),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+        } else if (state.filteredDevices.isEmpty()) {
+            StateCard(
+                message = if (state.deviceSearchQuery.isNotBlank()) {
+                    "По запросу «${state.deviceSearchQuery}» ничего не найдено"
+                } else {
+                    "Нет доступных часов"
+                },
+                isError = false,
             )
-            Spacer(modifier = Modifier.width(AppSpacing.xs))
-            Text(text = stringResource(R.string.issue_scan_qr))
         }
 
-        if (state.assignmentMode == AssignmentMode.Manual) {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                items(state.availableDevices, key = { it.deviceId }) { device ->
-                    IssueDeviceResultCard(
-                        device = device,
-                        isSelected = state.selectedDevice?.deviceId == device.deviceId,
-                        onClick = { onIntent(IssueIntent.SelectDevice(device)) },
-                    )
-                }
-            }
-        } else {
-            state.selectedDevice?.let { device ->
-                RecommendedDeviceCard(
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            items(state.filteredDevices, key = { it.deviceId }) { device ->
+                IssueDeviceResultCard(
                     device = device,
-                    assignmentMode = state.assignmentMode,
+                    isSelected = state.selectedDevice?.deviceId == device.deviceId,
+                    onClick = { onIntent(IssueIntent.SelectDevice(device)) },
                 )
-            } ?: StateCard(
-                message = stringResource(R.string.issue_no_devices_site),
-                isError = true,
-            )
-            Spacer(modifier = Modifier.weight(1f))
+            }
         }
 
         Button(
@@ -607,153 +495,8 @@ private fun SelectDeviceContent(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text(
-                    text = if (state.assignmentMode == AssignmentMode.Manual) {
-                        stringResource(R.string.issue_next)
-                    } else {
-                        stringResource(R.string.issue_apply_assignment)
-                    },
-                )
+                Text(text = stringResource(R.string.issue_next))
             }
-        }
-    }
-}
-
-@Composable
-private fun AssignmentModeCard(
-    selectedMode: AssignmentMode,
-    selectedDevice: Device?,
-    onSelectMode: (AssignmentMode) -> Unit,
-) {
-    MTCard {
-        Text(
-            text = stringResource(R.string.issue_assignment_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(R.string.issue_assignment_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            AssignmentMode.entries.forEach { mode ->
-                AssignmentModeChip(
-                    mode = mode,
-                    selected = selectedMode == mode,
-                    onClick = { onSelectMode(mode) },
-                )
-            }
-        }
-        if (selectedMode != AssignmentMode.Manual && selectedDevice != null) {
-            Surface(
-                shape = RoundedCornerShape(AppRadius.lg),
-                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.42f),
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = assignmentModeDescription(selectedMode),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
-                    Text(
-                        text = selectedDevice.deviceId,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = selectedDevice.model ?: selectedDevice.serialNumber.orEmpty(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AssignmentModeChip(
-    mode: AssignmentMode,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(AppRadius.pill),
-        color = if (selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surfaceContainer
-        },
-    ) {
-        Text(
-            text = assignmentModeLabel(mode),
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-            style = MaterialTheme.typography.labelLarge,
-            color = if (selected) {
-                MaterialTheme.colorScheme.onPrimary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-        )
-    }
-}
-
-@Composable
-private fun RecommendedDeviceCard(
-    device: Device,
-    assignmentMode: AssignmentMode,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppRadius.lg),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-    ) {
-        Column(
-            modifier = Modifier.padding(AppLayout.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            MTStatusBadge(
-                label = assignmentModeLabel(assignmentMode),
-                tone = if (assignmentMode == AssignmentMode.Random) {
-                    MTStatusTone.Warning
-                } else {
-                    MTStatusTone.Success
-                },
-            )
-            Text(
-                text = device.deviceId,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (!device.model.isNullOrBlank()) {
-                Text(
-                    text = device.model,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            if (!device.serialNumber.isNullOrBlank()) {
-                Text(
-                    text = stringResource(R.string.devices_serial, device.serialNumber),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Text(
-                text = assignmentModeHint(assignmentMode),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
@@ -988,27 +731,6 @@ private fun stepShortTitle(step: IssueStep): String = when (step) {
     IssueStep.IDENTIFY_EMPLOYEE -> stringResource(R.string.issue_step_employee_short)
     IssueStep.SELECT_DEVICE -> stringResource(R.string.issue_step_device_short)
     IssueStep.CONFIRM -> stringResource(R.string.issue_step_confirm_short)
-}
-
-@Composable
-private fun assignmentModeLabel(mode: AssignmentMode): String = when (mode) {
-    AssignmentMode.Queue -> stringResource(R.string.issue_assignment_queue)
-    AssignmentMode.Random -> stringResource(R.string.issue_assignment_random)
-    AssignmentMode.Manual -> stringResource(R.string.issue_assignment_manual)
-}
-
-@Composable
-private fun assignmentModeDescription(mode: AssignmentMode): String = when (mode) {
-    AssignmentMode.Queue -> stringResource(R.string.issue_assignment_queue_desc)
-    AssignmentMode.Random -> stringResource(R.string.issue_assignment_random_desc)
-    AssignmentMode.Manual -> stringResource(R.string.issue_assignment_manual_desc)
-}
-
-@Composable
-private fun assignmentModeHint(mode: AssignmentMode): String = when (mode) {
-    AssignmentMode.Queue -> stringResource(R.string.issue_assignment_queue_hint)
-    AssignmentMode.Random -> stringResource(R.string.issue_assignment_random_hint)
-    AssignmentMode.Manual -> stringResource(R.string.issue_assignment_manual_hint)
 }
 
 @Composable

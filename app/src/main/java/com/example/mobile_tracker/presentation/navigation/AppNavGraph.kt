@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import com.example.mobile_tracker.presentation.alerts.AlertsScreen
 import com.example.mobile_tracker.presentation.binding.issue.IssueScreen
 import com.example.mobile_tracker.presentation.binding.return_device.ReturnScreen
@@ -16,7 +17,7 @@ import com.example.mobile_tracker.presentation.login.LoginScreen
 import com.example.mobile_tracker.presentation.journal.JournalScreen
 import com.example.mobile_tracker.presentation.maps.MapsScreen
 import com.example.mobile_tracker.presentation.monitoring.MonitoringScreen
-import com.example.mobile_tracker.presentation.nfc_scan.NfcScanScreen
+
 import com.example.mobile_tracker.presentation.qr_scan.QrScanScreen
 import com.example.mobile_tracker.presentation.register_watch.RegisterWatchScreen
 import com.example.mobile_tracker.presentation.settings.SettingsScreen
@@ -163,16 +164,17 @@ fun AppNavGraph(
         }
 
         composable<Route.WorkerDetail> { backStackEntry ->
+            val workerRoute = backStackEntry.toRoute<Route.WorkerDetail>()
             WorkerDetailScreen(
-                employeeId = backStackEntry.arguments?.getString("employeeId").orEmpty(),
+                employeeId = workerRoute.employeeId,
                 onBack = { navController.popBackStack() },
             )
         }
 
         composable<Route.Issue> { backStackEntry ->
+            val issueRoute = backStackEntry.toRoute<Route.Issue>()
             IssueScreen(
-                scannedDeviceId = backStackEntry.arguments?.getString("scannedDeviceId"),
-                scannedPassNumber = backStackEntry.arguments?.getString("scannedPassNumber"),
+                scannedDeviceId = issueRoute.scannedDeviceId,
                 onBack = { navController.popBackStack() },
                 onCompleted = { navController.popBackStack() },
                 onOpenQrScan = {
@@ -180,17 +182,13 @@ fun AppNavGraph(
                         Route.QrScan(mode = QrScanMode.IssueDevice),
                     )
                 },
-                onOpenNfcScan = {
-                    navController.navigate(
-                        Route.NfcScan(mode = NfcScanMode.IdentifyEmployee),
-                    )
-                },
             )
         }
 
         composable<Route.Return> { backStackEntry ->
+            val returnRoute = backStackEntry.toRoute<Route.Return>()
             ReturnScreen(
-                scannedDeviceId = backStackEntry.arguments?.getString("scannedDeviceId"),
+                scannedDeviceId = returnRoute.scannedDeviceId,
                 onBack = { navController.popBackStack() },
                 onCompleted = { navController.popBackStack() },
                 onOpenQrScan = {
@@ -202,27 +200,22 @@ fun AppNavGraph(
         }
 
         composable<Route.Upload> { backStackEntry ->
-            val route = backStackEntry.arguments
+            val uploadRoute = backStackEntry.toRoute<Route.Upload>()
             UploadScreen(
-                deviceId = route?.getString("deviceId")
-                    ?: "",
-                employeeId = route?.getString(
-                    "employeeId",
-                ),
-                employeeName = route?.getString(
-                    "employeeName",
-                ),
-                bindingId = route?.getLong("bindingId"),
+                deviceId = uploadRoute.deviceId,
+                employeeId = uploadRoute.employeeId,
+                employeeName = uploadRoute.employeeName,
+                bindingId = uploadRoute.bindingId,
                 onBack = { navController.popBackStack() },
                 onCompleted = { navController.popBackStack() },
                 onOpenQrScan = {
                     navController.navigate(
                         Route.QrScan(
                             mode = QrScanMode.UploadDevice,
-                            currentDeviceId = route?.getString("deviceId").orEmpty(),
-                            employeeId = route?.getString("employeeId"),
-                            employeeName = route?.getString("employeeName"),
-                            bindingId = route?.getLong("bindingId"),
+                            currentDeviceId = uploadRoute.deviceId,
+                            employeeId = uploadRoute.employeeId,
+                            employeeName = uploadRoute.employeeName,
+                            bindingId = uploadRoute.bindingId,
                         ),
                     )
                 },
@@ -236,14 +229,12 @@ fun AppNavGraph(
         }
 
         composable<Route.QrScan> { backStackEntry ->
-            val route = backStackEntry.arguments
-            val mode = route?.getString("mode")
-                ?.let(QrScanMode::valueOf)
-                ?: QrScanMode.IssueDevice
-            val currentDeviceId = route?.getString("currentDeviceId").orEmpty()
-            val employeeId = route?.getString("employeeId")
-            val employeeName = route?.getString("employeeName")
-            val bindingId = route?.getLong("bindingId")
+            val qrRoute = backStackEntry.toRoute<Route.QrScan>()
+            val mode = qrRoute.mode
+            val currentDeviceId = qrRoute.currentDeviceId
+            val employeeId = qrRoute.employeeId
+            val employeeName = qrRoute.employeeName
+            val bindingId = qrRoute.bindingId
 
             QrScanScreen(
                 mode = mode,
@@ -300,28 +291,7 @@ fun AppNavGraph(
             )
         }
 
-        composable<Route.NfcScan> { backStackEntry ->
-            val route = backStackEntry.arguments
-            val mode = route?.getString("mode")
-                ?.let(NfcScanMode::valueOf)
-                ?: NfcScanMode.IdentifyEmployee
 
-            NfcScanScreen(
-                mode = mode,
-                onBack = { navController.popBackStack() },
-                onConfirmResult = { scannedValue ->
-                    when (mode) {
-                        NfcScanMode.IdentifyEmployee -> {
-                            navController.navigate(
-                                Route.Issue(scannedPassNumber = scannedValue),
-                            ) {
-                                popUpTo(Route.Issue()) { inclusive = true }
-                            }
-                        }
-                    }
-                },
-            )
-        }
 
         composable<Route.Alerts> {
             AlertsScreen(
@@ -368,9 +338,9 @@ fun AppNavGraph(
         }
 
         composable<Route.RegisterWatch> { backStackEntry ->
-            val scannedValue = backStackEntry.arguments?.getString("scannedValue").orEmpty()
+            val registerRoute = backStackEntry.toRoute<Route.RegisterWatch>()
             RegisterWatchScreen(
-                scannedValue = scannedValue,
+                scannedValue = registerRoute.scannedValue,
                 onBack = { navController.popBackStack() },
                 onCompleted = {
                     navController.navigate(Route.Home) {

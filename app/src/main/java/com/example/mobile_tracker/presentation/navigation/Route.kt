@@ -10,10 +10,7 @@ enum class QrScanMode {
     RegisterWatch,
 }
 
-@Serializable
-enum class NfcScanMode {
-    IdentifyEmployee,
-}
+
 
 @Serializable
 sealed interface Route {
@@ -47,7 +44,6 @@ sealed interface Route {
     @Serializable
     data class Issue(
         val scannedDeviceId: String? = null,
-        val scannedPassNumber: String? = null,
     ) : Route
 
     @Serializable
@@ -75,10 +71,7 @@ sealed interface Route {
         val bindingId: Long? = null,
     ) : Route
 
-    @Serializable
-    data class NfcScan(
-        val mode: NfcScanMode,
-    ) : Route
+
 
     @Serializable
     data object Alerts : Route

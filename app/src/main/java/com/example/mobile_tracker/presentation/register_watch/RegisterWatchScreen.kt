@@ -22,8 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -41,7 +39,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,10 +47,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,6 +78,7 @@ fun RegisterWatchScreen(
     viewModel: RegisterWatchViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(scannedValue) {
         if (scannedValue.isNotBlank()) {
@@ -140,10 +138,10 @@ fun RegisterWatchScreen(
                 RegistrationContent(
                     state = state,
                     viewModel = viewModel,
+                    onClearFocus = { focusManager.clearFocus() },
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
-                        .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
+                        .padding(padding),
                 )
             }
         }
@@ -154,30 +152,101 @@ fun RegisterWatchScreen(
 private fun RegistrationContent(
     state: RegisterWatchState,
     viewModel: RegisterWatchViewModel,
+    onClearFocus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
     ) {
-        // Device info card
-        DeviceInfoCard(state = state)
+        // Fixed header area — device info + search
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppLayout.screenPadding)
+                .padding(top = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            // Device info card
+            DeviceInfoCard(state = state)
 
-        if (state.selectedEmployee != null) {
-            // Confirmation step
-            ConfirmRegistrationContent(
-                state = state,
-                onClearEmployee = { viewModel.clearSelectedEmployee() },
-                onRegister = { viewModel.registerAndBind() },
-            )
-        } else {
-            // Employee search step
-            EmployeeSearchContent(
-                state = state,
-                onQueryChange = { viewModel.updateSearchQuery(it) },
-                onSearch = { viewModel.searchEmployees() },
-                onSelectEmployee = { viewModel.selectEmployee(it) },
-            )
+            if (state.selectedEmployee != null) {
+                // Confirmation step — full scrollable
+                ConfirmRegistrationContent(
+                    state = state,
+                    onClearEmployee = { viewModel.clearSelectedEmployee() },
+                    onRegister = {
+                        onClearFocus()
+                        viewModel.registerAndBind()
+                    },
+                )
+            } else {
+                // Search bar
+                OutlinedTextField(
+                    value = state.searchQuery,
+                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = {
+                        Text(text = stringResource(R.string.register_watch_search_label))
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    shape = RoundedCornerShape(AppRadius.lg),
+                )
+            }
+        }
+
+        if (state.selectedEmployee == null) {
+            // Employee list
+            if (state.isLoadingEmployees) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = AppSpacing.lg),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+            } else if (state.filteredEmployees.isEmpty()) {
+                StateCard(
+                    message = if (state.searchQuery.isNotBlank()) {
+                        "По запросу «${state.searchQuery}» ничего не найдено"
+                    } else {
+                        "Список сотрудников пуст"
+                    },
+                    isError = false,
+                    modifier = Modifier.padding(
+                        horizontal = AppLayout.screenPadding,
+                        vertical = AppSpacing.sm,
+                    ),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(top = AppSpacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                ) {
+                    items(state.filteredEmployees, key = { it.id }) { employee ->
+                        EmployeeResultCard(
+                            employee = employee,
+                            onClick = {
+                                onClearFocus()
+                                viewModel.selectEmployee(employee)
+                            },
+                            modifier = Modifier.padding(horizontal = AppLayout.screenPadding),
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -188,162 +257,55 @@ private fun DeviceInfoCard(state: RegisterWatchState) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
             ) {
-                Text(
-                    text = stringResource(R.string.register_watch_device_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = state.deviceId.ifBlank {
-                        stringResource(R.string.register_watch_no_device)
-                    },
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Watch,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = state.deviceId.ifBlank {
+                            stringResource(R.string.register_watch_no_device)
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    val details = listOfNotNull(state.model, state.firmware)
+                        .joinToString(" · ")
+                    if (details.isNotBlank()) {
+                        Text(
+                            text = details,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
             MTStatusBadge(
                 label = stringResource(R.string.register_watch_badge_new),
                 tone = MTStatusTone.Warning,
             )
-        }
-        if (state.model != null || state.firmware != null) {
-            Spacer(modifier = Modifier.height(AppSpacing.xxs))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
-            ) {
-                state.model?.let {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.register_watch_model),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-                state.firmware?.let {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.register_watch_firmware),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmployeeSearchContent(
-    state: RegisterWatchState,
-    onQueryChange: (String) -> Unit,
-    onSearch: () -> Unit,
-    onSelectEmployee: (Employee) -> Unit,
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-    ) {
-        Text(
-            text = stringResource(R.string.register_watch_search_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(R.string.register_watch_search_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = state.searchQuery,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                label = {
-                    Text(text = stringResource(R.string.register_watch_search_label))
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-                trailingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                shape = RoundedCornerShape(AppRadius.lg),
-            )
-            Surface(
-                modifier = Modifier.clickable(onClick = onSearch),
-                shape = RoundedCornerShape(AppRadius.lg),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.tertiary,
-                    )
-                    Text(
-                        text = stringResource(R.string.action_search),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
-        }
-
-        if (state.isSearching) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(vertical = AppSpacing.sm),
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-        }
-
-        if (state.error != null && !state.isSearching) {
-            StateCard(message = state.error, isError = true)
-        }
-
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            items(state.searchResults, key = { it.id }) { employee ->
-                EmployeeResultCard(
-                    employee = employee,
-                    onClick = { onSelectEmployee(employee) },
-                )
-            }
         }
     }
 }
@@ -352,9 +314,10 @@ private fun EmployeeSearchContent(
 private fun EmployeeResultCard(
     employee: Employee,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(
                 onClickLabel = stringResource(R.string.action_select_employee),
@@ -375,7 +338,7 @@ private fun EmployeeResultCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(42.dp)
                     .clip(CircleShape)
                     .background(
                         MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
@@ -386,6 +349,7 @@ private fun EmployeeResultCard(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(20.dp),
                 )
             }
             Column(
@@ -394,16 +358,10 @@ private fun EmployeeResultCard(
             ) {
                 Text(
                     text = employee.fullName,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
                 )
-                employee.personnelNumber?.let {
-                    Text(
-                        text = stringResource(R.string.issue_personnel_short, it),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
                 val secondaryLine = listOfNotNull(
                     employee.position,
                     employee.brigadeName,
@@ -420,6 +378,7 @@ private fun EmployeeResultCard(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -432,6 +391,9 @@ private fun ConfirmRegistrationContent(
     onRegister: () -> Unit,
 ) {
     Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
     ) {
         MTCard {
@@ -487,13 +449,6 @@ private fun ConfirmRegistrationContent(
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
-                        emp.personnelNumber?.let {
-                            Text(
-                                text = stringResource(R.string.issue_personnel_short, it),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
                         emp.position?.let {
                             Text(
                                 text = it,
@@ -580,6 +535,8 @@ private fun ConfirmRegistrationContent(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(AppSpacing.sm))
     }
 }
 

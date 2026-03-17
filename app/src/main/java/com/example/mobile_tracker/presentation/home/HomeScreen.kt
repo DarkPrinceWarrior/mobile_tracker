@@ -179,6 +179,7 @@ fun HomeScreen(
                 MTCompactTopBar(
                     title = headerTitle,
                     subtitle = headerSubtitle,
+                    applyStatusBarInsets = false,
                     actions = {
                         MTTopBarAction(onClick = onLogout) {
                             Icon(
