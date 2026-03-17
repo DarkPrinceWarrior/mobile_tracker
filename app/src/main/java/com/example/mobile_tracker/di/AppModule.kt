@@ -75,10 +75,10 @@ val appModule = module {
     viewModel {
         EmployeeSearchViewModel(get(), get(), get(), get(), get())
     }
-    viewModel { MonitoringViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { WorkersViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { MapsViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { WorkerDetailViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { MonitoringViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { WorkersViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { MapsViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { WorkerDetailViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel {
         IssueViewModel(get(), get(), get(), get())
     }
@@ -89,7 +89,7 @@ val appModule = module {
         UploadViewModel(get(), get(), get(), get(), get())
     }
     viewModel { JournalViewModel(get(), get()) }
-    viewModel { AlertsViewModel(get(), get(), get(), get()) }
+    viewModel { AlertsViewModel(get(), get(), get(), get(), get()) }
     viewModel { SummaryViewModel(get(), get(), get()) }
     viewModel {
         SettingsViewModel(

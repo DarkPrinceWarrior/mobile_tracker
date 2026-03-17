@@ -10,6 +10,7 @@ data class CreateBindingRequest(
     @SerialName("site_id") val siteId: String,
     @SerialName("shift_date") val shiftDate: String,
     @SerialName("shift_type") val shiftType: String = "day",
+    @SerialName("bound_by") val boundBy: String? = null,
 )
 
 @Serializable
@@ -24,18 +25,23 @@ data class BindingResponse(
     @SerialName("shift_type")
     val shiftType: String = "day",
     @SerialName("bound_at") val boundAt: String? = null,
+    @SerialName("bound_by") val boundBy: String? = null,
     @SerialName("unbound_at")
     val unboundAt: String? = null,
+    @SerialName("unbound_by")
+    val unboundBy: String? = null,
     val status: String = "active",
     @SerialName("data_uploaded")
     val dataUploaded: Boolean = false,
     @SerialName("created_at")
     val createdAt: String? = null,
+    @SerialName("updated_at")
+    val updatedAt: String? = null,
 )
 
 @Serializable
 data class CloseBindingRequest(
-    @SerialName("unbound_at") val unboundAt: String? = null,
+    @SerialName("unbound_by") val unboundBy: String? = null,
 )
 
 @Serializable

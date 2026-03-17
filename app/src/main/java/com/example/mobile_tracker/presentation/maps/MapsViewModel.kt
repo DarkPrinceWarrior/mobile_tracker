@@ -8,12 +8,16 @@ import com.example.mobile_tracker.data.local.db.dao.EmployeeDao
 import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.dao.PacketQueueDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
+import com.example.mobile_tracker.data.remote.api.ZonesApi
+import com.example.mobile_tracker.data.remote.dto.ZoneDto
 import com.example.mobile_tracker.presentation.monitoring.MonitoringMapMode
+import com.example.mobile_tracker.presentation.monitoring.MonitoringZoneDefinition
 import com.example.mobile_tracker.presentation.monitoring.MonitoringZoneSummary
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringSnapshot
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringStatus
 import com.example.mobile_tracker.presentation.monitoring.buildWorkerMonitoringSnapshots
 import com.example.mobile_tracker.presentation.monitoring.buildZoneSummaries
+import com.example.mobile_tracker.presentation.monitoring.monitoringZones
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +26,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 data class MapsState(
     val siteName: String = "",
@@ -31,6 +36,8 @@ data class MapsState(
     val isLoading: Boolean = true,
     val workers: List<WorkerMonitoringSnapshot> = emptyList(),
     val zoneSummaries: List<MonitoringZoneSummary> = emptyList(),
+    /** Реальные зоны с бэкенда (null = используются захардкоженные) */
+    val backendZones: List<ZoneDto> = emptyList(),
     val error: String? = null,
 ) {
     val activeCount: Int
@@ -61,10 +68,14 @@ class MapsViewModel(
     private val bindingDao: BindingDao,
     private val operationLogDao: OperationLogDao,
     private val packetQueueDao: PacketQueueDao,
+    private val zonesApi: ZonesApi,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MapsState())
     val state: StateFlow<MapsState> = _state.asStateFlow()
+
+    /** Реальные зоны с бэкенда */
+    private val realZones = MutableStateFlow<List<ZoneDto>>(emptyList())
 
     private var observeJob: Job? = null
 
@@ -99,11 +110,28 @@ class MapsViewModel(
                 )
             }
 
+            // Загружаем реальные зоны с бэкенда
+            fetchBackendZones(context.siteId)
+
             observeMonitoringData(
                 siteId = context.siteId,
                 shiftDate = context.shiftDate,
                 shiftType = context.shiftType,
             )
+        }
+    }
+
+    private fun fetchBackendZones(siteId: String) {
+        viewModelScope.launch {
+            try {
+                val response = zonesApi.getSiteZones(siteId = siteId, pageSize = 200)
+                realZones.value = response.items
+                _state.update { it.copy(backendZones = response.items) }
+                Timber.d("Loaded ${response.items.size} zones from backend for site $siteId")
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load zones from backend, using hardcoded zones")
+                // fallback — используем захардкоженные зоны
+            }
         }
     }
 
@@ -120,7 +148,21 @@ class MapsViewModel(
                 bindingDao.observeByShift(siteId, shiftDate),
                 operationLogDao.observeByShift(siteId, shiftDate),
                 packetQueueDao.observeUnsent(siteId),
-            ) { employees, devices, bindings, logs, packets ->
+                realZones,
+            ) { values ->
+                @Suppress("UNCHECKED_CAST")
+                val employees = values[0] as List<com.example.mobile_tracker.data.local.db.entity.EmployeeEntity>
+                @Suppress("UNCHECKED_CAST")
+                val devices = values[1] as List<com.example.mobile_tracker.data.local.db.entity.DeviceEntity>
+                @Suppress("UNCHECKED_CAST")
+                val bindings = values[2] as List<com.example.mobile_tracker.data.local.db.entity.BindingEntity>
+                @Suppress("UNCHECKED_CAST")
+                val logs = values[3] as List<com.example.mobile_tracker.data.local.db.entity.OperationLogEntity>
+                @Suppress("UNCHECKED_CAST")
+                val packets = values[4] as List<com.example.mobile_tracker.data.local.db.entity.PacketQueueEntity>
+                @Suppress("UNCHECKED_CAST")
+                val zones = values[5] as List<ZoneDto>
+
                 val workers = buildWorkerMonitoringSnapshots(
                     employees = employees,
                     devices = devices,
@@ -130,7 +172,15 @@ class MapsViewModel(
                     shiftDate = shiftDate,
                     shiftType = shiftType,
                 )
-                workers to buildZoneSummaries(workers)
+
+                // Строим zoneSummaries с учётом реальных зон
+                val zoneSummaries = if (zones.isNotEmpty()) {
+                    buildZoneSummariesFromBackend(workers, zones)
+                } else {
+                    buildZoneSummaries(workers)
+                }
+
+                workers to zoneSummaries
             }.collect { (workers, zoneSummaries) ->
                 _state.update {
                     it.copy(
@@ -142,5 +192,47 @@ class MapsViewModel(
                 }
             }
         }
+    }
+}
+
+/**
+ * Строит сводки по зонам из реальных данных бэкенда.
+ * Каждая ZoneDto преобразуется в MonitoringZoneDefinition
+ * с равномерным распределением по сетке.
+ */
+private fun buildZoneSummariesFromBackend(
+    workers: List<WorkerMonitoringSnapshot>,
+    zones: List<ZoneDto>,
+): List<MonitoringZoneSummary> {
+    val workersByZone = workers
+        .filter { it.zoneId != null && it.status != WorkerMonitoringStatus.Offline }
+        .groupBy { it.zoneId.orEmpty() }
+
+    // Раскладываем зоны в сетку (макс. 3 столбца)
+    val cols = 3.coerceAtMost(zones.size)
+    val rows = (zones.size + cols - 1) / cols
+
+    return zones.mapIndexed { index, zone ->
+        val col = index % cols
+        val row = index / cols
+        val widthRatio = 1f / cols
+        val heightRatio = 1f / rows
+
+        val zoneWorkers = workersByZone[zone.name].orEmpty() +
+            workersByZone[zone.uuid].orEmpty()
+        val uniqueWorkers = zoneWorkers.distinctBy { it.employeeId }
+
+        MonitoringZoneSummary(
+            zone = MonitoringZoneDefinition(
+                id = zone.name,
+                xRatio = col * widthRatio + 0.02f,
+                yRatio = row * heightRatio + 0.02f,
+                widthRatio = widthRatio - 0.04f,
+                heightRatio = heightRatio - 0.04f,
+            ),
+            totalWorkers = uniqueWorkers.size,
+            activeWorkers = uniqueWorkers.count { it.status == WorkerMonitoringStatus.Active },
+            idleWorkers = uniqueWorkers.count { it.status == WorkerMonitoringStatus.Idle },
+        )
     }
 }

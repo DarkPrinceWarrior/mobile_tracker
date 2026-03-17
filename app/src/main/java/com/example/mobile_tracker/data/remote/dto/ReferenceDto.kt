@@ -54,6 +54,15 @@ data class DeviceDto(
     val createdAt: String? = null,
     @SerialName("updated_at")
     val updatedAt: String? = null,
+    // ── Detail-only fields (GET /devices/{id}) ──
+    @SerialName("last_packet_id")
+    val lastPacketId: String? = null,
+    @SerialName("last_packet_status")
+    val lastPacketStatus: String? = null,
+    @SerialName("last_packet_received_at")
+    val lastPacketReceivedAt: String? = null,
+    @SerialName("battery_level")
+    val batteryLevel: Double? = null,
 )
 
 @Serializable

@@ -843,6 +843,7 @@ private fun alertTitle(alert: OperatorAlertItem): String = when (alert.category)
     AlertCategory.BindingUploadRequired -> stringResource(R.string.alerts_binding_upload_title)
     AlertCategory.LogError -> stringResource(R.string.alerts_log_error_title)
     AlertCategory.LogPending -> stringResource(R.string.alerts_log_pending_title)
+    AlertCategory.AnomalyBackend -> "Аномалия"
 }
 
 private fun alertColor(severity: AlertSeverity): Color = when (severity) {
@@ -870,4 +871,5 @@ private fun alertIcon(category: AlertCategory): ImageVector = when (category) {
     AlertCategory.BindingUploadRequired -> Icons.Default.Warning
     AlertCategory.LogError -> Icons.Default.Error
     AlertCategory.LogPending -> Icons.Default.Info
+    AlertCategory.AnomalyBackend -> Icons.Default.Warning
 }

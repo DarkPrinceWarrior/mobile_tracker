@@ -6,6 +6,9 @@ import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.dao.PacketQueueDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
+import com.example.mobile_tracker.data.remote.api.AnomaliesApi
+import com.example.mobile_tracker.data.remote.dto.AnomalyItem
+import com.example.mobile_tracker.data.remote.dto.UpdateAnomalyRequest
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 enum class AlertSeverity {
     Critical,
@@ -40,6 +44,7 @@ enum class AlertCategory {
     BindingUploadRequired,
     LogError,
     LogPending,
+    AnomalyBackend,
 }
 
 data class OperatorAlertItem(
@@ -121,6 +126,7 @@ class AlertsViewModel(
     private val packetQueueDao: PacketQueueDao,
     private val bindingDao: BindingDao,
     private val operationLogDao: OperationLogDao,
+    private val anomaliesApi: AnomaliesApi,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AlertsState())
@@ -128,6 +134,7 @@ class AlertsViewModel(
 
     private val reviewStatusOverrides = MutableStateFlow<Map<String, AlertReviewStatus>>(emptyMap())
     private val commentOverrides = MutableStateFlow<Map<String, String>>(emptyMap())
+    private val backendAnomalies = MutableStateFlow<List<OperatorAlertItem>>(emptyList())
 
     private var alertsJob: Job? = null
 
@@ -168,6 +175,13 @@ class AlertsViewModel(
             is AlertsIntent.UpdateSelectedAlertStatus -> {
                 val alertId = _state.value.selectedAlertId ?: return
                 reviewStatusOverrides.update { it + (alertId to intent.status) }
+
+                // Если это аномалия с бэкенда — синхронизируем статус
+                val alert = _state.value.alerts.firstOrNull { it.id == alertId }
+                if (alert?.category == AlertCategory.AnomalyBackend) {
+                    syncAnomalyStatus(alertId.removePrefix("anomaly-"), intent.status)
+                }
+
                 _state.update { current ->
                     val updated = current.copy()
                     updated.alignSelection()
@@ -204,10 +218,49 @@ class AlertsViewModel(
                 )
             }
 
+            // Загружаем реальные аномалии с бэкенда
+            fetchBackendAnomalies(context.siteId)
+
             observeAlerts(
                 siteId = context.siteId,
                 shiftDate = context.shiftDate,
             )
+        }
+    }
+
+    private fun fetchBackendAnomalies(siteId: String) {
+        viewModelScope.launch {
+            try {
+                val response = anomaliesApi.getAnomalies(
+                    siteId = siteId,
+                    status = "open",
+                    pageSize = 50,
+                )
+                backendAnomalies.value = response.items.map { it.toAlertItem() }
+                Timber.d("Loaded ${response.items.size} anomalies from backend")
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load anomalies from backend")
+                // Не критично — локальные алерты продолжат работать
+            }
+        }
+    }
+
+    private fun syncAnomalyStatus(anomalyId: String, status: AlertReviewStatus) {
+        viewModelScope.launch {
+            try {
+                val backendStatus = when (status) {
+                    AlertReviewStatus.New -> "open"
+                    AlertReviewStatus.InProgress -> "acknowledged"
+                    AlertReviewStatus.Closed -> "resolved"
+                }
+                anomaliesApi.updateAnomaly(
+                    anomalyId = anomalyId,
+                    request = UpdateAnomalyRequest(status = backendStatus),
+                )
+                Timber.d("Synced anomaly $anomalyId status → $backendStatus")
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to sync anomaly status")
+            }
         }
     }
 
@@ -223,12 +276,28 @@ class AlertsViewModel(
                 operationLogDao.observeByShift(siteId, shiftDate),
                 reviewStatusOverrides,
                 commentOverrides,
-            ) { packets, bindings, logs, statusOverrides, commentOverridesMap ->
-                buildBaseAlerts(
+                backendAnomalies,
+            ) { values ->
+                @Suppress("UNCHECKED_CAST")
+                val packets = values[0] as List<com.example.mobile_tracker.data.local.db.entity.PacketQueueEntity>
+                @Suppress("UNCHECKED_CAST")
+                val bindings = values[1] as List<com.example.mobile_tracker.data.local.db.entity.BindingEntity>
+                @Suppress("UNCHECKED_CAST")
+                val logs = values[2] as List<com.example.mobile_tracker.data.local.db.entity.OperationLogEntity>
+                @Suppress("UNCHECKED_CAST")
+                val statusOverrides = values[3] as Map<String, AlertReviewStatus>
+                @Suppress("UNCHECKED_CAST")
+                val commentOverridesMap = values[4] as Map<String, String>
+                @Suppress("UNCHECKED_CAST")
+                val anomalyAlerts = values[5] as List<OperatorAlertItem>
+
+                val localAlerts = buildBaseAlerts(
                     packets = packets,
                     bindings = bindings,
                     logs = logs,
-                ).map { alert ->
+                )
+
+                (localAlerts + anomalyAlerts).map { alert ->
                     alert.copy(
                         reviewStatus = statusOverrides[alert.id] ?: alert.reviewStatus,
                         comment = commentOverridesMap[alert.id] ?: alert.comment,
@@ -349,3 +418,44 @@ private fun AlertsState.alignSelection(): AlertsState {
         draftComment = selected?.comment.orEmpty(),
     )
 }
+
+// ── Backend anomaly → OperatorAlertItem ────────────────────
+
+private fun AnomalyItem.toAlertItem(): OperatorAlertItem {
+    val severity = when (this.severity) {
+        "critical" -> AlertSeverity.Critical
+        "high" -> AlertSeverity.Critical
+        "medium" -> AlertSeverity.Warning
+        else -> AlertSeverity.Info
+    }
+
+    val reviewStatus = when (this.status) {
+        "acknowledged" -> AlertReviewStatus.InProgress
+        "resolved", "false_positive" -> AlertReviewStatus.Closed
+        else -> AlertReviewStatus.New
+    }
+
+    val description = this.description ?: when (this.anomalyType) {
+        "wear_toggle" -> "Частое снятие/надевание часов"
+        "off_wrist" -> "Часы сняты с руки"
+        "zero_hr" -> "Нулевой пульс — часы не на руке?"
+        "data_gap" -> "Пропуск данных"
+        "impossible_travel" -> "Невозможное перемещение"
+        else -> "Аномалия: ${this.anomalyType}"
+    }
+
+    return OperatorAlertItem(
+        id = "anomaly-${this.id}",
+        severity = severity,
+        category = AlertCategory.AnomalyBackend,
+        subject = this.deviceId ?: "Устройство",
+        details = description,
+        timestamp = this.startTsMs,
+        destination = AlertDestination.WorkerDetail,
+        employeeId = this.employeeId,
+        deviceId = this.deviceId,
+        reviewStatus = reviewStatus,
+        comment = this.comment.orEmpty(),
+    )
+}
+

@@ -24,6 +24,14 @@ class ReferenceApi(private val client: HttpClient) {
             parameter("offset", (page - 1) * pageSize)
         }.body()
 
+    /**
+     * GET /employees/{uuid} — детали одного сотрудника.
+     */
+    suspend fun getEmployee(
+        employeeUuid: String,
+    ): EmployeeDto =
+        client.get("/api/v1/employees/$employeeUuid").body()
+
     suspend fun getDevices(
         siteId: String,
         page: Int = 1,
@@ -35,6 +43,17 @@ class ReferenceApi(private val client: HttpClient) {
             parameter("page", page)
             parameter("page_size", pageSize)
         }.body()
+
+    /**
+     * GET /devices/{device_id} — детальная информация об устройстве.
+     *
+     * Возвращает все поля из списка + last_packet_id,
+     * last_packet_status, last_packet_received_at, battery_level.
+     */
+    suspend fun getDevice(
+        deviceId: String,
+    ): DeviceDto =
+        client.get("/api/v1/devices/$deviceId").body()
 
     suspend fun getSites(): List<SiteDto> =
         client.get("/api/v1/sites/").body()

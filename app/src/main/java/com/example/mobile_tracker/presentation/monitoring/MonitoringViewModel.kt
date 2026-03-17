@@ -8,6 +8,10 @@ import com.example.mobile_tracker.data.local.db.dao.EmployeeDao
 import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.dao.PacketQueueDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
+import com.example.mobile_tracker.data.remote.api.ShiftsApi
+import com.example.mobile_tracker.data.remote.api.ZonesApi
+import com.example.mobile_tracker.data.remote.dto.ShiftMetricsResponse
+import com.example.mobile_tracker.data.remote.dto.ZoneDto
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 data class MonitoringAlertPreview(
     val id: String,
@@ -93,10 +98,18 @@ class MonitoringViewModel(
     private val bindingDao: BindingDao,
     private val operationLogDao: OperationLogDao,
     private val packetQueueDao: PacketQueueDao,
+    private val shiftsApi: ShiftsApi,
+    private val zonesApi: ZonesApi,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MonitoringState())
     val state: StateFlow<MonitoringState> = _state.asStateFlow()
+
+    /** Реальные метрики с бэкенда, ключ = employeeId */
+    private val realMetrics = MutableStateFlow<Map<String, ShiftMetricsResponse>>(emptyMap())
+
+    /** Реальные зоны с бэкенда */
+    private val realZones = MutableStateFlow<List<ZoneDto>>(emptyList())
 
     private var observeJob: Job? = null
 
@@ -108,7 +121,10 @@ class MonitoringViewModel(
         viewModelScope.launch {
             val context = shiftContextDao.get()
             if (context == null) {
-                _state.value = buildPreviewState()
+                _state.value = MonitoringState(
+                    isLoading = false,
+                    error = "Контекст смены не выбран",
+                )
                 return@launch
             }
 
@@ -120,11 +136,56 @@ class MonitoringViewModel(
                 )
             }
 
+            // Загружаем реальные данные с бэкенда
+            fetchRealShiftMetrics(
+                siteId = context.siteId,
+                shiftDate = context.shiftDate,
+            )
+            fetchBackendZones(context.siteId)
+
             observeMonitoringData(
                 siteId = context.siteId,
                 shiftDate = context.shiftDate,
                 shiftType = context.shiftType,
             )
+        }
+    }
+
+    private fun fetchRealShiftMetrics(siteId: String, shiftDate: String) {
+        viewModelScope.launch {
+            try {
+                val shiftsResponse = shiftsApi.getShifts(
+                    dateFrom = shiftDate,
+                    dateTo = shiftDate,
+                    pageSize = 100,
+                )
+                val metricsMap = mutableMapOf<String, ShiftMetricsResponse>()
+                for (shift in shiftsResponse.items) {
+                    if (shift.employeeId == null) continue
+                    try {
+                        val metrics = shiftsApi.getShiftMetrics(shift.id)
+                        metricsMap[shift.employeeId] = metrics
+                    } catch (e: Exception) {
+                        Timber.w(e, "Failed to load metrics for shift ${shift.id}")
+                    }
+                }
+                realMetrics.value = metricsMap
+                Timber.d("Loaded real metrics for ${metricsMap.size} shifts")
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load shifts from backend")
+            }
+        }
+    }
+
+    private fun fetchBackendZones(siteId: String) {
+        viewModelScope.launch {
+            try {
+                val response = zonesApi.getSiteZones(siteId = siteId, pageSize = 200)
+                realZones.value = response.items
+                Timber.d("Monitoring: Loaded ${response.items.size} zones from backend")
+            } catch (e: Exception) {
+                Timber.w(e, "Monitoring: Failed to load zones from backend")
+            }
         }
     }
 
@@ -141,7 +202,24 @@ class MonitoringViewModel(
                 bindingDao.observeByShift(siteId, shiftDate),
                 operationLogDao.observeByShift(siteId, shiftDate),
                 packetQueueDao.observeUnsent(siteId),
-            ) { employees, devices, bindings, logs, packets ->
+                realMetrics,
+                realZones,
+            ) { values ->
+                @Suppress("UNCHECKED_CAST")
+                val employees = values[0] as List<com.example.mobile_tracker.data.local.db.entity.EmployeeEntity>
+                @Suppress("UNCHECKED_CAST")
+                val devices = values[1] as List<com.example.mobile_tracker.data.local.db.entity.DeviceEntity>
+                @Suppress("UNCHECKED_CAST")
+                val bindings = values[2] as List<com.example.mobile_tracker.data.local.db.entity.BindingEntity>
+                @Suppress("UNCHECKED_CAST")
+                val logs = values[3] as List<com.example.mobile_tracker.data.local.db.entity.OperationLogEntity>
+                @Suppress("UNCHECKED_CAST")
+                val packets = values[4] as List<com.example.mobile_tracker.data.local.db.entity.PacketQueueEntity>
+                @Suppress("UNCHECKED_CAST")
+                val metrics = values[5] as Map<String, ShiftMetricsResponse>
+                @Suppress("UNCHECKED_CAST")
+                val zones = values[6] as List<ZoneDto>
+
                 val workers = buildWorkerMonitoringSnapshots(
                     employees = employees,
                     devices = devices,
@@ -151,19 +229,45 @@ class MonitoringViewModel(
                     shiftDate = shiftDate,
                     shiftType = shiftType,
                 )
-                if (workers.isEmpty()) {
-                    buildPreviewState()
+
+                // Обогащаем реальными метриками с бэкенда
+                val enrichedWorkers = if (metrics.isNotEmpty()) {
+                    workers.map { worker ->
+                        val m = metrics[worker.employeeId] ?: return@map worker
+                        worker.copy(
+                            heartRate = if (m.avgHrBpm > 0) m.avgHrBpm else worker.heartRate,
+                            smrPercent = m.productivityPercent.toInt().takeIf { it > 0 } ?: worker.smrPercent,
+                            efficiencyPercent = m.productivityPercent.toInt().takeIf { it > 0 } ?: worker.efficiencyPercent,
+                            activeDurationMinutes = (m.onSiteDurationSec / 60).toLong().takeIf { it > 0 } ?: worker.activeDurationMinutes,
+                        )
+                    }
                 } else {
-                    val realAlerts = buildAlertPreview(workers)
+                    workers
+                }
+
+                if (enrichedWorkers.isEmpty()) {
                     MonitoringState(
                         siteName = state.value.siteName,
                         shiftDate = state.value.shiftDate,
                         shiftType = state.value.shiftType,
                         isLoading = false,
-                        isPreview = realAlerts.isEmpty(),
-                        workers = workers,
-                        zoneSummaries = buildZoneSummaries(workers),
-                        alertsPreview = realAlerts.ifEmpty { buildPreviewAlerts(System.currentTimeMillis()) },
+                        isPreview = false,
+                        workers = emptyList(),
+                        zoneSummaries = emptyList(),
+                        alertsPreview = emptyList(),
+                        error = null,
+                    )
+                } else {
+                    val realAlerts = buildAlertPreview(enrichedWorkers)
+                    MonitoringState(
+                        siteName = state.value.siteName,
+                        shiftDate = state.value.shiftDate,
+                        shiftType = state.value.shiftType,
+                        isLoading = false,
+                        isPreview = false,
+                        workers = enrichedWorkers,
+                        zoneSummaries = buildZoneSummariesFromApi(enrichedWorkers, zones),
+                        alertsPreview = realAlerts,
                         error = null,
                     )
                 }
@@ -171,6 +275,36 @@ class MonitoringViewModel(
                 _state.value = newState
             }
         }
+    }
+}
+
+private fun buildZoneSummariesFromApi(
+    workers: List<WorkerMonitoringSnapshot>,
+    zones: List<ZoneDto>,
+): List<MonitoringZoneSummary> {
+    if (zones.isEmpty()) return emptyList()
+
+    val cols = 3.coerceAtMost(zones.size)
+    val rows = (zones.size + cols - 1) / cols
+
+    return zones.mapIndexed { index, zone ->
+        val col = index % cols
+        val row = index / cols
+        val widthRatio = 1f / cols
+        val heightRatio = 1f / rows
+
+        MonitoringZoneSummary(
+            zone = MonitoringZoneDefinition(
+                id = zone.name,
+                xRatio = col * widthRatio + 0.02f,
+                yRatio = row * heightRatio + 0.02f,
+                widthRatio = widthRatio - 0.04f,
+                heightRatio = heightRatio - 0.04f,
+            ),
+            totalWorkers = 0,
+            activeWorkers = 0,
+            idleWorkers = 0,
+        )
     }
 }
 

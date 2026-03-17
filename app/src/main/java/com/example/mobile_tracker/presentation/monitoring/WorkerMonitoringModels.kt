@@ -198,86 +198,39 @@ private fun buildWorkerMonitoringSnapshot(
     shiftType: String,
     nowMillis: Long,
 ): WorkerMonitoringSnapshot {
-    val seed = stableSeed(
-        listOfNotNull(employee.id, binding?.deviceId, employee.fullName).joinToString("-"),
-    )
     val hasIssuedWatch = binding != null && device != null
-    val batteryPercent = deriveBatteryPercent(device, seed, hasIssuedWatch)
-    val status = deriveStatus(
-        hasIssuedWatch = hasIssuedWatch,
-        batteryPercent = batteryPercent,
-        packets = packets,
-        logs = logs,
-        seed = seed,
-    )
-    val watchOn = hasIssuedWatch && status != WorkerMonitoringStatus.Offline
-    val zone = if (watchOn) monitoringZones[seed % monitoringZones.size] else null
-    val mapPosition = zone?.let {
-        val normalizedX = 0.18f + ((seed % 97) / 96f) * 0.64f
-        val normalizedY = 0.18f + (((seed / 97) % 97) / 96f) * 0.56f
-        (it.xRatio + (it.widthRatio * normalizedX)) to
-            (it.yRatio + (it.heightRatio * normalizedY))
+    val batteryPercent = device?.let {
+        when (it.chargeStatus?.lowercase()) {
+            "full", "charged", "charging" -> 95
+            "high" -> 75
+            "medium" -> 50
+            "low" -> 20
+            "critical" -> 5
+            else -> null
+        }
+    } ?: 0
+    // Статус из реального состояния привязки
+    val status = when {
+        !hasIssuedWatch -> WorkerMonitoringStatus.Offline
+        packets.any { it.status == "error" } -> WorkerMonitoringStatus.Idle
+        else -> WorkerMonitoringStatus.Active
     }
-    val shiftStartAt = binding?.boundAt
-        ?: defaultShiftStartAt(
-            shiftDate = shiftDate,
-            shiftType = shiftType,
-            seed = seed,
-        )
+    val watchOn = hasIssuedWatch && status != WorkerMonitoringStatus.Offline
+    // Зона и позиция — только из реальных данных бэкенда (через enrichment)
+    val zone: MonitoringZoneDefinition? = null
+    val mapPosition: Pair<Float, Float>? = null
+    val shiftStartAt = binding?.boundAt ?: nowMillis
     val shiftWindowMinutes = ((nowMillis - shiftStartAt).coerceAtLeast(0L) / 60_000L)
         .coerceAtMost(12 * 60L)
-    val activeDurationMinutes = when (status) {
-        WorkerMonitoringStatus.Active -> shiftWindowMinutes.coerceAtLeast(75L)
-        WorkerMonitoringStatus.Idle -> (shiftWindowMinutes * 0.62f).toLong().coerceAtLeast(40L)
-        WorkerMonitoringStatus.Offline -> if (hasIssuedWatch) {
-            (shiftWindowMinutes * 0.28f).toLong().coerceAtLeast(10L)
-        } else {
-            0L
-        }
-    }
-    val lastSeenAt = if (hasIssuedWatch) {
-        deriveLastSeenAt(
-            status = status,
-            nowMillis = nowMillis,
-            seed = seed,
-        )
-    } else {
-        null
-    }
-    val heartRate = if (watchOn) {
-        when (status) {
-            WorkerMonitoringStatus.Active -> 78 + (seed % 18)
-            WorkerMonitoringStatus.Idle -> 62 + (seed % 10)
-            WorkerMonitoringStatus.Offline -> null
-        }
-    } else {
-        null
-    }
-    val temperature = if (watchOn) {
-        val baseline = 36.2f + ((seed % 7) * 0.1f)
-        if (status == WorkerMonitoringStatus.Active) baseline + 0.2f else baseline
-    } else {
-        null
-    }
-    val steps = when (status) {
-        WorkerMonitoringStatus.Active -> (activeDurationMinutes * 18L + (seed % 320)).toInt()
-        WorkerMonitoringStatus.Idle -> (activeDurationMinutes * 7L + (seed % 180)).toInt()
-        WorkerMonitoringStatus.Offline -> if (hasIssuedWatch) {
-            (activeDurationMinutes * 4L + (seed % 90)).toInt()
-        } else {
-            0
-        }
-    }
-    val smrPercent = when (status) {
-        WorkerMonitoringStatus.Active -> 78 + (seed % 22)
-        WorkerMonitoringStatus.Idle -> 44 + (seed % 27)
-        WorkerMonitoringStatus.Offline -> if (hasIssuedWatch) 18 + (seed % 22) else 0
-    }.coerceAtMost(100)
-    val efficiencyPercent = when (status) {
-        WorkerMonitoringStatus.Active -> 66 + (seed % 24)
-        WorkerMonitoringStatus.Idle -> 34 + (seed % 18)
-        WorkerMonitoringStatus.Offline -> if (hasIssuedWatch) 12 + (seed % 16) else 0
-    }.coerceAtMost(100)
+    // Время на объекте — реальное от момента привязки
+    val activeDurationMinutes = if (hasIssuedWatch) shiftWindowMinutes else 0L
+    val lastSeenAt: Long? = null  // Будет обогащено бэкендом
+    // Метрики — только из бэкенда, без seed-генерации
+    val heartRate: Int? = null
+    val temperature: Float? = null
+    val steps = 0
+    val smrPercent = 0
+    val efficiencyPercent = 0
 
     return WorkerMonitoringSnapshot(
         employeeId = employee.id,
@@ -298,7 +251,7 @@ private fun buildWorkerMonitoringSnapshot(
         steps = steps,
         batteryPercent = batteryPercent,
         watchOn = watchOn,
-        watchModel = device?.model ?: fallbackWatchModel(seed, hasIssuedWatch),
+        watchModel = device?.model,
         deviceId = device?.deviceId ?: binding?.deviceId,
         watchIssuedAt = binding?.boundAt,
         lastSeenAt = lastSeenAt,
@@ -306,13 +259,7 @@ private fun buildWorkerMonitoringSnapshot(
         efficiencyPercent = efficiencyPercent,
         activeBinding = binding,
         device = device,
-        route = buildRoute(
-            currentZone = zone,
-            shiftStartAt = shiftStartAt,
-            nowMillis = nowMillis,
-            seed = seed,
-            canTrack = watchOn,
-        ),
+        route = emptyList(),  // Маршрут — только из бэкенда
         incidents = buildIncidents(
             binding = binding,
             batteryPercent = batteryPercent,
