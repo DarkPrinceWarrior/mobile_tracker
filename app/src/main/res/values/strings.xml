@@ -346,7 +346,7 @@
     <string name="monitoring_efficiency_badge">Эффективность смены</string>
     <string name="monitoring_efficiency_title">Эффективность</string>
     <string name="monitoring_efficiency_subtitle">%1$d из %2$d работников в активной фазе</string>
-    <string name="monitoring_efficiency_compact_label">%% Эффективности</string>
+    <string name="monitoring_efficiency_compact_label">% Эффективность</string>
     <string name="monitoring_open_map">Открыть карту площадки</string>
     <string name="monitoring_stat_active">Активны</string>
     <string name="monitoring_stat_idle">Простои</string>

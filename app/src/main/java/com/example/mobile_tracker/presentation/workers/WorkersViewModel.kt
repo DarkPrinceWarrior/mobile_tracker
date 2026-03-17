@@ -33,10 +33,16 @@ data class WorkersState(
     val shiftType: String = "day",
     val query: String = "",
     val filter: WorkersFilter = WorkersFilter.All,
+    /** null = all zones; non-null = filter by this zone id */
+    val zoneFilter: String? = null,
     val isLoading: Boolean = true,
     val workers: List<WorkerMonitoringSnapshot> = emptyList(),
     val error: String? = null,
 ) {
+    /** Distinct zone ids present in current workers list (only workers with a zone) */
+    val availableZones: List<String>
+        get() = workers.mapNotNull { it.zoneId }.distinct().sorted()
+
     val filteredWorkers: List<WorkerMonitoringSnapshot>
         get() = workers.filter { worker ->
             val matchesFilter = when (filter) {
@@ -45,6 +51,7 @@ data class WorkersState(
                 WorkersFilter.Idle -> worker.status == WorkerMonitoringStatus.Idle
                 WorkersFilter.Offline -> worker.status == WorkerMonitoringStatus.Offline
             }
+            val matchesZone = zoneFilter == null || worker.zoneId == zoneFilter
             val normalizedQuery = query.trim()
             val matchesQuery = normalizedQuery.isBlank() || buildString {
                 append(worker.fullName)
@@ -57,13 +64,14 @@ data class WorkersState(
                 append(" ")
                 append(worker.deviceId.orEmpty())
             }.contains(normalizedQuery, ignoreCase = true)
-            matchesFilter && matchesQuery
+            matchesFilter && matchesZone && matchesQuery
         }
 }
 
 sealed interface WorkersIntent {
     data class UpdateQuery(val query: String) : WorkersIntent
     data class SetFilter(val filter: WorkersFilter) : WorkersIntent
+    data class SetZoneFilter(val zoneId: String?) : WorkersIntent
 }
 
 class WorkersViewModel(
@@ -88,6 +96,7 @@ class WorkersViewModel(
         when (intent) {
             is WorkersIntent.UpdateQuery -> _state.update { it.copy(query = intent.query) }
             is WorkersIntent.SetFilter -> _state.update { it.copy(filter = intent.filter) }
+            is WorkersIntent.SetZoneFilter -> _state.update { it.copy(zoneFilter = intent.zoneId) }
         }
     }
 

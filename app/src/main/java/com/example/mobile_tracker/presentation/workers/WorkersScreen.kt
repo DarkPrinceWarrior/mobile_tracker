@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +26,8 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,11 +51,12 @@ import com.example.mobile_tracker.R
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.MTCompactTopBar
 import com.example.mobile_tracker.presentation.common.StateCard
-import com.example.mobile_tracker.presentation.monitoring.MonitoringBottomBar
-import com.example.mobile_tracker.presentation.monitoring.MonitoringTab
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringSnapshot
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringStatus
+import com.example.mobile_tracker.presentation.monitoring.formatZoneLabel
+import com.example.mobile_tracker.presentation.monitoring.monitoringZones
 import com.example.mobile_tracker.presentation.monitoring.workerStatusColor
 import org.koin.androidx.compose.koinViewModel
 
@@ -69,13 +73,21 @@ fun WorkersScreen(
 
     AppScreenScaffold(
         snackbarMessage = state.error,
-        bottomBar = {
-            MonitoringBottomBar(
-                current = MonitoringTab.Workers,
-                onNavigateToMonitoring = onNavigateToMonitoring,
-                onNavigateToWorkers = {},
-                onNavigateToMaps = onNavigateToMaps,
-                onNavigateToAlerts = onNavigateToAlerts,
+        topBar = {
+            MTCompactTopBar(
+                title = stringResource(R.string.monitoring_nav_workers),
+                subtitle = if (state.siteName.isNotBlank()) state.siteName else null,
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                },
             )
         },
     ) { padding ->
@@ -87,7 +99,6 @@ fun WorkersScreen(
             )
             else -> WorkersContent(
                 state = state,
-                onBack = onBack,
                 onIntent = viewModel::onIntent,
                 onOpenWorkerDetail = onOpenWorkerDetail,
                 modifier = Modifier
@@ -101,101 +112,73 @@ fun WorkersScreen(
 @Composable
 private fun WorkersContent(
     state: WorkersState,
-    onBack: (() -> Unit)?,
     onIntent: (WorkersIntent) -> Unit,
     onOpenWorkerDetail: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .padding(horizontal = 8.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(30.dp),
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        WorkersTitleRow(onBack = onBack)
         if (!state.error.isNullOrBlank()) {
             StateCard(message = state.error, isError = true)
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            WorkersSearchField(
-                query = state.query,
-                onQueryChange = {
-                    onIntent(WorkersIntent.UpdateQuery(it))
-                },
-            )
-            WorkersFilterRow(
-                selected = state.filter,
-                onSelect = {
-                    onIntent(WorkersIntent.SetFilter(it))
-                },
-            )
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                text = stringResource(
-                    R.string.workers_found_count,
-                    state.filteredWorkers.size,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-            )
-
-            if (state.workers.isEmpty()) {
-                EmptyState(
-                    title = stringResource(R.string.workers_empty),
-                    icon = Icons.Default.People,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else if (state.filteredWorkers.isEmpty()) {
-                EmptyState(
-                    title = stringResource(R.string.workers_filtered_empty),
-                    icon = Icons.Default.People,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    items(state.filteredWorkers, key = { it.employeeId }) { worker ->
-                        WorkerListCard(
-                            worker = worker,
-                            onClick = { onOpenWorkerDetail(worker.employeeId) },
-                        )
-                    }
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WorkersTitleRow(
-    onBack: (() -> Unit)?,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (onBack != null) {
-            androidx.compose.material3.IconButton(onClick = onBack) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-        Text(
-            text = stringResource(R.string.monitoring_nav_workers),
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.onSurface,
+        // Search
+        WorkersSearchField(
+            query = state.query,
+            onQueryChange = { onIntent(WorkersIntent.UpdateQuery(it)) },
         )
+
+        // Status filter chips
+        WorkersFilterRow(
+            selected = state.filter,
+            onSelect = { onIntent(WorkersIntent.SetFilter(it)) },
+        )
+
+        // Zone filter chips (only when zones are available)
+        if (monitoringZones.isNotEmpty()) {
+            ZoneFilterRow(
+                selectedZone = state.zoneFilter,
+                availableZones = monitoringZones.map { it.id },
+                onSelect = { onIntent(WorkersIntent.SetZoneFilter(it)) },
+            )
+        }
+
+        // Count
+        Text(
+            text = stringResource(R.string.workers_found_count, state.filteredWorkers.size),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+        )
+
+        // List
+        if (state.workers.isEmpty()) {
+            EmptyState(
+                title = stringResource(R.string.workers_empty),
+                icon = Icons.Default.People,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else if (state.filteredWorkers.isEmpty()) {
+            EmptyState(
+                title = stringResource(R.string.workers_filtered_empty),
+                icon = Icons.Default.People,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(state.filteredWorkers, key = { it.employeeId }) { worker ->
+                    WorkerListCard(
+                        worker = worker,
+                        onClick = { onOpenWorkerDetail(worker.employeeId) },
+                    )
+                }
+                item { Spacer(modifier = Modifier.height(8.dp)) }
+            }
+        }
     }
 }
 
@@ -215,7 +198,7 @@ private fun WorkersSearchField(
             Text(stringResource(R.string.workers_search_placeholder))
         },
         leadingIcon = {
-            androidx.compose.material3.Icon(
+            Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
@@ -237,30 +220,66 @@ private fun WorkersFilterRow(
     selected: WorkersFilter,
     onSelect: (WorkersFilter) -> Unit,
 ) {
-    Row(
+    LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        WorkersFilterChip(
-            label = stringResource(R.string.workers_filter_all),
-            selected = selected == WorkersFilter.All,
-            onClick = { onSelect(WorkersFilter.All) },
-        )
-        WorkersFilterChip(
-            label = stringResource(R.string.workers_filter_active),
-            selected = selected == WorkersFilter.Active,
-            onClick = { onSelect(WorkersFilter.Active) },
-        )
-        WorkersFilterChip(
-            label = stringResource(R.string.workers_filter_idle),
-            selected = selected == WorkersFilter.Idle,
-            onClick = { onSelect(WorkersFilter.Idle) },
-        )
-        WorkersFilterChip(
-            label = stringResource(R.string.workers_filter_offline),
-            selected = selected == WorkersFilter.Offline,
-            onClick = { onSelect(WorkersFilter.Offline) },
-        )
+        item {
+            WorkersFilterChip(
+                label = stringResource(R.string.workers_filter_all),
+                selected = selected == WorkersFilter.All,
+                onClick = { onSelect(WorkersFilter.All) },
+            )
+        }
+        item {
+            WorkersFilterChip(
+                label = stringResource(R.string.workers_filter_active),
+                selected = selected == WorkersFilter.Active,
+                onClick = { onSelect(WorkersFilter.Active) },
+            )
+        }
+        item {
+            WorkersFilterChip(
+                label = stringResource(R.string.workers_filter_idle),
+                selected = selected == WorkersFilter.Idle,
+                onClick = { onSelect(WorkersFilter.Idle) },
+            )
+        }
+        item {
+            WorkersFilterChip(
+                label = stringResource(R.string.workers_filter_offline),
+                selected = selected == WorkersFilter.Offline,
+                onClick = { onSelect(WorkersFilter.Offline) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ZoneFilterRow(
+    selectedZone: String?,
+    availableZones: List<String>,
+    onSelect: (String?) -> Unit,
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // "All zones" chip
+        item {
+            WorkersFilterChip(
+                label = "Все зоны",
+                selected = selectedZone == null,
+                onClick = { onSelect(null) },
+            )
+        }
+        items(availableZones) { zoneId ->
+            WorkersFilterChip(
+                label = formatZoneLabel(zoneId),
+                selected = selectedZone == zoneId,
+                onClick = { onSelect(zoneId) },
+            )
+        }
     }
 }
 
@@ -283,8 +302,9 @@ private fun WorkersFilterChip(
     ) {
         Text(
             text = label,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) {
                 MaterialTheme.colorScheme.surface
             } else {
@@ -310,21 +330,26 @@ private fun WorkerListCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Name + role + zone badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
                 Text(
                     text = buildAnnotatedString {
                         withStyle(
                             SpanStyle(
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                             ),
                         ) {
                             append(worker.fullName)
                         }
-                        append(" ")
+                        append("\n")
                         withStyle(
                             SpanStyle(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
@@ -333,57 +358,21 @@ private fun WorkerListCard(
                             append(worker.roleLabel)
                         }
                     },
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(workerStatusColor(worker.status)),
-                            )
-                            Text(
-                                text = workerStatusLabel(worker.status),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = statusTextColor(worker.status),
-                            )
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(48.dp),
-                            color = Color(0x2B60D188),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.worker_detail_smr, worker.smrPercent),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = workerStatusColor(WorkerMonitoringStatus.Active),
-                            )
-                        }
-                    }
+                // Zone badge
+                worker.zoneId?.let { zone ->
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.padding(start = 8.dp),
                     ) {
                         Text(
-                            text = worker.zoneId?.let {
-                                stringResource(R.string.workers_zone_label, it)
-                            } ?: stringResource(R.string.workers_zone_unknown),
-                            modifier = Modifier.padding(8.dp),
+                            text = formatZoneLabel(zone),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
                         )
@@ -391,15 +380,48 @@ private fun WorkerListCard(
                 }
             }
 
+            // Row 1: Status dot + SMR badge
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Status dot + label
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(workerStatusColor(worker.status)),
+                    )
+                    Text(
+                        text = workerStatusLabel(worker.status),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = workerStatusColor(worker.status),
+                    )
+                }
+                // SMR badge
+                Surface(
+                    shape = RoundedCornerShape(48.dp),
+                    color = Color(0x2B60D188),
+                ) {
+                    Text(
+                        text = stringResource(R.string.worker_detail_smr, worker.smrPercent),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = workerStatusColor(WorkerMonitoringStatus.Active),
+                    )
+                }
+            }
+
+            // Row 2: Heart / Steps / Battery — spread full width so nothing overflows
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
                     WorkerStatMini(
                         icon = Icons.Default.Favorite,
                         value = worker.heartRate?.toString()
@@ -411,12 +433,11 @@ private fun WorkerListCard(
                         value = worker.steps.toString(),
                         unit = stringResource(R.string.workers_steps_unit),
                     )
-                }
-                WorkerStatMini(
-                    icon = Icons.Default.Bolt,
-                    value = worker.batteryPercent.toString(),
-                    unit = stringResource(R.string.workers_battery_unit),
-                )
+                    WorkerStatMini(
+                        icon = Icons.Default.Bolt,
+                        value = worker.batteryPercent.toString(),
+                        unit = stringResource(R.string.workers_battery_unit),
+                    )
             }
         }
     }
@@ -429,34 +450,26 @@ private fun WorkerStatMini(
     unit: String,
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        androidx.compose.material3.Icon(
+        Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
         )
         Text(
             text = buildAnnotatedString {
-                withStyle(
-                    SpanStyle(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                    ),
-                ) {
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f))) {
                     append(value)
                 }
                 append(" ")
-                withStyle(
-                    SpanStyle(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f),
-                    ),
-                ) {
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f))) {
                     append(unit)
                 }
             },
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.labelSmall,
         )
     }
 }
@@ -466,11 +479,4 @@ private fun workerStatusLabel(status: WorkerMonitoringStatus): String = when (st
     WorkerMonitoringStatus.Active -> stringResource(R.string.workers_status_active)
     WorkerMonitoringStatus.Idle -> stringResource(R.string.workers_status_idle)
     WorkerMonitoringStatus.Offline -> stringResource(R.string.workers_status_offline)
-}
-
-@Composable
-private fun statusTextColor(status: WorkerMonitoringStatus): Color = when (status) {
-    WorkerMonitoringStatus.Active -> MaterialTheme.colorScheme.primary
-    WorkerMonitoringStatus.Idle -> workerStatusColor(WorkerMonitoringStatus.Idle)
-    WorkerMonitoringStatus.Offline -> workerStatusColor(WorkerMonitoringStatus.Offline)
 }

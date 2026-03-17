@@ -2,7 +2,6 @@ package com.example.mobile_tracker.presentation.monitoring
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,22 +12,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,12 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,11 +46,19 @@ import com.example.mobile_tracker.R
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
+import com.example.mobile_tracker.presentation.common.MTCompactTopBar
 import com.example.mobile_tracker.presentation.common.StateCard
 import org.koin.androidx.compose.koinViewModel
 
-/** Accent color for the "Online" badge, as specified in the Figma design. */
-private val OnlineAccentColor = Color(0xFF00A36A)
+// ── Preview zone summaries (all 5 zones with demo worker counts) ──────────────
+private val previewZoneSummaries = monitoringZones.mapIndexed { i, zone ->
+    MonitoringZoneSummary(
+        zone = zone,
+        totalWorkers = when (i) { 0 -> 8; 1 -> 7; 2 -> 5; 3 -> 6; else -> 4 },
+        activeWorkers = when (i) { 0 -> 6; 1 -> 5; 2 -> 3; 3 -> 4; else -> 3 },
+        idleWorkers = when (i) { 0 -> 2; 1 -> 2; 2 -> 2; 3 -> 2; else -> 1 },
+    )
+}
 
 @Composable
 fun MonitoringScreen(
@@ -72,15 +73,24 @@ fun MonitoringScreen(
 
     AppScreenScaffold(
         snackbarMessage = state.error,
-        bottomBar = {
-            MonitoringBottomBar(
-                current = MonitoringTab.Monitoring,
-                onNavigateToMonitoring = {},
-                onNavigateToWorkers = onNavigateToWorkers,
-                onNavigateToMaps = onNavigateToMaps,
-                onNavigateToAlerts = onNavigateToAlerts,
+        topBar = {
+            MTCompactTopBar(
+                title = stringResource(R.string.monitoring_title),
+                subtitle = if (state.siteName.isNotBlank()) state.siteName else null,
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                },
             )
         },
+        // ── No bottom bar: monitoring is a sub-screen, not a root tab ─────────
     ) { padding ->
         when {
             state.isLoading -> LoadingState(
@@ -89,8 +99,8 @@ fun MonitoringScreen(
                     .padding(padding),
             )
             state.totalWorkers == 0 -> MonitoringEmptyPane(
-                onBack = onBack,
                 error = state.error,
+                onNavigateToWorkers = onNavigateToWorkers,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
@@ -98,11 +108,8 @@ fun MonitoringScreen(
             else -> MonitoringContent(
                 state = state,
                 error = state.error,
-                onBack = onBack,
                 onNavigateToMaps = onNavigateToMaps,
                 onNavigateToWorkers = onNavigateToWorkers,
-                onNavigateToAlerts = onNavigateToAlerts,
-                onOpenWorkerDetail = onOpenWorkerDetail,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
@@ -115,32 +122,31 @@ fun MonitoringScreen(
 private fun MonitoringContent(
     state: MonitoringState,
     error: String?,
-    onBack: (() -> Unit)?,
     onNavigateToMaps: () -> Unit,
     onNavigateToWorkers: () -> Unit,
-    onNavigateToAlerts: () -> Unit,
-    onOpenWorkerDetail: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val zones = if (state.zoneSummaries.isNotEmpty()) state.zoneSummaries else previewZoneSummaries
+
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(30.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        MonitoringTitleRow(onBack = onBack)
         if (!error.isNullOrBlank()) {
             StateCard(message = error, isError = true)
         }
-        ZoneHeaderCard(
-            zoneLabel = state.topZoneLabel.ifBlank { stringResource(R.string.maps_zone_unknown) },
-            shiftWindow = monitoringShiftWindow(state.shiftType),
-            isOnline = state.activeCount > 0,
-            onClick = onNavigateToMaps,
-        )
 
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            SectionLabel(text = stringResource(R.string.monitoring_stats_title))
+        // ── Statistics ─────────────────────────────────────────────────────
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SectionLabel(
+                text = if (state.siteName.isNotBlank()) {
+                    "Статистика · ${state.siteName}"
+                } else {
+                    stringResource(R.string.monitoring_stats_title)
+                },
+            )
             StatisticsPanel(
                 efficiencyPercent = state.efficiencyPercent,
                 activeCount = state.activeCount,
@@ -149,30 +155,18 @@ private fun MonitoringContent(
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            MonitoringSectionHeader(
-                title = stringResource(R.string.monitoring_alerts_title),
-                badge = stringResource(R.string.monitoring_alerts_timeframe),
-                actionLabel = stringResource(R.string.monitoring_action_all),
-                onActionClick = onNavigateToAlerts,
-            )
-            AlertsPanel(
-                alerts = state.alertsPreview,
-                onClick = onNavigateToAlerts,
+        // ── Zones ──────────────────────────────────────────────────────────
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SectionLabel(text = "Зоны площадки")
+            ZonesPanel(
+                zones = zones,
+                shiftWindow = monitoringShiftWindow(state.shiftType),
+                onZoneClick = onNavigateToMaps,
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            MonitoringSectionHeader(
-                title = stringResource(R.string.monitoring_workers_title),
-                actionLabel = stringResource(R.string.monitoring_action_all),
-                onActionClick = onNavigateToWorkers,
-            )
-            WorkersPanel(
-                workers = state.activeWorkersPreview.take(3),
-                onOpenWorkerDetail = onOpenWorkerDetail,
-            )
-        }
+        // ── Workers button ─────────────────────────────────────────────────
+        WorkersButton(onClick = onNavigateToWorkers)
 
         Spacer(modifier = Modifier.height(8.dp))
     }
@@ -180,15 +174,14 @@ private fun MonitoringContent(
 
 @Composable
 private fun MonitoringEmptyPane(
-    onBack: (() -> Unit)?,
     error: String?,
+    onNavigateToWorkers: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        MonitoringTitleRow(onBack = onBack)
         if (!error.isNullOrBlank()) {
             StateCard(message = error, isError = true)
         }
@@ -200,114 +193,7 @@ private fun MonitoringEmptyPane(
     }
 }
 
-@Composable
-private fun MonitoringTitleRow(
-    onBack: (() -> Unit)?,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (onBack != null) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-        Text(
-            text = stringResource(R.string.monitoring_title),
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
-
-@Composable
-private fun ZoneHeaderCard(
-    zoneLabel: String,
-    shiftWindow: String,
-    isOnline: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        shape = RoundedCornerShape(8.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = zoneLabel,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (isOnline) {
-                                        OnlineAccentColor
-                                    } else {
-                                        workerStatusColor(WorkerMonitoringStatus.Idle)
-                                    },
-                                ),
-                        )
-                        Text(
-                            text = if (isOnline) {
-                                stringResource(R.string.monitoring_badge_online)
-                            } else {
-                                stringResource(R.string.monitoring_badge_low_activity)
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isOnline) {
-                                OnlineAccentColor
-                            } else {
-                                workerStatusColor(WorkerMonitoringStatus.Idle)
-                            },
-                        )
-                    }
-                }
-                Text(
-                    text = shiftWindow,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                modifier = Modifier.size(16.dp),
-            )
-        }
-    }
-}
+// ── Section label ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun SectionLabel(text: String) {
@@ -318,6 +204,8 @@ private fun SectionLabel(text: String) {
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
     )
 }
+
+// ── Statistics panel ───────────────────────────────────────────────────────────
 
 @Composable
 private fun StatisticsPanel(
@@ -333,12 +221,12 @@ private fun StatisticsPanel(
     ) {
         Column(
             modifier = Modifier.padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             EfficiencyHeroCard(efficiencyPercent = efficiencyPercent)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 MonitoringSummaryTile(
                     modifier = Modifier.weight(1f),
@@ -364,9 +252,7 @@ private fun StatisticsPanel(
 }
 
 @Composable
-private fun EfficiencyHeroCard(
-    efficiencyPercent: Int,
-) {
+private fun EfficiencyHeroCard(efficiencyPercent: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -374,57 +260,37 @@ private fun EfficiencyHeroCard(
             .background(Color(0xFF122C1E))
             .border(1.dp, Color(0x5500A36A), RoundedCornerShape(8.dp)),
     ) {
-        // Inset glow — Figma: inset 0 0 30.6px #00A36A
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(
-                            Color(0x3300A36A),
-                            Color.Transparent,
-                        ),
+                        colors = listOf(Color(0x3300A36A), Color.Transparent),
                     ),
                 ),
         )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 16.dp),
+                .padding(horizontal = 20.dp, vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(
-                modifier = Modifier.width(132.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
-            ) {
-                // Adjacent number above — 30% opacity, Figma: 70px
-                Text(
-                    text = (efficiencyPercent - 1).coerceAtLeast(0).toString(),
-                    style = MaterialTheme.typography.displayLarge,
-                    color = Color(0x4DAFFF69),
-                )
-                // Hero number — Figma: 86px
-                Text(
-                    text = efficiencyPercent.toString(),
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 86.sp,
-                        lineHeight = 86.sp,
-                    ),
-                    color = Color(0xFFAFFF69),
-                )
-                // Adjacent number below — 30% opacity, Figma: 70px
-                Text(
-                    text = (efficiencyPercent + 1).coerceAtMost(100).toString(),
-                    style = MaterialTheme.typography.displayLarge,
-                    color = Color(0x4DAFFF69),
-                )
-            }
+            Text(
+                text = "$efficiencyPercent",
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = 72.sp,
+                    lineHeight = 72.sp,
+                ),
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFAFFF69),
+            )
             Text(
                 text = stringResource(R.string.monitoring_efficiency_compact_label),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFFF9F9F9),
+                maxLines = 1,
             )
         }
     }
@@ -443,12 +309,13 @@ private fun MonitoringSummaryTile(
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Row(
@@ -463,7 +330,7 @@ private fun MonitoringSummaryTile(
                 )
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
                 )
             }
@@ -471,248 +338,150 @@ private fun MonitoringSummaryTile(
     }
 }
 
+// ── Zones panel ────────────────────────────────────────────────────────────────
+
 @Composable
-private fun MonitoringSectionHeader(
-    title: String,
-    actionLabel: String,
-    onActionClick: () -> Unit,
-    badge: String? = null,
+private fun ZonesPanel(
+    zones: List<MonitoringZoneSummary>,
+    shiftWindow: String,
+    onZoneClick: () -> Unit,
 ) {
-    Row(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 5.dp, top = 8.dp, end = 8.dp, bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            SectionLabel(text = title)
-            if (badge != null) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                ) {
-                    Text(
-                        text = badge,
-                        modifier = Modifier.padding(horizontal = 6.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                    )
-                }
+            zones.forEach { summary ->
+                ZoneRow(
+                    summary = summary,
+                    shiftWindow = shiftWindow,
+                    onClick = onZoneClick,
+                )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ZoneRow(
+    summary: MonitoringZoneSummary,
+    shiftWindow: String,
+    onClick: () -> Unit,
+) {
+    val isActive = summary.totalWorkers > 0
+    val statusColor = if (isActive) {
+        Color(0xFF00A36A)
+    } else {
+        workerStatusColor(WorkerMonitoringStatus.Idle)
+    }
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.45f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(statusColor),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = formatZoneLabel(summary.zone.id),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = shiftWindow,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                )
+            }
+            if (isActive) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "${summary.totalWorkers} чел.",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "акт.: ${summary.activeWorkers} · прост.: ${summary.idleWorkers}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                    )
+                }
+            } else {
+                Text(
+                    text = "Нет работников",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                modifier = Modifier.size(14.dp),
+            )
+        }
+    }
+}
+
+// ── Workers button ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun WorkersButton(onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.People,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+        )
         Text(
-            text = actionLabel,
-            modifier = Modifier.clickable(onClick = onActionClick),
+            text = "  Список работников",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = OnlineAccentColor,
+            fontWeight = FontWeight.Medium,
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AlertsPanel(
-    alerts: List<MonitoringAlertPreview>,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-    ) {
-        if (alerts.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.monitoring_alerts_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 5.dp, top = 8.dp, end = 8.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                alerts.forEach { alert ->
-                    Card(
-                        onClick = onClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.45f),
-                        ),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(4.dp)
-                                    .height(49.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(alertSeverityColor(alert.severity).copy(alpha = 0.5f)),
-                            )
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Text(
-                                    text = alert.employeeName,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = alert.description,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            // Alert time — matches Figma/TS design
-                            Text(
-                                text = formatMonitoringTime(alert.timestamp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun WorkersPanel(
-    workers: List<WorkerMonitoringSnapshot>,
-    onOpenWorkerDetail: (String) -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-    ) {
-        if (workers.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.monitoring_workers_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 5.dp, top = 8.dp, end = 8.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                workers.forEach { worker ->
-                    Card(
-                        onClick = { onOpenWorkerDetail(worker.employeeId) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.45f),
-                        ),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Text(
-                                text = buildAnnotatedString {
-                                    append(worker.fullName)
-                                    append(" ")
-                                    withStyle(
-                                        SpanStyle(
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                                        ),
-                                    ) {
-                                        append(worker.roleLabel)
-                                    }
-                                },
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Favorite,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Text(
-                                        text = worker.heartRate?.toString()
-                                            ?: stringResource(R.string.worker_detail_no_data_short),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                                    )
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(48.dp),
-                                    color = Color(0x2B60D188),
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.worker_detail_smr, worker.smrPercent),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = workerStatusColor(WorkerMonitoringStatus.Active),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// VerticalPreviewScrollbar removed — panels now wrap content dynamically.
-
 private fun monitoringShiftWindow(shiftType: String): String = if (shiftType == "night") {
-    "смена от 19:00 до 06:30"
+    "смена 19:00–06:30"
 } else {
-    "смена от 7:00 до 18:30"
-}
-
-@Composable
-private fun alertSeverityColor(severity: WorkerIncidentSeverity): Color = when (severity) {
-    WorkerIncidentSeverity.Critical -> workerStatusColor(WorkerMonitoringStatus.Offline)
-    WorkerIncidentSeverity.Warning -> workerStatusColor(WorkerMonitoringStatus.Idle)
-    WorkerIncidentSeverity.Info -> workerStatusColor(WorkerMonitoringStatus.Active)
+    "смена 07:00–18:30"
 }
