@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Контроль подрядчиков</string>
+    <string name="app_name">Система мониторинга</string>
 
     <!-- Login -->
     <string name="login_title">Вход оператора</string>

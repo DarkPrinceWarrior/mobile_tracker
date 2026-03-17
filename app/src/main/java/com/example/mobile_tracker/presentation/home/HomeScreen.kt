@@ -28,7 +28,6 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -49,6 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,17 +62,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.MTCard
-import com.example.mobile_tracker.presentation.common.MTCompactTopBar
 import com.example.mobile_tracker.presentation.common.MTMetricCard
 import com.example.mobile_tracker.presentation.common.MTSectionHeader
 import com.example.mobile_tracker.presentation.common.MTStatusBadge
 import com.example.mobile_tracker.presentation.common.MTStatusTone
-import com.example.mobile_tracker.presentation.common.MTTopBarAction
 import com.example.mobile_tracker.presentation.common.MTTopStatusBar
 import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.common.rememberIsTablet
@@ -93,7 +92,6 @@ private data class BottomNavItem(
 enum class HomeDestination {
     ISSUE,
     RETURN,
-    UPLOAD,
     JOURNAL,
     MORE,
 }
@@ -101,11 +99,6 @@ enum class HomeDestination {
 private val bottomNavItems = listOf(
     BottomNavItem(HomeDestination.ISSUE, R.string.tab_issue, Icons.Default.Watch),
     BottomNavItem(HomeDestination.RETURN, R.string.tab_return, Icons.Default.Replay),
-    BottomNavItem(
-        HomeDestination.UPLOAD,
-        R.string.tab_upload,
-        Icons.Default.CloudUpload,
-    ),
     BottomNavItem(
         HomeDestination.JOURNAL,
         R.string.tab_log,
@@ -170,27 +163,11 @@ fun HomeScreen(
 
     AppScreenScaffold(
         topBar = {
-            Column {
-                MTTopStatusBar(
-                    leadingText = statusText,
-                    trailingText = operatorLabel,
-                    statusColor = statusColor,
-                )
-                MTCompactTopBar(
-                    title = headerTitle,
-                    subtitle = headerSubtitle,
-                    applyStatusBarInsets = false,
-                    actions = {
-                        MTTopBarAction(onClick = onLogout) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = stringResource(R.string.action_logout),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    },
-                )
-            }
+            MTTopStatusBar(
+                leadingText = statusText,
+                trailingText = operatorLabel,
+                statusColor = statusColor,
+            )
         },
         bottomBar = {
             if (!isTablet) {
@@ -254,18 +231,9 @@ fun HomeScreen(
                             )
                             HomeDestination.RETURN -> ReturnTabContent(
                                 onNavigateToReturn = onNavigateToReturn,
-                                onNavigateToJournal = onNavigateToJournal,
-                                onNavigateToSummary = onNavigateToSummary,
-                            )
-                            HomeDestination.UPLOAD -> UploadTabContent(
-                                pendingPacketsCount = state.pendingPacketsCount,
-                                onNavigateToDevices = onNavigateToDevices,
-                                onNavigateToJournal = onNavigateToJournal,
                             )
                             HomeDestination.JOURNAL -> JournalTabContent(
                                 onNavigateToJournal = onNavigateToJournal,
-                                onNavigateToSummary = onNavigateToSummary,
-                                onNavigateToAlerts = onNavigateToAlerts,
                             )
                             HomeDestination.MORE -> MoreTabContent(
                                 onNavigateToDevices =
@@ -420,40 +388,6 @@ private fun HomeOverviewSection(
         )
     }
 
-    MTCard {
-        Text(
-            text = stringResource(R.string.home_metric_shift),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-            ) {
-                Text(
-                    text = shiftTypeLabel,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = state.operatorName.ifBlank {
-                        stringResource(R.string.shell_unknown_operator)
-                    },
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            MTStatusBadge(
-                label = stringResource(R.string.more_summary),
-                tone = MTStatusTone.Neutral,
-            )
-        }
-    }
 
     if (state.totalAlertsCount > 0) {
         Card(
@@ -531,11 +465,6 @@ private fun HomeBottomBar(
                     icon = item.icon,
                     selected = selectedDestination == item.destination,
                     badgeCount = if (
-                        item.destination == HomeDestination.UPLOAD &&
-                            pendingPacketsCount > 0
-                    ) {
-                        pendingPacketsCount
-                    } else if (
                         item.destination == HomeDestination.MORE &&
                             alertCount > 0
                     ) {
@@ -577,11 +506,6 @@ private fun HomeNavigationRail(
                     icon = item.icon,
                     selected = selectedDestination == item.destination,
                     badgeCount = if (
-                        item.destination == HomeDestination.UPLOAD &&
-                            pendingPacketsCount > 0
-                    ) {
-                        pendingPacketsCount
-                    } else if (
                         item.destination == HomeDestination.MORE &&
                             alertCount > 0
                     ) {
@@ -611,13 +535,14 @@ private fun HomeNavItem(
     val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant
     val contentColor = if (selected) activeColor else inactiveColor
 
+    val interactionSource = remember { MutableInteractionSource() }
     val outerModifier = if (vertical) {
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
     } else {
         modifier
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
     }
 
     val arrangement = if (vertical) Arrangement.spacedBy(AppSpacing.xs) else Arrangement.spacedBy(6.dp)
@@ -628,15 +553,11 @@ private fun HomeNavItem(
     ) {
         Surface(
             shape = RoundedCornerShape(if (vertical) AppRadius.lg else AppRadius.xl),
-            color = if (selected) {
-                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)
-            } else {
-                Color.Transparent
-            },
+            color = Color.Transparent,
         ) {
             Column(
                 modifier = Modifier.padding(
-                    horizontal = if (vertical) AppSpacing.sm else 14.dp,
+                    horizontal = if (vertical) AppSpacing.sm else 6.dp,
                     vertical = if (vertical) AppSpacing.sm else 10.dp,
                 ),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -665,6 +586,8 @@ private fun HomeNavItem(
                     style = MaterialTheme.typography.labelSmall,
                     color = contentColor,
                     textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -865,8 +788,6 @@ private fun IssueTabContent(
 @Composable
 private fun ReturnTabContent(
     onNavigateToReturn: () -> Unit,
-    onNavigateToJournal: () -> Unit,
-    onNavigateToSummary: () -> Unit,
 ) {
     HomePrimaryActionCard(
         icon = Icons.Default.Replay,
@@ -878,87 +799,16 @@ private fun ReturnTabContent(
         onClick = onNavigateToReturn,
     )
 
-    HomeQuickActionsRow(
-        title = stringResource(R.string.home_quick_actions),
-        first = {
-            HomeQuickActionCard(
-                icon = Icons.AutoMirrored.Filled.List,
-                title = stringResource(R.string.journal_title),
-                subtitle = stringResource(R.string.home_shortcut_journal_desc),
-                onClick = onNavigateToJournal,
-            )
-        },
-        second = {
-            HomeQuickActionCard(
-                icon = Icons.Default.BarChart,
-                title = stringResource(R.string.more_summary),
-                subtitle = stringResource(R.string.home_shortcut_summary_desc),
-                onClick = onNavigateToSummary,
-            )
-        },
-    )
-
     StateCard(
         message = stringResource(R.string.home_return_hint),
         isError = false,
     )
 }
 
-@Composable
-private fun UploadTabContent(
-    pendingPacketsCount: Int,
-    onNavigateToDevices: () -> Unit,
-    onNavigateToJournal: () -> Unit,
-) {
-    HomePrimaryActionCard(
-        icon = Icons.Default.CloudUpload,
-        statusLabel = if (pendingPacketsCount > 0) {
-            stringResource(R.string.home_primary_upload_status_pending, pendingPacketsCount)
-        } else {
-            stringResource(R.string.home_primary_upload_status_ready)
-        },
-        statusTone = if (pendingPacketsCount > 0) MTStatusTone.Warning else MTStatusTone.Success,
-        title = stringResource(R.string.tab_upload),
-        subtitle = stringResource(R.string.home_upload_subtitle),
-        buttonText = stringResource(R.string.more_devices),
-        onClick = onNavigateToDevices,
-    )
-
-    HomeQuickActionsRow(
-        title = stringResource(R.string.home_quick_actions),
-        first = {
-            HomeQuickActionCard(
-                icon = Icons.Default.Devices,
-                title = stringResource(R.string.more_devices),
-                subtitle = stringResource(R.string.home_shortcut_devices_desc),
-                onClick = onNavigateToDevices,
-            )
-        },
-        second = {
-            HomeQuickActionCard(
-                icon = Icons.AutoMirrored.Filled.List,
-                title = stringResource(R.string.journal_title),
-                subtitle = stringResource(R.string.home_shortcut_journal_desc),
-                onClick = onNavigateToJournal,
-            )
-        },
-    )
-
-    StateCard(
-        message = if (pendingPacketsCount > 0) {
-            stringResource(R.string.home_upload_hint_pending, pendingPacketsCount)
-        } else {
-            stringResource(R.string.home_upload_hint_ready)
-        },
-        isError = false,
-    )
-}
 
 @Composable
 private fun JournalTabContent(
     onNavigateToJournal: () -> Unit,
-    onNavigateToSummary: () -> Unit,
-    onNavigateToAlerts: () -> Unit,
 ) {
     HomePrimaryActionCard(
         icon = Icons.AutoMirrored.Filled.List,
@@ -968,26 +818,6 @@ private fun JournalTabContent(
         subtitle = stringResource(R.string.home_journal_subtitle),
         buttonText = stringResource(R.string.journal_navigate),
         onClick = onNavigateToJournal,
-    )
-
-    HomeQuickActionsRow(
-        title = stringResource(R.string.home_quick_actions),
-        first = {
-            HomeQuickActionCard(
-                icon = Icons.Default.BarChart,
-                title = stringResource(R.string.more_summary),
-                subtitle = stringResource(R.string.home_shortcut_summary_desc),
-                onClick = onNavigateToSummary,
-            )
-        },
-        second = {
-            HomeQuickActionCard(
-                icon = Icons.Default.Warning,
-                title = stringResource(R.string.more_alerts),
-                subtitle = stringResource(R.string.home_shortcut_alerts_desc),
-                onClick = onNavigateToAlerts,
-            )
-        },
     )
 
     StateCard(

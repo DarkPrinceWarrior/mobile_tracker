@@ -15,11 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.HourglassTop
-import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -98,11 +93,6 @@ fun SummaryScreen(
                         .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
                 ) {
-                    SummaryHeroCard(
-                        issuedCount = state.issuedCount,
-                        returnedCount = state.returnedCount,
-                        shiftType = state.shiftType,
-                    )
 
                     if (state.error != null) {
                         StateCard(message = state.error!!, isError = true)
@@ -125,52 +115,6 @@ fun SummaryScreen(
                                 value = state.returnedCount.toString(),
                             )
                         },
-                    )
-
-                    SummaryMetricGrid(
-                        first = {
-                            SummaryMetricCard(
-                                icon = Icons.Default.HourglassTop,
-                                iconTint = MaterialTheme.colorScheme.warning,
-                                label = stringResource(R.string.summary_not_returned),
-                                value = state.notReturnedCount.toString(),
-                            )
-                        },
-                        second = {
-                            SummaryMetricCard(
-                                icon = Icons.Default.CloudDone,
-                                iconTint = MaterialTheme.colorScheme.tertiary,
-                                label = stringResource(R.string.summary_data_uploaded),
-                                value = state.dataUploadedCount.toString(),
-                            )
-                        },
-                    )
-
-                    SummaryMetricGrid(
-                        first = {
-                            SummaryMetricCard(
-                                icon = Icons.Default.CloudOff,
-                                iconTint = MaterialTheme.colorScheme.warning,
-                                label = stringResource(R.string.summary_pending_packets),
-                                value = state.pendingPacketsCount.toString(),
-                            )
-                        },
-                        second = {
-                            SummaryMetricCard(
-                                icon = Icons.Default.Error,
-                                iconTint = MaterialTheme.colorScheme.danger,
-                                label = stringResource(R.string.summary_error_packets),
-                                value = state.errorPacketsCount.toString(),
-                            )
-                        },
-                    )
-
-                    SummaryMetricCard(
-                        icon = Icons.Default.SyncProblem,
-                        iconTint = MaterialTheme.colorScheme.secondary,
-                        label = stringResource(R.string.summary_unsynced),
-                        value = state.unsyncedBindingsCount.toString(),
-                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }

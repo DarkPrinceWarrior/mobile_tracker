@@ -222,73 +222,18 @@ private fun EmployeeSearchSummaryCard(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-            ) {
-                Text(
-                    text = stringResource(R.string.employees_section_title),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = totalCount.toString(),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = if (query.isBlank()) {
-                        stringResource(R.string.employees_list_mode)
-                    } else {
-                        query
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            MTStatusBadge(
-                label = if (query.isBlank()) {
-                    stringResource(R.string.employees_list_mode)
-                } else {
-                    stringResource(R.string.action_search)
-                },
-                tone = if (query.isBlank()) MTStatusTone.Neutral else MTStatusTone.Success,
+            Text(
+                text = stringResource(R.string.employees_section_title),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-
-        if (selectedEmployee != null) {
-            Spacer(modifier = Modifier.height(AppSpacing.xs))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(AppRadius.pill),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f),
-                ) {
-                    Text(
-                        text = stringResource(R.string.employees_selected, selectedEmployee.fullName),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (selectedBinding != null) {
-                    EmployeeMetaPill(
-                        icon = Icons.Default.Watch,
-                        text = stringResource(
-                            R.string.employees_current_device,
-                            selectedBinding.deviceId,
-                        ),
-                    )
-                }
-            }
+            Text(
+                text = totalCount.toString(),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -324,108 +269,29 @@ private fun EmployeeCard(
             },
         ),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(AppLayout.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp),
-                        tint = MaterialTheme.colorScheme.tertiary,
-                    )
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = employee.fullName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    val secondaryLine = listOfNotNull(employee.companyName, employee.position)
-                        .joinToString(" · ")
-                    if (secondaryLine.isNotBlank()) {
-                        Text(
-                            text = secondaryLine,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                if (isSelected) {
-                    MTStatusBadge(
-                        label = stringResource(R.string.issue_selected),
-                        tone = MTStatusTone.Success,
-                    )
+            Text(
+                text = employee.fullName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            MTStatusBadge(
+                label = if (activeBinding != null) {
+                    stringResource(R.string.employees_status_active_binding)
                 } else {
-                    MTStatusBadge(
-                        label = if (activeBinding != null) {
-                            stringResource(R.string.employees_status_active_binding)
-                        } else {
-                            stringResource(R.string.employees_status_no_binding)
-                        },
-                        tone = if (activeBinding != null) {
-                            MTStatusTone.Warning
-                        } else {
-                            MTStatusTone.Neutral
-                        },
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                employee.personnelNumber?.let {
-                    EmployeeMetaPill(
-                        icon = Icons.Default.Badge,
-                        text = stringResource(R.string.employees_personnel_number, it),
-                    )
-                }
-                employee.brigadeName?.let {
-                    EmployeeMetaPill(
-                        icon = Icons.Default.People,
-                        text = stringResource(R.string.employees_brigade, it),
-                    )
-                }
-                activeBinding?.let {
-                    EmployeeMetaPill(
-                        icon = Icons.Default.Watch,
-                        text = stringResource(R.string.employees_current_device, it.deviceId),
-                    )
-                }
-            }
-
-            if (recentLog != null) {
-                Text(
-                    text = stringResource(
-                        R.string.employees_recent_activity,
-                        employeeLogLabel(recentLog),
-                        formatTimestamp(recentLog.createdAt, pattern = "HH:mm"),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+                    stringResource(R.string.employees_status_no_binding)
+                },
+                tone = if (activeBinding != null) MTStatusTone.Warning else MTStatusTone.Neutral,
+            )
         }
     }
 }
