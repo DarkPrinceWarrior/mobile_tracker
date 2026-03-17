@@ -1,12 +1,8 @@
 package com.example.mobile_tracker.presentation.settings
 
-import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
@@ -36,7 +31,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -73,11 +67,6 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        viewModel.onIntent(SettingsIntent.SetNotificationsEnabled(granted))
-    }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -149,47 +138,6 @@ fun SettingsScreen(
             )
 
             SettingsActionItem(
-                icon = Icons.Default.Notifications,
-                title = stringResource(R.string.settings_notifications),
-                subtitle = if (state.notificationsPermissionGranted) {
-                    stringResource(R.string.settings_notifications_desc)
-                } else {
-                    stringResource(R.string.settings_notifications_permission_required)
-                },
-                trailing = {
-                    Switch(
-                        checked = state.notificationsEnabled && state.notificationsPermissionGranted,
-                        onCheckedChange = { checked ->
-                            if (!checked) {
-                                viewModel.onIntent(SettingsIntent.SetNotificationsEnabled(false))
-                            } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                                state.notificationsPermissionGranted
-                            ) {
-                                viewModel.onIntent(SettingsIntent.SetNotificationsEnabled(true))
-                            } else {
-                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                        },
-                    )
-                },
-                onClick = {
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                        state.notificationsPermissionGranted
-                    ) {
-                        viewModel.onIntent(
-                            SettingsIntent.SetNotificationsEnabled(!state.notificationsEnabled),
-                        )
-                    } else {
-                        context.startActivity(
-                            Intent(
-                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                Uri.fromParts("package", context.packageName, null),
-                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    }
-                },
-            )
-            SettingsActionItem(
                 icon = Icons.Default.SwapHoriz,
                 title = stringResource(R.string.settings_change_context),
                 subtitle = stringResource(R.string.settings_change_context_desc),
@@ -252,91 +200,34 @@ private fun SettingsHeroCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppRadius.xl),
+        shape = RoundedCornerShape(AppRadius.lg),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         ),
     ) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppLayout.cardPadding),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                    )
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = name.ifBlank { stringResource(R.string.settings_operator) },
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    if (email.isNotBlank()) {
-                        Text(
-                            text = email,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                MTStatusBadge(
-                    label = if (shiftType == "day") {
-                        stringResource(R.string.context_shift_day)
-                    } else {
-                        stringResource(R.string.context_shift_night)
-                    },
-                    tone = MTStatusTone.Neutral,
-                )
-            }
-
-            Surface(
-                shape = RoundedCornerShape(AppRadius.lg),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_current_context),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = siteName.ifBlank { "—" },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = shiftDate,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            Text(
+                text = name.ifBlank { stringResource(R.string.settings_operator) },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            MTStatusBadge(
+                label = if (shiftType == "day") {
+                    stringResource(R.string.context_shift_day)
+                } else {
+                    stringResource(R.string.context_shift_night)
+                },
+                tone = MTStatusTone.Neutral,
+            )
         }
     }
 }

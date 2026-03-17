@@ -53,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -125,7 +126,7 @@ fun HomeScreen(
 ) {
     val state by viewModel.state
         .collectAsStateWithLifecycle()
-    var selectedDestination by remember {
+    var selectedDestination by rememberSaveable {
         mutableStateOf(HomeDestination.ISSUE)
     }
     val isTablet = rememberIsTablet()
@@ -197,7 +198,7 @@ fun HomeScreen(
             Column(
                 modifier = Modifier.fillMaxSize(),
             ) {
-                AnimatedContent(
+                AnimatedContent<HomeDestination>(
                     targetState = selectedDestination,
                     label = "tab_content",
                     transitionSpec = {
@@ -220,7 +221,6 @@ fun HomeScreen(
                                 state = state,
                                 shiftTypeLabel = shiftTypeLabel,
                                 onNavigateToSummary = onNavigateToSummary,
-                                onNavigateToAlerts = onNavigateToAlerts,
                             )
                         }
                         when (destination) {
@@ -236,23 +236,10 @@ fun HomeScreen(
                                 onNavigateToJournal = onNavigateToJournal,
                             )
                             HomeDestination.MORE -> MoreTabContent(
-                                onNavigateToDevices =
-                                    onNavigateToDevices,
-                                onNavigateToEmployees =
-                                    onNavigateToEmployees,
-                                onNavigateToMonitoring =
-                                    onNavigateToMonitoring,
-                                onNavigateToMaps =
-                                    onNavigateToMaps,
-                                onNavigateToSummary =
-                                    onNavigateToSummary,
-                                onNavigateToAlerts =
-                                    onNavigateToAlerts,
-                                onNavigateToSettings =
-                                    onNavigateToSettings,
-                                onNavigateToRegisterWatch =
-                                    onNavigateToRegisterWatch,
-                                alertCount = state.totalAlertsCount,
+                                onNavigateToMonitoring = onNavigateToMonitoring,
+                                onNavigateToMaps = onNavigateToMaps,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToRegisterWatch = onNavigateToRegisterWatch,
                             )
                         }
                     }
@@ -267,7 +254,6 @@ private fun HomeOverviewSection(
     state: HomeState,
     shiftTypeLabel: String,
     onNavigateToSummary: () -> Unit,
-    onNavigateToAlerts: () -> Unit,
 ) {
     MTSectionHeader(
         title = stringResource(R.string.home_overview_title),
@@ -317,127 +303,8 @@ private fun HomeOverviewSection(
         }
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-    ) {
-        MTMetricCard(
-            title = stringResource(R.string.home_metric_network),
-            value = if (state.isOnline) {
-                stringResource(R.string.home_network_online)
-            } else {
-                stringResource(R.string.home_network_offline)
-            },
-            subtitle = if (state.isOnline) {
-                stringResource(R.string.shell_sync_ready)
-            } else {
-                stringResource(R.string.offline_banner)
-            },
-            tone = if (state.isOnline) MTStatusTone.Success else MTStatusTone.Danger,
-            modifier = Modifier.weight(1f),
-        )
-        MTMetricCard(
-            title = stringResource(R.string.home_metric_queue),
-            value = state.pendingPacketsCount.toString(),
-            subtitle = if (state.pendingPacketsCount > 0) {
-                stringResource(R.string.home_queue_pending)
-            } else {
-                stringResource(R.string.home_queue_ready)
-            },
-            tone = if (state.pendingPacketsCount > 0) {
-                MTStatusTone.Warning
-            } else {
-                MTStatusTone.Neutral
-            },
-            modifier = Modifier.weight(1f),
-        )
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-    ) {
-        MTMetricCard(
-            title = stringResource(R.string.home_metric_active),
-            value = state.activeBindingsCount.toString(),
-            subtitle = stringResource(
-                R.string.home_metric_active_subtitle,
-                state.uploadRequiredCount,
-            ),
-            tone = MTStatusTone.Neutral,
-            modifier = Modifier.weight(1f),
-        )
-        MTMetricCard(
-            title = stringResource(R.string.home_metric_alerts),
-            value = state.totalAlertsCount.toString(),
-            subtitle = if (state.totalAlertsCount == 0) {
-                stringResource(R.string.home_alerts_clear)
-            } else {
-                stringResource(
-                    R.string.home_alerts_breakdown,
-                    state.criticalAlertsCount,
-                    state.warningAlertsCount,
-                )
-            },
-            tone = when {
-                state.criticalAlertsCount > 0 -> MTStatusTone.Danger
-                state.totalAlertsCount > 0 -> MTStatusTone.Warning
-                else -> MTStatusTone.Success
-            },
-            modifier = Modifier.weight(1f),
-        )
-    }
-
-
-    if (state.totalAlertsCount > 0) {
-        Card(
-            onClick = onNavigateToAlerts,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(AppRadius.lg),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            ),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(AppLayout.cardPadding),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_alerts_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.home_alerts_subtitle,
-                            state.criticalAlertsCount,
-                            state.warningAlertsCount,
-                            state.errorPacketsCount,
-                            state.unsyncedBindingsCount,
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                MTStatusBadge(
-                    label = stringResource(R.string.home_alerts_open),
-                    tone = if (state.criticalAlertsCount > 0) {
-                        MTStatusTone.Danger
-                    } else {
-                        MTStatusTone.Warning
-                    },
-                )
-            }
-        }
-    }
 }
+
 
 @Composable
 private fun HomeBottomBar(
@@ -828,15 +695,10 @@ private fun JournalTabContent(
 
 @Composable
 private fun MoreTabContent(
-    onNavigateToDevices: () -> Unit,
-    onNavigateToEmployees: () -> Unit,
     onNavigateToMonitoring: () -> Unit,
     onNavigateToMaps: () -> Unit,
-    onNavigateToSummary: () -> Unit,
-    onNavigateToAlerts: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToRegisterWatch: () -> Unit,
-    alertCount: Int,
 ) {
     MTSectionHeader(
         title = stringResource(R.string.more_title),
@@ -855,38 +717,10 @@ private fun MoreTabContent(
         onClick = onNavigateToRegisterWatch,
     )
     MoreMenuItem(
-        icon = Icons.Default.Devices,
-        title = stringResource(R.string.more_devices),
-        subtitle = stringResource(R.string.home_more_devices_subtitle),
-        onClick = onNavigateToDevices,
-    )
-    MoreMenuItem(
-        icon = Icons.Default.People,
-        title = stringResource(R.string.more_employees),
-        subtitle = stringResource(R.string.home_more_employees_subtitle),
-        onClick = onNavigateToEmployees,
-    )
-    MoreMenuItem(
         icon = Icons.Default.Map,
         title = stringResource(R.string.more_maps),
         subtitle = stringResource(R.string.home_more_maps_subtitle),
         onClick = onNavigateToMaps,
-    )
-    MoreMenuItem(
-        icon = Icons.Default.BarChart,
-        title = stringResource(R.string.more_summary),
-        subtitle = stringResource(R.string.home_more_summary_subtitle),
-        onClick = onNavigateToSummary,
-    )
-    MoreMenuItem(
-        icon = Icons.Default.Warning,
-        title = stringResource(R.string.more_alerts),
-        subtitle = if (alertCount > 0) {
-            stringResource(R.string.home_more_alerts_subtitle_count, alertCount)
-        } else {
-            stringResource(R.string.home_more_alerts_subtitle)
-        },
-        onClick = onNavigateToAlerts,
     )
     MoreMenuItem(
         icon = Icons.Default.Settings,

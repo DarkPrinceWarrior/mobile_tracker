@@ -22,20 +22,20 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DeviceUnknown
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -119,9 +119,6 @@ fun WorkerDetailScreen(
                     .fillMaxSize()
                     .padding(padding),
                 state = state,
-                onAcknowledgeIncident = {
-                    viewModel.onIntent(WorkerDetailIntent.AcknowledgeIncident(it))
-                },
             )
         }
     }
@@ -130,7 +127,6 @@ fun WorkerDetailScreen(
 @Composable
 private fun WorkerDetailContent(
     state: WorkerDetailState,
-    onAcknowledgeIncident: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val worker = state.worker ?: return
@@ -146,10 +142,6 @@ private fun WorkerDetailContent(
         WorkerVitalsSection(worker = worker)
         WorkerWatchSection(worker = worker)
         WorkerRouteSection(worker = worker)
-        WorkerIncidentsSection(
-            state = state,
-            onAcknowledgeIncident = onAcknowledgeIncident,
-        )
         Spacer(modifier = Modifier.height(AppSpacing.lg))
     }
 }
@@ -186,31 +178,14 @@ private fun WorkerHeaderCard(
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = worker.roleLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    WorkerMonitoringStatusBadge(status = worker.status)
-                    Surface(
-                        shape = RoundedCornerShape(AppRadius.pill),
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f),
-                    ) {
-                        Text(
-                            text = stringResource(
-                                R.string.worker_detail_smr,
-                                worker.smrPercent,
-                            ),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.tertiary,
-                        )
-                    }
+                if (worker.roleLabel.isNotBlank()) {
+                    Text(
+                        text = worker.roleLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+                WorkerMonitoringStatusBadge(status = worker.status)
             }
         }
     }
@@ -221,20 +196,84 @@ private fun WorkerShiftInfoSection(
     worker: WorkerMonitoringSnapshot,
 ) {
     MTSectionHeader(title = stringResource(R.string.worker_detail_section_shift))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-    ) {
-        WorkerValueTile(
-            modifier = Modifier.weight(1f),
-            label = stringResource(R.string.worker_detail_shift_start),
-            value = formatMonitoringTime(worker.shiftStartAt),
-        )
-        WorkerValueTile(
-            modifier = Modifier.weight(1f),
-            label = stringResource(R.string.worker_detail_shift_activity),
-            value = formatMonitoringDuration(worker.activeDurationMinutes),
-        )
+
+    val now = remember { System.currentTimeMillis() }
+    val shiftDurationMs = 12L * 60 * 60 * 1000
+    val shiftEndAt = worker.shiftStartAt + shiftDurationMs
+    val progress = ((now - worker.shiftStartAt).toFloat() / shiftDurationMs).coerceIn(0f, 1f)
+
+    MTCard {
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(
+                        text = stringResource(R.string.worker_detail_shift_start),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = formatMonitoringTime(worker.shiftStartAt),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Сейчас",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                    Text(
+                        text = formatMonitoringTime(now),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "Конец",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = formatMonitoringTime(shiftEndAt),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.tertiary,
+                trackColor = MaterialTheme.colorScheme.surfaceContainer,
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+                Text(
+                    text = stringResource(R.string.worker_detail_shift_activity) +
+                        ": " + formatMonitoringDuration(worker.activeDurationMinutes),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
@@ -294,57 +333,6 @@ private fun WorkerVitalsSection(
                 }
             }
         }
-
-        Card(
-            modifier = Modifier.weight(0.52f),
-            shape = RoundedCornerShape(AppRadius.lg),
-            colors = CardDefaults.cardColors(
-                containerColor = if (worker.temperatureCelsius != null) {
-                    Color(0xFFF58D43)
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainer
-                },
-            ),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(152.dp)
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = if (worker.temperatureCelsius != null) {
-                        stringResource(R.string.worker_detail_temperature_normal)
-                    } else {
-                        stringResource(R.string.worker_detail_temperature_no_data)
-                    },
-                    style = MaterialTheme.typography.titleSmall,
-                    color = if (worker.temperatureCelsius != null) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Thermostat,
-                        contentDescription = null,
-                        tint = if (worker.temperatureCelsius != null) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = worker.temperatureCelsius?.let { String.format("%.1f", it) }
-                            ?: stringResource(R.string.worker_detail_no_data_short),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = if (worker.temperatureCelsius != null) Color.White else MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(R.string.worker_detail_temperature_unit),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (worker.temperatureCelsius != null) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
     }
 
     Surface(
@@ -392,6 +380,12 @@ private fun WorkerWatchSection(
         return
     }
 
+    val batteryColor = if (worker.batteryPercent > 20) {
+        workerStatusColor(Active)
+    } else {
+        workerStatusColor(WorkerMonitoringStatus.Idle)
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AppRadius.xl),
@@ -406,84 +400,115 @@ private fun WorkerWatchSection(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.Top,
         ) {
-            Surface(
-                modifier = Modifier.size(128.dp),
-                shape = RoundedCornerShape(AppRadius.lg),
-                color = Color.Transparent,
+            // Watch image with battery overlay
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(RoundedCornerShape(AppRadius.lg))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
             ) {
-                Box(
+                Image(
+                    painter = painterResource(id = R.drawable.watch_render),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+                Surface(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(AppRadius.lg))
-                        .background(MaterialTheme.colorScheme.surfaceContainer),
+                        .align(Alignment.BottomCenter)
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(AppRadius.pill),
+                    color = batteryColor.copy(alpha = 0.88f),
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.watch_render),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(8.dp),
-                        shape = RoundedCornerShape(AppRadius.pill),
-                        color = Color.White.copy(alpha = 0.88f),
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = null,
-                                tint = if (worker.batteryPercent > 20) {
-                                    workerStatusColor(Active)
-                                } else {
-                                    workerStatusColor(WorkerMonitoringStatus.Idle)
-                                },
-                            )
-                            Text(
-                                text = stringResource(
-                                    R.string.worker_detail_watch_battery_value,
-                                    worker.batteryPercent,
-                                ),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.White,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.worker_detail_watch_battery_value,
+                                worker.batteryPercent,
+                            ),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White,
+                        )
                     }
                 }
             }
 
+            // Right: model, status, info chips
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                WorkerInfoRow(
-                    label = stringResource(R.string.worker_detail_watch_device),
-                    value = worker.watchModel.orEmpty(),
+                Text(
+                    text = worker.watchModel.orEmpty().ifBlank { "—" },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                WorkerInfoRow(
-                    label = stringResource(R.string.worker_detail_watch_issued),
-                    value = worker.watchIssuedAt?.let {
-                        formatMonitoringTime(it)
-                    } ?: stringResource(R.string.worker_detail_no_data_short),
-                )
-                WorkerInfoRow(
-                    label = stringResource(R.string.worker_detail_watch_last_seen),
-                    value = relativeSeenLabel(worker.lastSeenAt),
-                )
-                WorkerInfoRow(
-                    label = stringResource(R.string.worker_detail_watch_status),
-                    value = if (worker.watchOn) {
+                Text(
+                    text = if (worker.watchOn) {
                         stringResource(R.string.worker_detail_watch_status_on)
                     } else {
                         stringResource(R.string.worker_detail_watch_status_off)
                     },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (worker.watchOn) {
+                        workerStatusColor(Active)
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                WatchInfoChip(
+                    label = stringResource(R.string.worker_detail_watch_issued),
+                    value = worker.watchIssuedAt?.let { formatMonitoringTime(it) }
+                        ?: stringResource(R.string.worker_detail_no_data_short),
+                )
+                WatchInfoChip(
+                    label = stringResource(R.string.worker_detail_watch_last_seen),
+                    value = relativeSeenLabel(worker.lastSeenAt),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun WatchInfoChip(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(AppRadius.lg),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -517,11 +542,23 @@ private fun WorkerRouteSection(
             )
 
             if (worker.route.isEmpty()) {
-                EmptyState(
-                    title = stringResource(R.string.worker_detail_route_empty),
-                    icon = Icons.Default.Info,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                Surface(
+                    shape = RoundedCornerShape(AppRadius.lg),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(AppLayout.cardPadding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.worker_detail_route_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             } else {
                 worker.route.forEach { visit ->
                     Surface(
@@ -590,221 +627,7 @@ private fun WorkerRouteSection(
     }
 }
 
-@Composable
-private fun WorkerIncidentsSection(
-    state: WorkerDetailState,
-    onAcknowledgeIncident: (String) -> Unit,
-) {
-    val incidents = state.worker?.incidents.orEmpty()
 
-    MTSectionHeader(title = stringResource(R.string.worker_detail_section_alerts))
-
-    if (incidents.isEmpty()) {
-        EmptyState(
-            title = stringResource(R.string.worker_detail_alerts_empty),
-            icon = Icons.Default.Info,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        return
-    }
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-    ) {
-        incidents.forEach { incident ->
-            val acknowledged = state.isAcknowledged(incident)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(AppRadius.lg),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(
-                        alpha = if (acknowledged) 0.62f else 1f,
-                    ),
-                ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(AppLayout.cardPadding),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(46.dp)
-                                .clip(CircleShape)
-                                .background(incidentColor(incident.severity).copy(alpha = 0.14f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = incidentIcon(incident.kind),
-                                contentDescription = null,
-                                tint = incidentColor(incident.severity),
-                            )
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Text(
-                                text = incidentTitle(incident.kind),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = incident.note ?: incidentFallbackDescription(incident.kind),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = formatMonitoringTime(incident.timestamp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        androidx.compose.material3.Button(
-                            onClick = { onAcknowledgeIncident(incident.id) },
-                            enabled = !acknowledged,
-                            shape = RoundedCornerShape(AppRadius.xl),
-                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        ) {
-                            Text(
-                                text = if (acknowledged) {
-                                    stringResource(R.string.worker_detail_alert_accepted)
-                                } else {
-                                    stringResource(R.string.worker_detail_alert_acknowledge)
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WorkerValueTile(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(AppRadius.lg),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
-}
-
-@Composable
-private fun WorkerInfoRow(
-    label: String,
-    value: String,
-) {
-    Surface(
-        shape = RoundedCornerShape(AppRadius.lg),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun incidentTitle(kind: com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind): String = when (kind) {
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.PacketError -> stringResource(R.string.worker_detail_incident_packet_error)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.PacketPending -> stringResource(R.string.worker_detail_incident_packet_pending)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.BindingUnsynced -> stringResource(R.string.worker_detail_incident_binding_unsynced)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.UploadRequired -> stringResource(R.string.worker_detail_incident_upload_required)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.LowBattery -> stringResource(R.string.worker_detail_incident_low_battery)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.InactiveTooLong -> stringResource(R.string.worker_detail_incident_inactive)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.WatchDisconnected -> stringResource(R.string.worker_detail_incident_watch_off)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.OperationError -> stringResource(R.string.worker_detail_incident_operation_error)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.OperationPending -> stringResource(R.string.worker_detail_incident_operation_pending)
-}
-
-@Composable
-private fun incidentFallbackDescription(kind: com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind): String = when (kind) {
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.PacketError -> stringResource(R.string.worker_detail_incident_packet_error_desc)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.PacketPending -> stringResource(R.string.worker_detail_incident_packet_pending_desc)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.BindingUnsynced -> stringResource(R.string.worker_detail_incident_binding_unsynced_desc)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.UploadRequired -> stringResource(R.string.worker_detail_incident_upload_required_desc)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.LowBattery -> stringResource(R.string.worker_detail_incident_low_battery_desc)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.InactiveTooLong -> stringResource(R.string.worker_detail_incident_inactive_desc)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.WatchDisconnected -> stringResource(R.string.worker_detail_incident_watch_off_desc)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.OperationError -> stringResource(R.string.worker_detail_incident_operation_error_desc)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.OperationPending -> stringResource(R.string.worker_detail_incident_operation_pending_desc)
-}
-
-@Composable
-private fun incidentColor(
-    severity: com.example.mobile_tracker.presentation.monitoring.WorkerIncidentSeverity,
-): Color = when (severity) {
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentSeverity.Critical -> workerStatusColor(WorkerMonitoringStatus.Offline)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentSeverity.Warning -> workerStatusColor(WorkerMonitoringStatus.Idle)
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentSeverity.Info -> workerStatusColor(Active)
-}
-
-private fun incidentIcon(
-    kind: com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind,
-): androidx.compose.ui.graphics.vector.ImageVector = when (kind) {
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.PacketError -> Icons.Default.Bolt
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.PacketPending -> Icons.Default.Info
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.BindingUnsynced -> Icons.Default.Info
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.UploadRequired -> Icons.Default.Watch
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.LowBattery -> Icons.Default.Bolt
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.InactiveTooLong -> Icons.AutoMirrored.Filled.DirectionsWalk
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.WatchDisconnected -> Icons.Default.Watch
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.OperationError -> Icons.Default.Info
-    com.example.mobile_tracker.presentation.monitoring.WorkerIncidentKind.OperationPending -> Icons.Default.Info
-}
 
 @Composable
 private fun relativeSeenLabel(timestamp: Long?): String {
