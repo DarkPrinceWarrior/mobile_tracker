@@ -556,4 +556,36 @@
     <string name="notifications_sync_complete_body">Успешно обработано объектов: %1$d.</string>
     <string name="notifications_reference_sync_error_title">Ошибка обновления справочников</string>
     <string name="notifications_reference_sync_error_body">Фоновая синхронизация справочников завершилась ошибкой.</string>
+
+    <!-- QR scan: RegisterWatch mode -->
+    <string name="qr_scan_subtitle_register_watch">Регистрация часов по QR-коду</string>
+    <string name="qr_scan_instruction_register_watch">Отсканируйте QR-код с экрана часов или введите device_id вручную, чтобы зарегистрировать новое устройство.</string>
+
+    <!-- Register Watch screen -->
+    <string name="register_watch_title">Регистрация часов</string>
+    <string name="register_watch_step_select_employee">Выберите сотрудника</string>
+    <string name="register_watch_step_confirm">Подтверждение</string>
+    <string name="register_watch_completed">Готово</string>
+    <string name="register_watch_device_title">Устройство</string>
+    <string name="register_watch_no_device">Не определено</string>
+    <string name="register_watch_badge_new">Новое</string>
+    <string name="register_watch_model">Модель</string>
+    <string name="register_watch_firmware">Прошивка</string>
+    <string name="register_watch_search_title">Выбор сотрудника</string>
+    <string name="register_watch_search_subtitle">Найдите сотрудника, к которому будут привязаны часы.</string>
+    <string name="register_watch_search_label">ФИО или табельный номер</string>
+    <string name="register_watch_confirm_title">Подтверждение регистрации</string>
+    <string name="register_watch_confirm_subtitle">Проверьте данные и нажмите «Зарегистрировать», чтобы привязать часы к сотруднику.</string>
+    <string name="register_watch_change_employee">Выбрать другого сотрудника</string>
+    <string name="register_watch_summary_device">Устройство</string>
+    <string name="register_watch_summary_employee">Сотрудник</string>
+    <string name="register_watch_button">Зарегистрировать и привязать</string>
+    <string name="register_watch_success_title">Часы зарегистрированы</string>
+    <string name="register_watch_success_message">Часы %1$s успешно зарегистрированы и привязаны к %2$s.</string>
+    <string name="register_watch_success_hint">Часы автоматически получат учётные данные и перейдут в рабочий режим.</string>
+    <string name="register_watch_done">Готово</string>
+
+    <!-- More tab: Register Watch -->
+    <string name="more_register_watch">Регистрация часов</string>
+    <string name="home_more_register_watch_subtitle">Зарегистрировать новые часы по QR-коду</string>
 </resources>

@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.PhonelinkSetup
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Settings
@@ -126,6 +127,7 @@ fun HomeScreen(
     onNavigateToSummary: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAlerts: () -> Unit = {},
+    onNavigateToRegisterWatch: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state
@@ -279,6 +281,8 @@ fun HomeScreen(
                                     onNavigateToAlerts,
                                 onNavigateToSettings =
                                     onNavigateToSettings,
+                                onNavigateToRegisterWatch =
+                                    onNavigateToRegisterWatch,
                                 alertCount = state.totalAlertsCount,
                             )
                         }
@@ -1000,6 +1004,7 @@ private fun MoreTabContent(
     onNavigateToSummary: () -> Unit,
     onNavigateToAlerts: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToRegisterWatch: () -> Unit,
     alertCount: Int,
 ) {
     MTSectionHeader(
@@ -1011,6 +1016,12 @@ private fun MoreTabContent(
         title = stringResource(R.string.more_monitoring),
         subtitle = stringResource(R.string.home_more_monitoring_subtitle),
         onClick = onNavigateToMonitoring,
+    )
+    MoreMenuItem(
+        icon = Icons.Default.PhonelinkSetup,
+        title = stringResource(R.string.more_register_watch),
+        subtitle = stringResource(R.string.home_more_register_watch_subtitle),
+        onClick = onNavigateToRegisterWatch,
     )
     MoreMenuItem(
         icon = Icons.Default.Devices,

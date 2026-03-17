@@ -18,6 +18,7 @@ import com.example.mobile_tracker.presentation.maps.MapsScreen
 import com.example.mobile_tracker.presentation.monitoring.MonitoringScreen
 import com.example.mobile_tracker.presentation.nfc_scan.NfcScanScreen
 import com.example.mobile_tracker.presentation.qr_scan.QrScanScreen
+import com.example.mobile_tracker.presentation.register_watch.RegisterWatchScreen
 import com.example.mobile_tracker.presentation.settings.SettingsScreen
 import com.example.mobile_tracker.presentation.summary.SummaryScreen
 import com.example.mobile_tracker.presentation.upload.UploadScreen
@@ -92,6 +93,11 @@ fun AppNavGraph(
                 },
                 onNavigateToAlerts = {
                     navController.navigate(Route.Alerts)
+                },
+                onNavigateToRegisterWatch = {
+                    navController.navigate(
+                        Route.QrScan(mode = QrScanMode.RegisterWatch),
+                    )
                 },
             )
         }
@@ -281,6 +287,14 @@ fun AppNavGraph(
                                 }
                             }
                         }
+
+                        QrScanMode.RegisterWatch -> {
+                            navController.navigate(
+                                Route.RegisterWatch(scannedValue = scannedValue),
+                            ) {
+                                popUpTo(Route.Home) { inclusive = false }
+                            }
+                        }
                     }
                 },
             )
@@ -348,6 +362,19 @@ fun AppNavGraph(
                         popUpTo(Route.Home) {
                             inclusive = true
                         }
+                    }
+                },
+            )
+        }
+
+        composable<Route.RegisterWatch> { backStackEntry ->
+            val scannedValue = backStackEntry.arguments?.getString("scannedValue").orEmpty()
+            RegisterWatchScreen(
+                scannedValue = scannedValue,
+                onBack = { navController.popBackStack() },
+                onCompleted = {
+                    navController.navigate(Route.Home) {
+                        popUpTo(Route.Home) { inclusive = true }
                     }
                 },
             )

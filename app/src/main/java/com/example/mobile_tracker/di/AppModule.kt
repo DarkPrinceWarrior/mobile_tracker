@@ -8,6 +8,7 @@ import com.example.mobile_tracker.data.local.secure.SecureStorage
 import com.example.mobile_tracker.data.repository.BindingRepository
 import com.example.mobile_tracker.data.repository.ReferenceRepository
 import com.example.mobile_tracker.data.repository.UploadRepository
+import com.example.mobile_tracker.data.remote.api.DeviceRegistrationApi
 import com.example.mobile_tracker.presentation.alerts.AlertsViewModel
 import com.example.mobile_tracker.presentation.binding.issue.IssueViewModel
 import com.example.mobile_tracker.presentation.binding.return_device.ReturnViewModel
@@ -19,6 +20,7 @@ import com.example.mobile_tracker.presentation.login.LoginViewModel
 import com.example.mobile_tracker.presentation.journal.JournalViewModel
 import com.example.mobile_tracker.presentation.maps.MapsViewModel
 import com.example.mobile_tracker.presentation.monitoring.MonitoringViewModel
+import com.example.mobile_tracker.presentation.register_watch.RegisterWatchViewModel
 import com.example.mobile_tracker.presentation.settings.SettingsViewModel
 import com.example.mobile_tracker.presentation.summary.SummaryViewModel
 import com.example.mobile_tracker.presentation.upload.UploadViewModel
@@ -54,6 +56,9 @@ val appModule = module {
     single {
         UploadRepository(get(), get(), get(), get())
     }
+
+    // Device Registration
+    single { DeviceRegistrationApi(get<com.example.mobile_tracker.data.remote.NetworkClient>().httpClient) }
 
     viewModel { LoginViewModel(get(), get(), get()) }
     viewModel {
@@ -92,4 +97,5 @@ val appModule = module {
             androidContext(),
         )
     }
+    viewModel { RegisterWatchViewModel(get(), get(), get()) }
 }

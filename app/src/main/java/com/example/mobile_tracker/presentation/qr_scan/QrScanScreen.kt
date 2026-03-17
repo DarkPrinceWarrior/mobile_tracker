@@ -364,6 +364,7 @@ private fun modeSubtitle(mode: QrScanMode): String = when (mode) {
     QrScanMode.IssueDevice -> stringResource(R.string.qr_scan_subtitle_issue)
     QrScanMode.ReturnDevice -> stringResource(R.string.qr_scan_subtitle_return)
     QrScanMode.UploadDevice -> stringResource(R.string.qr_scan_subtitle_upload)
+    QrScanMode.RegisterWatch -> stringResource(R.string.qr_scan_subtitle_register_watch)
 }
 
 @Composable
@@ -371,10 +372,12 @@ private fun modeInstruction(mode: QrScanMode): String = when (mode) {
     QrScanMode.IssueDevice -> stringResource(R.string.qr_scan_instruction_issue)
     QrScanMode.ReturnDevice -> stringResource(R.string.qr_scan_instruction_return)
     QrScanMode.UploadDevice -> stringResource(R.string.qr_scan_instruction_upload)
+    QrScanMode.RegisterWatch -> stringResource(R.string.qr_scan_instruction_register_watch)
 }
 
 private fun demoValue(mode: QrScanMode): String = when (mode) {
     QrScanMode.IssueDevice -> "WT-0007"
     QrScanMode.ReturnDevice -> "WT-0003"
     QrScanMode.UploadDevice -> "WT-0005"
+    QrScanMode.RegisterWatch -> "{\"device_id\":\"WT-0EC22895\",\"model\":\"sdk_gwear_x86_64\",\"firmware\":\"Wear OS 36\",\"app_version\":\"1.0.0\"}"
 }

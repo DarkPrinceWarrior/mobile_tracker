@@ -7,6 +7,7 @@ enum class QrScanMode {
     IssueDevice,
     ReturnDevice,
     UploadDevice,
+    RegisterWatch,
 }
 
 @Serializable
@@ -87,4 +88,9 @@ sealed interface Route {
 
     @Serializable
     data object Settings : Route
+
+    @Serializable
+    data class RegisterWatch(
+        val scannedValue: String = "",
+    ) : Route
 }
