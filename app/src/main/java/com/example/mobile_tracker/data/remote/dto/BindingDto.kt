@@ -31,8 +31,6 @@ data class BindingResponse(
     @SerialName("unbound_by")
     val unboundBy: String? = null,
     val status: String = "active",
-    @SerialName("data_uploaded")
-    val dataUploaded: Boolean = false,
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("updated_at")

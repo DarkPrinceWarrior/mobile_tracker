@@ -18,14 +18,12 @@ data class UploadPacketRequest(
     val iv: String,
     @SerialName("payload_hash")
     val payloadHash: String,
-    @SerialName("operator_id") val operatorId: String,
-    @SerialName("site_id") val siteId: String,
-    @SerialName("employee_id")
-    val employeeId: String? = null,
+    @SerialName("payload_size_bytes")
+    val payloadSizeBytes: Int? = null,
+    @SerialName("operator_id") val operatorId: String? = null,
+    @SerialName("site_id") val siteId: String? = null,
     @SerialName("binding_id")
-    val bindingId: Long? = null,
-    @SerialName("uploaded_from")
-    val uploadedFrom: String = "gateway",
+    val bindingId: String? = null,
     @SerialName("gateway_device_info")
     val gatewayDeviceInfo: GatewayDeviceInfo? = null,
 )
@@ -41,6 +39,8 @@ data class GatewayDeviceInfo(
 data class UploadPacketResponse(
     @SerialName("packet_id") val packetId: String,
     val status: String,
+    @SerialName("received_at")
+    val receivedAt: String? = null,
     @SerialName("server_time")
     val serverTime: String? = null,
 )

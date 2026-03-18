@@ -36,6 +36,7 @@ class ReturnViewModel(
 
     private var siteId: String = ""
     private var shiftDate: String = ""
+    private var operatorId: String = ""
 
     init {
         loadContext()
@@ -86,6 +87,7 @@ class ReturnViewModel(
             if (ctx != null) {
                 siteId = ctx.siteId
                 shiftDate = ctx.shiftDate
+                operatorId = ctx.operatorId
                 observeBindings()
             } else {
                 _state.update {
@@ -163,6 +165,7 @@ class ReturnViewModel(
                 bindingId = binding.id,
                 siteId = siteId,
                 shiftDate = shiftDate,
+                operatorId = operatorId.ifBlank { null },
             ).fold(
                 onSuccess = {
                     _state.update {
@@ -247,6 +250,7 @@ class ReturnViewModel(
                         ReturnProblemReason.Other -> ReturnDeviceProblemOutcome.Other
                     },
                     comment = comment,
+                    operatorId = operatorId.ifBlank { null },
                 ).getOrThrow()
                 _state.update {
                     it.copy(

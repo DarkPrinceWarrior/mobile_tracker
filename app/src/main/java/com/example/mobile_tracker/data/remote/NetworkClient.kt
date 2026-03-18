@@ -1,5 +1,7 @@
 package com.example.mobile_tracker.data.remote
 
+import android.content.Context
+import android.provider.Settings
 import com.example.mobile_tracker.data.local.secure.SecureStorage
 import com.example.mobile_tracker.data.remote.dto.RefreshTokenRequest
 import com.example.mobile_tracker.data.remote.dto.RefreshTokenResponse
@@ -24,6 +26,7 @@ import kotlinx.serialization.json.Json
 import timber.log.Timber
 
 class NetworkClient(
+    private val context: Context,
     private val secureStorage: SecureStorage,
 ) {
     private val jsonConfig = Json {
@@ -89,8 +92,13 @@ class NetworkClient(
                 "/api/v1/auth/device/refresh",
             ) {
                 header("Authorization", "")
+                val androidId = Settings.Secure.getString(
+                    context.contentResolver,
+                    Settings.Secure.ANDROID_ID,
+                ) ?: "unknown"
                 setBody(
                     RefreshTokenRequest(
+                        deviceId = androidId,
                         refreshToken = currentRefresh,
                     ),
                 )

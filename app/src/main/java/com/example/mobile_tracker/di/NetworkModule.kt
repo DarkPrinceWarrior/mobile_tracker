@@ -9,10 +9,11 @@ import com.example.mobile_tracker.data.remote.api.HeartbeatApi
 import com.example.mobile_tracker.data.remote.api.ReferenceApi
 import com.example.mobile_tracker.data.remote.api.ShiftsApi
 import com.example.mobile_tracker.data.remote.api.ZonesApi
+import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val networkModule = module {
-    single { NetworkClient(get()) }
+    single { NetworkClient(androidContext(), get()) }
     single { get<NetworkClient>().httpClient }
     single { AuthApi(get()) }
     single { ReferenceApi(get()) }

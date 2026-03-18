@@ -17,5 +17,5 @@ data class MobileRegisterRequest(
 data class MobileRegisterResponse(
     @SerialName("device_id") val deviceId: String,
     val status: String,
-    @SerialName("binding_id") val bindingId: Long? = null,
+    @SerialName("binding_id") val bindingId: String? = null,
 )

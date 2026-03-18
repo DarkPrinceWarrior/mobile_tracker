@@ -86,7 +86,7 @@ val appModule = module {
         ReturnViewModel(get(), get(), get(), get())
     }
     viewModel {
-        UploadViewModel(get(), get(), get(), get(), get())
+        UploadViewModel(get(), get(), get(), get(), get(), get())
     }
     viewModel { JournalViewModel(get(), get()) }
     viewModel { AlertsViewModel(get(), get(), get(), get(), get()) }

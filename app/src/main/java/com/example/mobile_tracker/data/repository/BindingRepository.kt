@@ -161,6 +161,7 @@ class BindingRepository(
             shiftType = shiftType,
             boundAt = now,
             status = "active",
+            operatorId = operatorId,
             isSynced = false,
             createdAt = now,
         )
@@ -196,6 +197,7 @@ class BindingRepository(
                     siteId = siteId,
                     shiftDate = shiftDate,
                     shiftType = shiftType,
+                    boundBy = operatorId,
                 ),
             )
             val code = response.status.value
@@ -243,6 +245,7 @@ class BindingRepository(
         bindingId: Long,
         siteId: String,
         shiftDate: String,
+        operatorId: String? = null,
     ): Result<DeviceBinding> = runCatching {
         val binding = bindingDao.findActiveByIdSync(bindingId)
         requireNotNull(binding) {
@@ -279,7 +282,9 @@ class BindingRepository(
             try {
                 val response = bindingApi.closeBinding(
                     binding.serverId,
-                    CloseBindingRequest(),
+                    CloseBindingRequest(
+                        unboundBy = operatorId,
+                    ),
                 )
                 val code = response.status.value
                 if (code in 200..299) {
@@ -314,6 +319,7 @@ class BindingRepository(
         shiftDate: String,
         outcome: ReturnDeviceProblemOutcome,
         comment: String?,
+        operatorId: String? = null,
     ): Result<DeviceBinding> = runCatching {
         val binding = bindingDao.findActiveByIdSync(bindingId)
         requireNotNull(binding) {
@@ -367,7 +373,9 @@ class BindingRepository(
             try {
                 val response = bindingApi.closeBinding(
                     binding.serverId,
-                    CloseBindingRequest(),
+                    CloseBindingRequest(
+                        unboundBy = operatorId,
+                    ),
                 )
                 val code = response.status.value
                 if (code in 200..299) {
@@ -409,6 +417,7 @@ class BindingRepository(
                             siteId = b.siteId,
                             shiftDate = b.shiftDate,
                             shiftType = b.shiftType,
+                            boundBy = b.operatorId,
                         ),
                     )
                     val code = response.status.value
@@ -435,7 +444,9 @@ class BindingRepository(
                 ) {
                     val response = bindingApi.closeBinding(
                         b.serverId,
-                        CloseBindingRequest(),
+                        CloseBindingRequest(
+                            unboundBy = b.operatorId,
+                        ),
                     )
                     val code = response.status.value
                     if (code in 200..299) {

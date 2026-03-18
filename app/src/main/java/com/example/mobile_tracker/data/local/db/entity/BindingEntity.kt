@@ -28,6 +28,8 @@ data class BindingEntity(
     @ColumnInfo(name = "bound_at") val boundAt: Long,
     @ColumnInfo(name = "unbound_at") val unboundAt: Long? = null,
     val status: String = "active",
+    @ColumnInfo(name = "operator_id")
+    val operatorId: String? = null,
     @ColumnInfo(name = "data_uploaded")
     val dataUploaded: Boolean = false,
     @ColumnInfo(name = "is_synced")

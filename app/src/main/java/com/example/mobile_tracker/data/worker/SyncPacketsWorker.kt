@@ -53,9 +53,9 @@ class SyncPacketsWorker(
                     payloadKeyEnc = packet.payloadKeyEnc,
                     iv = packet.iv,
                     payloadHash = packet.payloadHash,
+                    payloadSizeBytes = packet.payloadSizeBytes,
                     operatorId = "",
                     siteId = packet.siteId,
-                    employeeId = packet.employeeId,
                     bindingId = packet.bindingId,
                     gatewayDeviceInfo = GatewayDeviceInfo(
                         model = android.os.Build.MODEL,

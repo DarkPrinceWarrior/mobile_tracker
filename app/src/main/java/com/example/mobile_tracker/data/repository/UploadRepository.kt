@@ -37,7 +37,7 @@ class UploadRepository(
         meta: PacketMeta,
         payloadEnc: String,
         employeeId: String?,
-        bindingId: Long?,
+        bindingId: String?,
         siteId: String,
     ) {
         val entity = PacketQueueEntity(
@@ -89,9 +89,9 @@ class UploadRepository(
                 payloadKeyEnc = packet.payloadKeyEnc,
                 iv = packet.iv,
                 payloadHash = packet.payloadHash,
+                payloadSizeBytes = packet.payloadSizeBytes,
                 operatorId = operatorId,
                 siteId = siteId,
-                employeeId = packet.employeeId,
                 bindingId = packet.bindingId,
                 gatewayDeviceInfo = GatewayDeviceInfo(
                     model = Build.MODEL,
@@ -194,10 +194,13 @@ class UploadRepository(
         packetQueueDao.observeErrorCount()
 
     private suspend fun markBindingUploaded(
-        bindingId: Long?,
+        bindingServerId: String?,
     ) {
-        if (bindingId != null) {
-            bindingDao.markDataUploaded(bindingId)
+        if (bindingServerId != null) {
+            val entity = bindingDao.findByServerId(bindingServerId)
+            if (entity != null) {
+                bindingDao.markDataUploaded(entity.id)
+            }
         }
     }
 }

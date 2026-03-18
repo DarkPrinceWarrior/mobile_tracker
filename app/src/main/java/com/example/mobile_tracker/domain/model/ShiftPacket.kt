@@ -4,7 +4,7 @@ data class ShiftPacket(
     val packetId: String,
     val deviceId: String,
     val employeeId: String? = null,
-    val bindingId: Long? = null,
+    val bindingId: String? = null,
     val siteId: String,
     val shiftStartTs: Long,
     val shiftEndTs: Long,

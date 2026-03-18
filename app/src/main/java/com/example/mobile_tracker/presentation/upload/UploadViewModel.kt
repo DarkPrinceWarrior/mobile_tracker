@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobile_tracker.data.ble.BleException
 import com.example.mobile_tracker.data.ble.BleProtocol
 import com.example.mobile_tracker.data.local.datastore.UserPreferencesManager
+import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
 import com.example.mobile_tracker.data.repository.UploadRepository
 import com.example.mobile_tracker.util.OperatorNotificationManager
@@ -23,6 +24,7 @@ class UploadViewModel(
     private val bleProtocol: BleProtocol,
     private val uploadRepository: UploadRepository,
     private val shiftContextDao: ShiftContextDao,
+    private val bindingDao: BindingDao,
     private val userPreferencesManager:
         UserPreferencesManager,
     private val notificationManager: OperatorNotificationManager,
@@ -142,11 +144,15 @@ class UploadViewModel(
                 }
                 val ctx =
                     shiftContextDao.get()
+                // Resolve local binding ID (Long) to server UUID (String)
+                val serverBindingId: String? = intent.bindingId?.let { localId ->
+                    bindingDao.findActiveByIdSync(localId)?.serverId
+                }
                 uploadRepository.enqueuePacket(
                     meta = meta,
                     payloadEnc = payloadEnc,
                     employeeId = intent.employeeId,
-                    bindingId = intent.bindingId,
+                    bindingId = serverBindingId,
                     siteId = ctx?.siteId ?: "",
                 )
 

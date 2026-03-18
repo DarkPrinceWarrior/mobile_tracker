@@ -21,7 +21,7 @@ data class PacketQueueEntity(
     @ColumnInfo(name = "employee_id")
     val employeeId: String? = null,
     @ColumnInfo(name = "binding_id")
-    val bindingId: Long? = null,
+    val bindingId: String? = null,
     @ColumnInfo(name = "site_id") val siteId: String,
     @ColumnInfo(name = "shift_start_ts")
     val shiftStartTs: Long,

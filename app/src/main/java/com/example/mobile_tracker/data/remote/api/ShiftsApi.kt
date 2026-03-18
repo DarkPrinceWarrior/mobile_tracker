@@ -17,7 +17,6 @@ class ShiftsApi(private val client: HttpClient) {
     suspend fun getShifts(
         deviceId: String? = null,
         employeeId: String? = null,
-        siteId: String? = null,
         dateFrom: String? = null,
         dateTo: String? = null,
         page: Int = 1,
@@ -26,7 +25,6 @@ class ShiftsApi(private val client: HttpClient) {
         client.get("/api/v1/shifts") {
             if (deviceId != null) parameter("device_id", deviceId)
             if (employeeId != null) parameter("employee_id", employeeId)
-            if (siteId != null) parameter("site_id", siteId)
             if (dateFrom != null) parameter("date_from", dateFrom)
             if (dateTo != null) parameter("date_to", dateTo)
             parameter("page", page)

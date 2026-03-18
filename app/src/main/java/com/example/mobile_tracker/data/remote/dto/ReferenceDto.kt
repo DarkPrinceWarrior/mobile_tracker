@@ -23,9 +23,9 @@ data class EmployeeDto(
     @SerialName("site_id") val siteId: String? = null,
     val status: String = "active",
 ) {
-    /** Возвращает ID сотрудника независимо от формата ответа */
+    /** API документация указывает uuid как основной идентификатор */
     val effectiveId: String
-        get() = id ?: uuid ?: ""
+        get() = uuid ?: id ?: ""
 }
 
 @Serializable
@@ -92,8 +92,9 @@ data class DowntimeReasonDto(
     @SerialName("is_active") val isActive: Boolean = true,
     @SerialName("sort_order") val sortOrder: Int = 0,
 ) {
+    /** API документация указывает uuid как основной идентификатор */
     val effectiveId: String
-        get() = id ?: uuid ?: ""
+        get() = uuid ?: id ?: ""
 }
 
 /**

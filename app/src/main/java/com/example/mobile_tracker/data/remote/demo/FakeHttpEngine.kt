@@ -8,11 +8,11 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import timber.log.Timber
-import java.util.concurrent.atomic.AtomicLong
+import java.util.UUID
 
 object FakeHttpEngine {
 
-    private val bindingIdCounter = AtomicLong(100)
+
 
     val engine = MockEngine { request ->
         val path = request.url.encodedPath
@@ -286,10 +286,10 @@ object FakeHttpEngine {
     // ── Binding responses ────────────────
 
     private fun createBindingResponse(): String {
-        val id = bindingIdCounter.getAndIncrement()
+        val id = UUID.randomUUID().toString()
         return """
         {
-          "id": $id,
+          "id": "$id",
           "status": "active",
           "created_at": "2026-02-27T09:00:00Z"
         }
@@ -298,7 +298,7 @@ object FakeHttpEngine {
 
     private fun closeBindingResponse() = """
     {
-      "id": 100,
+      "id": "binding-close-100",
       "status": "closed"
     }
     """.trimIndent()
@@ -306,7 +306,7 @@ object FakeHttpEngine {
     private fun bindingsListResponse() = """
     [
       {
-        "id": 1,
+        "id": "binding-demo-1",
         "device_id": "dev-watch-04",
         "employee_id": "emp-1",
         "employee_name": "Иванов Иван Иванович",
@@ -320,7 +320,7 @@ object FakeHttpEngine {
         "created_at": "2026-02-27T08:00:00Z"
       },
       {
-        "id": 2,
+        "id": "binding-demo-2",
         "device_id": "dev-watch-05",
         "employee_id": "emp-2",
         "employee_name": "Петров Пётр Сергеевич",
@@ -342,6 +342,7 @@ object FakeHttpEngine {
     {
       "packet_id": "demo-packet-id",
       "status": "accepted",
+      "received_at": "2026-02-27T12:00:00Z",
       "server_time": "2026-02-27T12:00:00Z"
     }
     """.trimIndent()
