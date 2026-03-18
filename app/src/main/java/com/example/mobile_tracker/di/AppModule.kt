@@ -90,7 +90,7 @@ val appModule = module {
     }
     viewModel { JournalViewModel(get(), get()) }
     viewModel { AlertsViewModel(get(), get(), get(), get(), get()) }
-    viewModel { SummaryViewModel(get(), get(), get()) }
+    viewModel { SummaryViewModel(get(), get(), get(), get()) }
     viewModel {
         SettingsViewModel(
             get(), get(), get(), get(),

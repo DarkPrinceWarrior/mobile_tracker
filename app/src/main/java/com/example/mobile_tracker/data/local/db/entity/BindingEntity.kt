@@ -16,7 +16,7 @@ import androidx.room.PrimaryKey
 )
 data class BindingEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    @ColumnInfo(name = "server_id") val serverId: Long? = null,
+    @ColumnInfo(name = "server_id") val serverId: String? = null,
     @ColumnInfo(name = "device_id") val deviceId: String,
     @ColumnInfo(name = "employee_id") val employeeId: String,
     @ColumnInfo(name = "employee_name")

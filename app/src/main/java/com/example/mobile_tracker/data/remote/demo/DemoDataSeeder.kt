@@ -30,7 +30,7 @@ object DemoDataSeeder {
                 boundAt = now - 3_600_000,
                 status = "active",
                 isSynced = true,
-                serverId = 1L,
+                serverId = "demo-1",
                 createdAt = now - 3_600_000,
             ),
             BindingEntity(
@@ -43,7 +43,7 @@ object DemoDataSeeder {
                 boundAt = now - 3_000_000,
                 status = "active",
                 isSynced = true,
-                serverId = 2L,
+                serverId = "demo-2",
                 createdAt = now - 3_000_000,
             ),
         )

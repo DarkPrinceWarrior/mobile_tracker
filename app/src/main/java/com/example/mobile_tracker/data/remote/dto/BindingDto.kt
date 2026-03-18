@@ -15,7 +15,7 @@ data class CreateBindingRequest(
 
 @Serializable
 data class BindingResponse(
-    val id: Long,
+    val id: String,
     @SerialName("device_id") val deviceId: String,
     @SerialName("employee_id") val employeeId: String,
     @SerialName("employee_name")
@@ -40,12 +40,20 @@ data class BindingResponse(
 )
 
 @Serializable
+data class BindingsPageResponse(
+    val items: List<BindingResponse>,
+    val total: Int = 0,
+    val page: Int = 1,
+    @SerialName("page_size") val pageSize: Int = 20,
+)
+
+@Serializable
 data class CloseBindingRequest(
     @SerialName("unbound_by") val unboundBy: String? = null,
 )
 
 @Serializable
 data class CloseBindingResponse(
-    val id: Long,
+    val id: String,
     val status: String,
 )

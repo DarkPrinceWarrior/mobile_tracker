@@ -34,6 +34,73 @@ class BindingRepository(
     private val notificationManager: OperatorNotificationManager,
 ) {
 
+    /**
+     * Pull-sync: загрузка привязок с бэкенда в Room.
+     * Для каждой привязки с бэкенда:
+     * - Если уже есть в Room (по serverId) → обновляем статус
+     * - Если нет → вставляем
+     */
+    suspend fun fetchBindingsFromBackend(
+        siteId: String,
+        shiftDate: String,
+    ): Result<Int> = runCatching {
+        val response = bindingApi.getBindings(
+            siteId = siteId,
+            shiftDate = shiftDate,
+            pageSize = 100,
+        )
+        var count = 0
+        for (b in response.items) {
+            val existing = bindingDao.findByServerId(b.id)
+            if (existing != null) {
+                // Обновляем статус если изменился
+                if (existing.status != b.status) {
+                    val unboundAt = b.unboundAt?.let { parseIsoTimestamp(it) }
+                    bindingDao.update(
+                        existing.copy(
+                            status = b.status,
+                            unboundAt = unboundAt,
+                            isSynced = true,
+                        ),
+                    )
+                    count++
+                }
+            } else {
+                // Новая привязка с бэкенда — вставляем
+                val empName = b.employeeName ?: "Сотрудник"
+                val boundAt = b.boundAt?.let { parseIsoTimestamp(it) }
+                    ?: System.currentTimeMillis()
+                bindingDao.insert(
+                    BindingEntity(
+                        serverId = b.id,
+                        deviceId = b.deviceId,
+                        employeeId = b.employeeId,
+                        employeeName = empName,
+                        siteId = b.siteId,
+                        shiftDate = b.shiftDate,
+                        shiftType = b.shiftType,
+                        boundAt = boundAt,
+                        unboundAt = b.unboundAt?.let { parseIsoTimestamp(it) },
+                        status = b.status,
+                        isSynced = true,
+                        createdAt = boundAt,
+                    ),
+                )
+                count++
+            }
+        }
+        Timber.d("Fetched $count bindings from backend for $siteId / $shiftDate")
+        count
+    }
+
+    private fun parseIsoTimestamp(iso: String): Long {
+        return try {
+            java.time.Instant.parse(iso).toEpochMilli()
+        } catch (e: Exception) {
+            System.currentTimeMillis()
+        }
+    }
+
     fun observeActiveBindings(
         siteId: String,
     ): Flow<List<DeviceBinding>> =

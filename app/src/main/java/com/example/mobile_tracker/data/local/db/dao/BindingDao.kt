@@ -74,6 +74,11 @@ interface BindingDao {
     suspend fun getUnsynced(): List<BindingEntity>
 
     @Query(
+        "SELECT * FROM bindings WHERE server_id = :serverId LIMIT 1",
+    )
+    suspend fun findByServerId(serverId: String): BindingEntity?
+
+    @Query(
         "SELECT COUNT(*) FROM bindings " +
             "WHERE status = 'active' " +
             "AND site_id = :siteId",

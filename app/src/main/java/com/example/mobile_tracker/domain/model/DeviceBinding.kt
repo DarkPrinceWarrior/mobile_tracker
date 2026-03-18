@@ -2,7 +2,7 @@ package com.example.mobile_tracker.domain.model
 
 data class DeviceBinding(
     val id: Long = 0,
-    val serverId: Long? = null,
+    val serverId: String? = null,
     val deviceId: String,
     val employeeId: String,
     val employeeName: String,

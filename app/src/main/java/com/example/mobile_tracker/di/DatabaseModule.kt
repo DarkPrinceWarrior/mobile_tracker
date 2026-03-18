@@ -11,7 +11,8 @@ val databaseModule = module {
             androidContext(),
             AppDatabase::class.java,
             "activity_tracker_db",
-        ).build()
+        ).fallbackToDestructiveMigration()
+            .build()
     }
 
     single { get<AppDatabase>().employeeDao() }

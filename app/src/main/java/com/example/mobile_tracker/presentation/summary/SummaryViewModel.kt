@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.PacketQueueDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
+import com.example.mobile_tracker.data.repository.BindingRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,6 +21,7 @@ class SummaryViewModel(
     private val bindingDao: BindingDao,
     private val packetQueueDao: PacketQueueDao,
     private val shiftContextDao: ShiftContextDao,
+    private val bindingRepository: BindingRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SummaryState())
@@ -56,6 +58,13 @@ class SummaryViewModel(
                         shiftDate = ctx.shiftDate,
                         shiftType = ctx.shiftType,
                     )
+                }
+                // Сразу загружаем привязки с бэкенда
+                bindingRepository.fetchBindingsFromBackend(
+                    siteId = siteId,
+                    shiftDate = shiftDate,
+                ).onFailure { e ->
+                    Timber.w(e, "Failed to fetch bindings from backend")
                 }
                 observeMetrics()
             } else {

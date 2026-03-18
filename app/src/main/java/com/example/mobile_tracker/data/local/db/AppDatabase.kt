@@ -31,7 +31,7 @@ import com.example.mobile_tracker.data.local.db.entity.SiteEntity
         ShiftContextEntity::class,
         DowntimeReasonEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

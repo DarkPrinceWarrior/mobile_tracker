@@ -1,8 +1,8 @@
 package com.example.mobile_tracker.data.remote.api
 
 import com.example.mobile_tracker.data.remote.dto.BindingResponse
+import com.example.mobile_tracker.data.remote.dto.BindingsPageResponse
 import com.example.mobile_tracker.data.remote.dto.CloseBindingRequest
-import com.example.mobile_tracker.data.remote.dto.CloseBindingResponse
 import com.example.mobile_tracker.data.remote.dto.CreateBindingRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -23,7 +23,7 @@ class BindingApi(private val client: HttpClient) {
         }
 
     suspend fun closeBinding(
-        bindingId: Long,
+        bindingId: String,
         request: CloseBindingRequest = CloseBindingRequest(),
     ): HttpResponse =
         client.put("/api/v1/bindings/$bindingId/close") {
@@ -31,27 +31,23 @@ class BindingApi(private val client: HttpClient) {
         }
 
     /**
-     * GET /bindings/ — список привязок с фильтрами.
-     *
-     * Можно фильтровать по:
-     * - employee_id: история привязок сотрудника
-     * - device_id: кто носил эти часы
-     * - site_id: привязки на площадке
-     * - shift_date: привязки за дату
+     * GET /bindings/ — список привязок с фильтрами (пагинированный ответ).
      */
     suspend fun getBindings(
         siteId: String? = null,
         employeeId: String? = null,
         deviceId: String? = null,
         shiftDate: String? = null,
+        status: String? = null,
         page: Int = 1,
-        pageSize: Int = 20,
-    ): List<BindingResponse> =
+        pageSize: Int = 100,
+    ): BindingsPageResponse =
         client.get("/api/v1/bindings/") {
             if (siteId != null) parameter("site_id", siteId)
             if (employeeId != null) parameter("employee_id", employeeId)
             if (deviceId != null) parameter("device_id", deviceId)
             if (shiftDate != null) parameter("shift_date", shiftDate)
+            if (status != null) parameter("status", status)
             parameter("page", page)
             parameter("page_size", pageSize)
         }.body()
