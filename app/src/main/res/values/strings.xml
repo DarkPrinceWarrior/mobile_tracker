@@ -18,17 +18,15 @@
 
     <!-- Context Selection -->
     <string name="context_title">Выбор контекста работы</string>
-    <string name="context_screen_subtitle">Площадка, дата и тип смены</string>
+    <string name="context_screen_subtitle">Площадка и дата смены</string>
     <string name="context_summary_title">Рабочий контекст</string>
-    <string name="context_ready">Готово</string>
-    <string name="context_pending">Заполните поля</string>
     <string name="context_site_label">Площадка</string>
     <string name="context_site_hint">Выберите площадку</string>
     <string name="context_date_label">Дата смены</string>
-    <string name="context_date_hint">ГГГГ-ММ-ДД</string>
-    <string name="context_shift_label">Тип смены</string>
+    <string name="context_date_hint">Дата смены</string>
     <string name="context_shift_day">Дневная</string>
     <string name="context_shift_night">Ночная</string>
+    <string name="context_ready">Готово</string>
     <string name="context_start_button">Начать работу</string>
     <string name="context_error_no_site">Выберите площадку</string>
 

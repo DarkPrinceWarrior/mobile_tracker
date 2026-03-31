@@ -102,11 +102,6 @@ class ContextSelectionViewModel(
                 }
             }
 
-            is ContextSelectionIntent.ShiftTypeChanged -> {
-                _state.update {
-                    it.copy(shiftType = intent.type)
-                }
-            }
 
             is ContextSelectionIntent.StartWork -> saveContext()
         }
@@ -133,7 +128,7 @@ class ContextSelectionViewModel(
                     siteId = site.id,
                     siteName = site.name,
                     shiftDate = current.shiftDate,
-                    shiftType = current.shiftType,
+                    shiftType = "day",
                     operatorId = prefs.userId,
                     operatorName = prefs.userName,
                     updatedAt = System.currentTimeMillis(),

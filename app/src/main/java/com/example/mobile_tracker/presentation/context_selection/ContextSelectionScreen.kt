@@ -2,6 +2,7 @@ package com.example.mobile_tracker.presentation.context_selection
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,46 +19,58 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isUnspecified
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.Site
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.MTCard
 import com.example.mobile_tracker.presentation.common.MTCompactTopBar
-import com.example.mobile_tracker.presentation.common.MTStatusBadge
-import com.example.mobile_tracker.presentation.common.MTStatusTone
-import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
 import com.example.mobile_tracker.ui.theme.AppSpacing
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +86,25 @@ fun ContextSelectionScreen(
                 ContextSelectionEffect.NavigateToHome -> onContextSelected()
             }
         }
+    }
+
+    // — Site bottom sheet state
+    val siteSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var showSiteSheet by remember { mutableStateOf(false) }
+
+    // — DatePicker state
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = runCatching {
+            LocalDate.parse(state.shiftDate, DateTimeFormatter.ISO_LOCAL_DATE)
+                .atStartOfDay(ZoneId.of("UTC"))
+                .toInstant()
+                .toEpochMilli()
+        }.getOrNull(),
+    )
+    val confirmEnabled by remember {
+        derivedStateOf { datePickerState.selectedDateMillis != null }
     }
 
     AppScreenScaffold(
@@ -94,61 +126,69 @@ fun ContextSelectionScreen(
         ) {
             ContextSummaryCard(state = state)
 
-            SiteSelectionCard(
-                selectedSite = state.selectedSite,
-                sites = state.sites,
-                onSiteSelected = {
-                    viewModel.onIntent(ContextSelectionIntent.SiteSelected(it))
-                },
-            )
-
+            // Site selection — native bottom sheet, no grey ripple
             ContextFieldCard(
-                icon = Icons.Default.CalendarMonth,
-                title = stringResource(R.string.context_date_label),
+                icon = Icons.Default.LocationOn,
+                title = stringResource(R.string.context_site_label),
             ) {
-                OutlinedTextField(
-                    value = state.shiftDate,
-                    onValueChange = {
-                        viewModel.onIntent(ContextSelectionIntent.DateChanged(it))
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.context_date_hint)) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(AppRadius.lg),
-                )
-            }
-
-            ContextFieldCard(
-                icon = Icons.Default.Schedule,
-                title = stringResource(R.string.context_shift_label),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    ShiftTypeChip(
-                        title = stringResource(R.string.context_shift_day),
-                        selected = state.shiftType == "day",
-                        icon = Icons.Default.LightMode,
-                        onClick = {
-                            viewModel.onIntent(ContextSelectionIntent.ShiftTypeChanged("day"))
+                Box {
+                    OutlinedTextField(
+                        value = state.selectedSite?.name.orEmpty(),
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.context_site_hint)) },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                            )
                         },
-                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(AppRadius.lg),
+                        // NOT enabled=false — keeps normal colours
                     )
-                    ShiftTypeChip(
-                        title = stringResource(R.string.context_shift_night),
-                        selected = state.shiftType == "night",
-                        icon = Icons.Default.DarkMode,
-                        onClick = {
-                            viewModel.onIntent(ContextSelectionIntent.ShiftTypeChanged("night"))
-                        },
-                        modifier = Modifier.weight(1f),
+                    // Прозрачный оверлей без ripple-эффекта для клика
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) { showSiteSheet = true },
                     )
                 }
             }
 
-            if (state.error != null) {
-                StateCard(message = state.error!!, isError = true)
+            // Date — Material3 DatePicker, no grey ripple
+            ContextFieldCard(
+                icon = Icons.Default.CalendarMonth,
+                title = stringResource(R.string.context_date_label),
+            ) {
+                Box {
+                    OutlinedTextField(
+                        value = state.shiftDate,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.context_date_hint)) },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        shape = RoundedCornerShape(AppRadius.lg),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) { showDatePicker = true },
+                    )
+                }
             }
 
             Button(
@@ -163,107 +203,200 @@ fun ContextSelectionScreen(
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                )
-                Spacer(modifier = Modifier.size(AppSpacing.xs))
-                Text(text = stringResource(R.string.context_start_button))
-            }
-        }
-    }
-}
-
-@Composable
-private fun ContextSummaryCard(state: ContextSelectionState) {
-    MTCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-            ) {
-                Text(
-                    text = stringResource(R.string.context_summary_title),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = state.selectedSite?.name ?: stringResource(R.string.context_site_hint),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "${state.shiftDate} · " + if (state.shiftType == "day") {
-                        stringResource(R.string.context_shift_day)
-                    } else {
-                        stringResource(R.string.context_shift_night)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            MTStatusBadge(
-                label = if (state.selectedSite != null) {
-                    stringResource(R.string.context_ready)
-                } else {
-                    stringResource(R.string.context_pending)
-                },
-                tone = if (state.selectedSite != null) MTStatusTone.Success else MTStatusTone.Warning,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SiteSelectionCard(
-    selectedSite: Site?,
-    sites: List<Site>,
-    onSiteSelected: (Site) -> Unit,
-) {
-    ContextFieldCard(
-        icon = Icons.Default.LocationOn,
-        title = stringResource(R.string.context_site_label),
-    ) {
-        var expanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-        ) {
-            OutlinedTextField(
-                value = selectedSite?.name.orEmpty(),
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryEditable),
-                label = { Text(stringResource(R.string.context_site_hint)) },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
-                shape = RoundedCornerShape(AppRadius.lg),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                sites.forEach { site ->
-                    DropdownMenuItem(
-                        text = { Text(site.name) },
-                        onClick = {
-                            onSiteSelected(site)
-                            expanded = false
-                        },
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
                     )
+                } else {
+                    Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null)
+                    Spacer(modifier = Modifier.size(AppSpacing.xs))
+                    Text(text = stringResource(R.string.context_start_button))
                 }
             }
         }
     }
+
+    // — Site bottom sheet
+    if (showSiteSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSiteSheet = false },
+            sheetState = siteSheetState,
+        ) {
+            SitePickerSheet(
+                sites = state.sites,
+                selectedSite = state.selectedSite,
+                onSiteSelected = { site ->
+                    viewModel.onIntent(ContextSelectionIntent.SiteSelected(site))
+                    scope.launch { siteSheetState.hide() }.invokeOnCompletion {
+                        showSiteSheet = false
+                    }
+                },
+            )
+        }
+    }
+
+    // — Date picker dialog с отступами от краёв экрана
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val date = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.of("UTC"))
+                                .toLocalDate()
+                                .format(DateTimeFormatter.ISO_LOCAL_DATE)
+                            viewModel.onIntent(ContextSelectionIntent.DateChanged(date))
+                        }
+                        showDatePicker = false
+                    },
+                    enabled = confirmEnabled,
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }
+
+// ─── Summary card (авто-уменьшение шрифта без троеточия) ─────────────────────
+
+@Composable
+private fun ContextSummaryCard(state: ContextSelectionState) {
+    MTCard {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+        ) {
+            Text(
+                text = stringResource(R.string.context_summary_title),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            // Авто-уменьшение шрифта: текст всегда в одну строку, без "..."
+            AutoShrinkText(
+                text = state.selectedSite?.name ?: stringResource(R.string.context_site_hint),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = state.shiftDate,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/**
+ * Текст автоматически уменьшает размер шрифта, пока не поместится в одну строку.
+ * Никаких "..." и выхода за границы.
+ */
+@Composable
+private fun AutoShrinkText(
+    text: String,
+    style: TextStyle,
+    color: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+    minFontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
+) {
+    var textStyle by remember(text, style) { mutableStateOf(style) }
+    var readyToDraw by remember(text, style) { mutableStateOf(false) }
+    val minSp = if (minFontSize.isUnspecified) 10.sp else minFontSize
+
+    Text(
+        text = text,
+        style = textStyle,
+        color = color,
+        maxLines = 1,
+        softWrap = false,
+        modifier = modifier
+            .fillMaxWidth()
+            .drawWithContent { if (readyToDraw) drawContent() },
+        onTextLayout = { layout ->
+            if (layout.hasVisualOverflow && textStyle.fontSize > minSp) {
+                textStyle = textStyle.copy(fontSize = textStyle.fontSize * 0.9f)
+            } else {
+                readyToDraw = true
+            }
+        },
+    )
+}
+
+// ─── Site picker bottom sheet ─────────────────────────────────────────────────
+
+@Composable
+private fun SitePickerSheet(
+    sites: List<Site>,
+    selectedSite: Site?,
+    onSiteSelected: (Site) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = AppSpacing.xl),
+    ) {
+        Text(
+            text = stringResource(R.string.context_site_label),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
+        )
+        HorizontalDivider()
+        sites.forEach { site ->
+            val selected = site.id == selectedSite?.id
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSiteSelected(site) }
+                    .padding(horizontal = AppLayout.screenPadding, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = site.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    modifier = Modifier.weight(1f),
+                )
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = AppLayout.screenPadding),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            )
+        }
+    }
+}
+
+// ─── Field card wrapper ───────────────────────────────────────────────────────
 
 @Composable
 private fun ContextFieldCard(
@@ -298,51 +431,5 @@ private fun ContextFieldCard(
             )
         }
         content()
-    }
-}
-
-@Composable
-private fun ShiftTypeChip(
-    title: String,
-    selected: Boolean,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(AppRadius.lg),
-        color = if (selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surfaceContainer
-        },
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (selected) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.tertiary
-                },
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-            )
-        }
     }
 }

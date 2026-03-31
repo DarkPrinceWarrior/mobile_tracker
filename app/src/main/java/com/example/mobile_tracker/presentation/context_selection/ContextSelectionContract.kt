@@ -6,7 +6,6 @@ data class ContextSelectionState(
     val sites: List<Site> = emptyList(),
     val selectedSite: Site? = null,
     val shiftDate: String = "",
-    val shiftType: String = "day",
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -14,9 +13,6 @@ data class ContextSelectionState(
 sealed interface ContextSelectionIntent {
     data class SiteSelected(val site: Site) : ContextSelectionIntent
     data class DateChanged(val date: String) : ContextSelectionIntent
-    data class ShiftTypeChanged(
-        val type: String,
-    ) : ContextSelectionIntent
     data object StartWork : ContextSelectionIntent
 }
 
