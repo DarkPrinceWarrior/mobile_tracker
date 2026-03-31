@@ -2,6 +2,11 @@ package com.example.mobile_tracker.data.remote.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 // ─── GET /shifts ───
 
@@ -164,3 +169,57 @@ data class ActivitySummary(
     @SerialName("V4_sec") val v4Sec: Int = 0,
     @SerialName("total_sec") val totalSec: Int = 0,
 )
+
+// ─── GET /shifts/{id}/data/{data_type} (legacy, не используется для sensor-samples) ───
+
+@Serializable
+data class ShiftSensorDataResponse(
+    val items: List<SensorDataItem> = emptyList(),
+    val total: Int = 0,
+    val page: Int = 1,
+    @SerialName("page_size") val pageSize: Int = 10000,
+)
+
+@Serializable
+data class SensorDataItem(
+    val uuid: String = "",
+    val stream: String = "",
+    @SerialName("shift_id") val shiftId: String = "",
+    @SerialName("packet_id") val packetId: String = "",
+    @SerialName("device_id") val deviceId: String = "",
+    @SerialName("ts_ms") val tsMs: Long = 0,
+    val payload: JsonObject = JsonObject(emptyMap()),
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+// ─── GET /api/v1/sensor-samples/{stream} ───
+
+/**
+ * Ответ от /api/v1/sensor-samples/heart-rate|wear|battery
+ * Возвращает одну (или несколько при limit>1) запись.
+ */
+@Serializable
+data class SensorSampleResponse(
+    val stream: String = "",
+    @SerialName("shift_id") val shiftId: String? = null,
+    @SerialName("ts_ms") val tsMs: Long = 0,
+    val payload: JsonObject = JsonObject(emptyMap()),
+)
+
+// ── Typed payload helpers для SensorSampleResponse ──
+
+/** "on" = надеты, "off" = сняты */
+fun SensorSampleResponse.wearOn(): Boolean? =
+    runCatching { payload["state"]?.jsonPrimitive?.content }
+        .getOrNull()
+        ?.let { it == "on" }
+
+/** level 0.0–1.0 → Int 0–100 */
+fun SensorSampleResponse.batteryPercent(): Int? =
+    runCatching { payload["level"]?.jsonPrimitive?.double }
+        .getOrNull()
+        ?.let { (it * 100).toInt().coerceIn(0, 100) }
+
+/** bpm из heart-rate payload */
+fun SensorSampleResponse.heartRateBpm(): Int? =
+    runCatching { payload["bpm"]?.jsonPrimitive?.int }.getOrNull()

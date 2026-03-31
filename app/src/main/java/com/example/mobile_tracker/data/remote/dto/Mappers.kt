@@ -49,8 +49,9 @@ fun DeviceDto.toEntity(syncedAt: Long): DeviceEntity =
         employeeName = employeeName,
         siteId = siteId,
         lastSyncAt = lastSyncAt,
-        localStatus = if (employeeId != null) "issued"
-            else "available",
+        localStatus = if (employeeId != null) "issued" else "available",
+        // battery_level из API: 0–100 (float), null если heartbeat не приходил
+        batteryLevel = batteryLevel?.toFloat(),
         syncedAt = syncedAt,
     )
 

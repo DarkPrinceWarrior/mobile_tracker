@@ -9,9 +9,13 @@ import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.dao.PacketQueueDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
 import com.example.mobile_tracker.data.remote.api.ShiftsApi
+import com.example.mobile_tracker.data.remote.api.SensorSamplesApi
 import com.example.mobile_tracker.data.remote.api.ZonesApi
 import com.example.mobile_tracker.data.remote.dto.ShiftActivityResponse
 import com.example.mobile_tracker.data.remote.dto.ShiftMetricsResponse
+import com.example.mobile_tracker.data.remote.dto.batteryPercent
+import com.example.mobile_tracker.data.remote.dto.heartRateBpm
+import com.example.mobile_tracker.data.remote.dto.wearOn
 import com.example.mobile_tracker.presentation.monitoring.WorkerIncident
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringSnapshot
 import com.example.mobile_tracker.presentation.monitoring.WorkerRouteVisit
@@ -44,6 +48,16 @@ sealed interface WorkerDetailIntent {
     data object DismissError : WorkerDetailIntent
 }
 
+/**
+ * Контейнер для реальных сенсорных данных, полученных с бэкенда.
+ * null = данные ещё не загружены; значения заменяют мок-данные когда доступны.
+ */
+data class RealSensorData(
+    val watchOn: Boolean? = null,        // last wear event: "on_wrist" / "off_wrist"
+    val batteryPercent: Int? = null,     // last battery event level (rounded)
+    val heartRateBpm: Int? = null,       // last heart_rate event bpm
+)
+
 class WorkerDetailViewModel(
     private val shiftContextDao: ShiftContextDao,
     private val employeeDao: EmployeeDao,
@@ -53,6 +67,7 @@ class WorkerDetailViewModel(
     private val packetQueueDao: PacketQueueDao,
     private val shiftsApi: ShiftsApi,
     private val zonesApi: ZonesApi,
+    private val sensorSamplesApi: SensorSamplesApi,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WorkerDetailState())
@@ -63,10 +78,16 @@ class WorkerDetailViewModel(
     private var shiftType: String = "day"
     private var currentEmployeeId: String? = null
     private var observeJob: Job? = null
+    /** device_id для которого уже загружены сенсорные данные — не перегружаем повторно */
+    private var lastFetchedDeviceId: String? = null
+    /** shift_id текущего сотрудника — передаётся в sensor-samples запросы */
+    private var currentShiftId: String? = null
 
-    /** Реальные метрики с бэкенда для текущего сотрудника */
+    /** Реальные метрики с бэкенда */
     private val realMetrics = MutableStateFlow<ShiftMetricsResponse?>(null)
     private val realRoute = MutableStateFlow<List<WorkerRouteVisit>>(emptyList())
+    /** Реальные сенсорные данные (wear, battery, hr) */
+    private val realSensorData = MutableStateFlow(RealSensorData())
 
     init {
         loadContext()
@@ -79,6 +100,8 @@ class WorkerDetailViewModel(
         currentEmployeeId = employeeId
         realMetrics.value = null
         realRoute.value = emptyList()
+        realSensorData.value = RealSensorData()
+        currentShiftId = null
         _state.update {
             it.copy(
                 isLoading = true,
@@ -144,7 +167,7 @@ class WorkerDetailViewModel(
                 )
                 val shift = shiftsResponse.items.firstOrNull() ?: return@launch
 
-                // Загружаем метрики
+                // Метрики (avg hr, productivity, etc.)
                 try {
                     val metrics = shiftsApi.getShiftMetrics(shift.id)
                     realMetrics.value = metrics
@@ -154,7 +177,7 @@ class WorkerDetailViewModel(
                     Timber.w(e, "Failed to load shift metrics")
                 }
 
-                // Загружаем активность
+                // Активность
                 try {
                     val activity = shiftsApi.getShiftActivity(shift.id)
                     _state.update { it.copy(shiftActivity = activity) }
@@ -163,7 +186,7 @@ class WorkerDetailViewModel(
                     Timber.w(e, "Failed to load shift activity")
                 }
 
-                // Загружаем маршрут по зонам
+                // Маршрут по зонам
                 try {
                     val route = zonesApi.getShiftRoute(shift.id)
                     val routeVisits = route.route.mapIndexed { index, point ->
@@ -179,9 +202,60 @@ class WorkerDetailViewModel(
                 } catch (e: Exception) {
                     Timber.w(e, "Failed to load shift route")
                 }
+
+                // ── Сенсорные данные грузим по shift_id ──
+                currentShiftId = shift.id
+                fetchSensorData(shift.id)
+
             } catch (e: Exception) {
                 Timber.w(e, "Failed to load shifts for employee $employeeId")
             }
+        }
+    }
+
+    /**
+     * Загружает актуальные сенсорные данные для часов через shift_id.
+     * GET /api/v1/sensor-samples/{stream}?shift_id={id}&sort=-ts_ms&limit=1
+     * shift_id гарантирует данные только текущей смены (device_id может вернуть данные прошлого владельца).
+     */
+    private fun fetchSensorData(shiftId: String) {
+        viewModelScope.launch {
+            var updated = RealSensorData()
+
+            // ⌚ Надеты / сняты: payload.state = "on" | "off"
+            try {
+                val isOn = sensorSamplesApi.getWear(shiftId)?.wearOn()
+                if (isOn != null) {
+                    updated = updated.copy(watchOn = isOn)
+                    Timber.d("Wear: ${if (isOn) "on" else "off"} (shift=$shiftId)")
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load wear for shift $shiftId")
+            }
+
+            // 🔋 Заряд: payload.level = 0.0–1.0 → × 100 = %
+            try {
+                val pct = sensorSamplesApi.getBattery(shiftId)?.batteryPercent()
+                if (pct != null) {
+                    updated = updated.copy(batteryPercent = pct)
+                    Timber.d("Battery: $pct% (shift=$shiftId)")
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load battery for shift $shiftId")
+            }
+
+            // ❤️ Пульс: stream «heart-rate» (через дефис), payload.bpm
+            try {
+                val bpm = sensorSamplesApi.getHeartRate(shiftId)?.heartRateBpm()
+                if (bpm != null && bpm > 0) {
+                    updated = updated.copy(heartRateBpm = bpm)
+                    Timber.d("Heart rate: $bpm bpm (shift=$shiftId)")
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load heart-rate for shift $shiftId")
+            }
+
+            realSensorData.value = updated
         }
     }
 
@@ -200,6 +274,7 @@ class WorkerDetailViewModel(
                 packetQueueDao.observeUnsent(currentSiteId),
                 realMetrics,
                 realRoute,
+                realSensorData,
             ) { values ->
                 @Suppress("UNCHECKED_CAST")
                 val employees = values[0] as List<com.example.mobile_tracker.data.local.db.entity.EmployeeEntity>
@@ -214,6 +289,7 @@ class WorkerDetailViewModel(
                 val metrics = values[5] as ShiftMetricsResponse?
                 @Suppress("UNCHECKED_CAST")
                 val routeVisits = values[6] as List<WorkerRouteVisit>
+                val sensorData = values[7] as RealSensorData
 
                 val workers = buildWorkerMonitoringSnapshots(
                     employees = employees,
@@ -227,7 +303,10 @@ class WorkerDetailViewModel(
 
                 var worker = workers.firstOrNull { it.employeeId == targetEmployeeId }
 
-                // Обогащаем реальными метриками
+                // ── Сенсорные данные загружаются по shift_id через fetchRealData ──
+                // observer не триггерит sensor fetch — shift_id нужен, а он есть только после shifts API.
+
+                // Обогащаем метриками
                 if (worker != null && metrics != null) {
                     worker = worker.copy(
                         heartRate = if (metrics.avgHrBpm > 0) metrics.avgHrBpm else worker.heartRate,
@@ -237,9 +316,19 @@ class WorkerDetailViewModel(
                     )
                 }
 
-                // Обогащаем реальным маршрутом
+                // Обогащаем маршрутом
                 if (worker != null && routeVisits.isNotEmpty()) {
                     worker = worker.copy(route = routeVisits)
+                }
+
+                // Обогащаем сенсорными данными — sensor data всегда приоритетнее Room/мока
+                if (worker != null) {
+                    worker = worker.copy(
+                        watchOn = sensorData.watchOn ?: worker.watchOn,
+                        batteryPercent = sensorData.batteryPercent ?: worker.batteryPercent,
+                        // HR из sensor stream перезаписывает всё кроме свежих метрик бэка
+                        heartRate = sensorData.heartRateBpm ?: worker.heartRate,
+                    )
                 }
 
                 worker
@@ -262,3 +351,4 @@ class WorkerDetailViewModel(
         }
     }
 }
+

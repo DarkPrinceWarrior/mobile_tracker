@@ -6,6 +6,7 @@ import com.example.mobile_tracker.data.remote.api.BindingApi
 import com.example.mobile_tracker.data.remote.api.GatewayApi
 import com.example.mobile_tracker.data.remote.api.HeartbeatApi
 import com.example.mobile_tracker.data.remote.api.ReferenceApi
+import com.example.mobile_tracker.data.remote.api.SensorSamplesApi
 import com.example.mobile_tracker.data.remote.api.ShiftsApi
 import com.example.mobile_tracker.data.remote.api.ZonesApi
 import com.example.mobile_tracker.data.remote.demo.FakeHttpEngine
@@ -43,6 +44,7 @@ val demoNetworkModule = module {
     single { GatewayApi(get()) }
     single { ShiftsApi(get()) }
     single { ZonesApi(get()) }
+    single { SensorSamplesApi(get()) }
     single { AnomaliesApi(get()) }
     single { HeartbeatApi(get()) }
 }

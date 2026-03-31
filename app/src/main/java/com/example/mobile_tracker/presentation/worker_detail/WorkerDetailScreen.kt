@@ -18,12 +18,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.DeviceUnknown
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -175,17 +172,27 @@ private fun WorkerHeaderCard(
             ) {
                 Text(
                     text = worker.fullName,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                if (worker.roleLabel.isNotBlank()) {
-                    Text(
-                        text = worker.roleLabel,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                ) {
+                    if (worker.roleLabel.isNotBlank()) {
+                        Text(
+                            text = worker.roleLabel,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                    }
+                    WorkerMonitoringStatusBadge(status = worker.status)
                 }
-                WorkerMonitoringStatusBadge(status = worker.status)
             }
         }
     }
@@ -335,34 +342,6 @@ private fun WorkerVitalsSection(
         }
     }
 
-    Surface(
-        shape = RoundedCornerShape(AppRadius.lg),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = worker.steps.toString(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(R.string.worker_detail_steps_unit),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
 }
 
 @Composable
@@ -372,11 +351,24 @@ private fun WorkerWatchSection(
     MTSectionHeader(title = stringResource(R.string.worker_detail_section_watch))
 
     if (worker.deviceId == null) {
-        EmptyState(
-            title = stringResource(R.string.worker_detail_watch_missing),
-            icon = Icons.Default.DeviceUnknown,
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-        )
+            shape = RoundedCornerShape(AppRadius.lg),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        ) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppLayout.cardPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.worker_detail_watch_missing),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         return
     }
 
@@ -400,36 +392,39 @@ private fun WorkerWatchSection(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.Top,
         ) {
-            // Watch image with battery overlay
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(RoundedCornerShape(AppRadius.lg))
-                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            // Left: watch image + battery badge below
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.watch_render),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-                Surface(
+                Box(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(8.dp),
+                        .size(120.dp)
+                        .clip(RoundedCornerShape(AppRadius.lg))
+                        .background(MaterialTheme.colorScheme.surfaceContainer),
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.watch_render),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+                // Battery badge below the image
+                Surface(
                     shape = RoundedCornerShape(AppRadius.pill),
-                    color = batteryColor.copy(alpha = 0.88f),
+                    color = batteryColor.copy(alpha = 0.15f),
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Bolt,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = Color.White,
+                            tint = batteryColor,
                         )
                         Text(
                             text = stringResource(
@@ -437,13 +432,13 @@ private fun WorkerWatchSection(
                                 worker.batteryPercent,
                             ),
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color.White,
+                            color = batteryColor,
                         )
                     }
                 }
             }
 
-            // Right: model, status, info chips
+            // Right: model, wear status, issued chip
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -470,10 +465,6 @@ private fun WorkerWatchSection(
                     label = stringResource(R.string.worker_detail_watch_issued),
                     value = worker.watchIssuedAt?.let { formatMonitoringTime(it) }
                         ?: stringResource(R.string.worker_detail_no_data_short),
-                )
-                WatchInfoChip(
-                    label = stringResource(R.string.worker_detail_watch_last_seen),
-                    value = relativeSeenLabel(worker.lastSeenAt),
                 )
             }
         }
@@ -526,118 +517,18 @@ private fun WorkerRouteSection(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         ),
     ) {
-        Column(
-            modifier = Modifier.padding(AppLayout.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-        ) {
-            val zoneSummaries = com.example.mobile_tracker.presentation.monitoring.buildZoneSummaries(
-                listOf(worker),
-            )
-            com.example.mobile_tracker.presentation.monitoring.MonitoringSiteMap(
-                workers = listOf(worker),
-                zoneSummaries = zoneSummaries,
-                mode = com.example.mobile_tracker.presentation.monitoring.MonitoringMapMode.Workers,
-                highlightedWorkerId = worker.employeeId,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            if (worker.route.isEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(AppRadius.lg),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(AppLayout.cardPadding),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.worker_detail_route_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            } else {
-                worker.route.forEach { visit ->
-                    Surface(
-                        shape = RoundedCornerShape(AppRadius.lg),
-                        color = if (visit.current) {
-                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.22f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainer
-                        },
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (visit.current) {
-                                            workerStatusColor(Active)
-                                        } else {
-                                            MaterialTheme.colorScheme.outlineVariant
-                                        },
-                                    ),
-                            )
-                            Text(
-                                text = com.example.mobile_tracker.presentation.monitoring.formatZoneLabel(
-                                    visit.zoneId,
-                                ),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = buildString {
-                                    append(formatMonitoringTime(visit.startAt))
-                                    visit.endAt?.let {
-                                        append(" - ")
-                                        append(formatMonitoringTime(it))
-                                    }
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (visit.current) {
-                                Surface(
-                                    shape = RoundedCornerShape(AppRadius.pill),
-                                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.worker_detail_route_current),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.tertiary,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        val zoneSummaries = emptyList<com.example.mobile_tracker.presentation.monitoring.MonitoringZoneSummary>()
+        com.example.mobile_tracker.presentation.monitoring.MonitoringSiteMap(
+            workers = listOf(worker),
+            zoneSummaries = zoneSummaries,
+            mode = com.example.mobile_tracker.presentation.monitoring.MonitoringMapMode.Workers,
+            highlightedWorkerId = worker.employeeId,
+            route = worker.route,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
 
 
-@Composable
-private fun relativeSeenLabel(timestamp: Long?): String {
-    if (timestamp == null) {
-        return stringResource(R.string.worker_detail_temperature_no_data)
-    }
-    val minutes = ((System.currentTimeMillis() - timestamp) / 60_000L).coerceAtLeast(0L)
-    return when {
-        minutes < 1L -> stringResource(R.string.worker_detail_seen_now)
-        minutes < 60L -> stringResource(R.string.worker_detail_seen_minutes, minutes)
-        else -> stringResource(R.string.worker_detail_seen_hours, minutes / 60L)
-    }
-}
+

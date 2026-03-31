@@ -31,5 +31,8 @@ data class DeviceEntity(
     val lastSyncAt: String? = null,
     @ColumnInfo(name = "local_status")
     val localStatus: String = "available",
+    /** battery_level из GET /devices — 0.0–100.0, null если heartbeat ещё не приходил */
+    @ColumnInfo(name = "battery_level")
+    val batteryLevel: Float? = null,
     @ColumnInfo(name = "synced_at") val syncedAt: Long = 0L,
 )

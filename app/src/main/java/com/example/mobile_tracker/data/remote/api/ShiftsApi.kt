@@ -4,6 +4,7 @@ import com.example.mobile_tracker.data.remote.dto.ShiftActivityResponse
 import com.example.mobile_tracker.data.remote.dto.ShiftListItem
 import com.example.mobile_tracker.data.remote.dto.ShiftListResponse
 import com.example.mobile_tracker.data.remote.dto.ShiftMetricsResponse
+import com.example.mobile_tracker.data.remote.dto.ShiftSensorDataResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -48,4 +49,18 @@ class ShiftsApi(private val client: HttpClient) {
      */
     suspend fun getShiftActivity(shiftId: String): ShiftActivityResponse =
         client.get("/api/v1/shifts/$shiftId/activity").body()
+
+    /**
+     * GET /shifts/{shift_id}/data/{data_type} — сырые сенсорные данные смены.
+     * data_type: wear | battery | heart_rate | accel | gyro | baro | ble | downtime
+     * Возвращает последние [limit] записей, отсортированных по ts_ms DESC.
+     */
+    suspend fun getShiftData(
+        shiftId: String,
+        dataType: String,
+        limit: Int = 1,
+    ): ShiftSensorDataResponse =
+        client.get("/api/v1/shifts/$shiftId/data/$dataType") {
+            parameter("limit", limit)
+        }.body()
 }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "dd878c536107acacb9fd4762744086fb",
+    "identityHash": "2a893a9e231e47e9c7fe6b16a17fd309",
     "entities": [
       {
         "tableName": "employees",
@@ -120,7 +120,7 @@
       },
       {
         "tableName": "devices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`device_id` TEXT NOT NULL, `serial_number` TEXT, `model` TEXT, `status` TEXT NOT NULL, `charge_status` TEXT NOT NULL, `employee_id` TEXT, `employee_name` TEXT, `site_id` TEXT, `last_sync_at` TEXT, `local_status` TEXT NOT NULL, `synced_at` INTEGER NOT NULL, PRIMARY KEY(`device_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`device_id` TEXT NOT NULL, `serial_number` TEXT, `model` TEXT, `status` TEXT NOT NULL, `charge_status` TEXT NOT NULL, `employee_id` TEXT, `employee_name` TEXT, `site_id` TEXT, `last_sync_at` TEXT, `local_status` TEXT NOT NULL, `battery_level` REAL, `synced_at` INTEGER NOT NULL, PRIMARY KEY(`device_id`))",
         "fields": [
           {
             "fieldPath": "deviceId",
@@ -175,6 +175,11 @@
             "columnName": "local_status",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "batteryLevel",
+            "columnName": "battery_level",
+            "affinity": "REAL"
           },
           {
             "fieldPath": "syncedAt",
@@ -784,7 +789,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dd878c536107acacb9fd4762744086fb')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2a893a9e231e47e9c7fe6b16a17fd309')"
     ]
   }
 }

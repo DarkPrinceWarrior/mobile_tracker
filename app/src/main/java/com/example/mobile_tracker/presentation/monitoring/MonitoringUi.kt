@@ -1,5 +1,6 @@
 package com.example.mobile_tracker.presentation.monitoring
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,8 +27,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -101,6 +106,7 @@ fun MonitoringSiteMap(
     mode: MonitoringMapMode,
     modifier: Modifier = Modifier,
     highlightedWorkerId: String? = null,
+    route: List<WorkerRouteVisit> = emptyList(),
     onWorkerClick: ((String) -> Unit)? = null,
 ) {
     Surface(
@@ -289,6 +295,76 @@ fun MonitoringSiteMap(
                     }
             }
 
+            // ─── Route overlay ───
+            // Fixed mock route used when no real route data is available yet
+            val mockRouteAnchors = listOf(
+                Pair(0.13f, 0.62f),
+                Pair(0.13f, 0.28f),
+                Pair(0.43f, 0.22f),
+                Pair(0.76f, 0.35f),
+                Pair(0.76f, 0.72f),
+            )
+
+            val routeAnchors: List<Pair<Float, Float>> = if (route.isNotEmpty()) {
+                route.mapIndexed { index, visit ->
+                    val match = monitoringZones.firstOrNull { it.id == visit.zoneId }
+                    if (match != null) {
+                        Pair(
+                            match.xRatio + match.widthRatio / 2f,
+                            match.yRatio + match.heightRatio / 2f,
+                        )
+                    } else {
+                        mockRouteAnchors[index % mockRouteAnchors.size]
+                    }
+                }
+            } else {
+                // No real route yet — draw a mock path across the map
+                mockRouteAnchors
+            }
+
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val w = size.width
+                val h = size.height
+                val path = Path()
+                routeAnchors.forEachIndexed { idx, (xR, yR) ->
+                    val x = w * xR
+                    val y = h * yR
+                    if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                // Dashed line
+                drawPath(
+                    path = path,
+                    color = Color(0xBB93FFDA),
+                    style = Stroke(
+                        width = 3.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                            floatArrayOf(12f, 8f),
+                            phase = 0f,
+                        ),
+                    ),
+                )
+                // Stop dots
+                routeAnchors.forEachIndexed { idx, (xR, yR) ->
+                    val x = w * xR
+                    val y = h * yR
+                    val isCurrent = idx == routeAnchors.lastIndex
+                    drawCircle(
+                        color = if (isCurrent) Color(0xFF93FFDA) else Color(0x99FFFFFF),
+                        radius = if (isCurrent) 8.dp.toPx() else 5.dp.toPx(),
+                        center = Offset(x, y),
+                    )
+                    if (!isCurrent) {
+                        drawCircle(
+                            color = Color(0xFF092114),
+                            radius = 3.dp.toPx(),
+                            center = Offset(x, y),
+                        )
+                    }
+                }
+            }
+
+
             Surface(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -311,6 +387,7 @@ fun MonitoringSiteMap(
 fun WorkerStatusLegendRow(
     modifier: Modifier = Modifier,
 ) {
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
