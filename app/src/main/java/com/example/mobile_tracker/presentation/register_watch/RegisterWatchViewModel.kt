@@ -131,6 +131,13 @@ class RegisterWatchViewModel(
         }
     }
 
+    fun registerWithEmployee(employee: Employee) {
+        val deviceId = _state.value.deviceId
+        if (deviceId.isBlank()) return
+        _state.update { it.copy(selectedEmployee = employee, error = null) }
+        registerAndBind()
+    }
+
     fun registerAndBind() {
         val employee = _state.value.selectedEmployee ?: return
         val deviceId = _state.value.deviceId

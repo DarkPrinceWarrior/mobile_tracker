@@ -30,20 +30,27 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Watch
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,8 +67,6 @@ import com.example.mobile_tracker.domain.model.Employee
 import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.MTCard
 import com.example.mobile_tracker.presentation.common.MTCompactTopBar
-import com.example.mobile_tracker.presentation.common.MTStatusBadge
-import com.example.mobile_tracker.presentation.common.MTStatusTone
 import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
@@ -79,6 +84,9 @@ fun RegisterWatchScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
+
+    // Employee pending confirmation in dialog
+    var pendingEmployee by remember { mutableStateOf<Employee?>(null) }
 
     LaunchedEffect(scannedValue) {
         if (scannedValue.isNotBlank()) {
@@ -100,13 +108,6 @@ fun RegisterWatchScreen(
         topBar = {
             MTCompactTopBar(
                 title = stringResource(R.string.register_watch_title),
-                subtitle = if (state.isRegistered) {
-                    stringResource(R.string.register_watch_completed)
-                } else if (state.selectedEmployee != null) {
-                    stringResource(R.string.register_watch_step_confirm)
-                } else {
-                    stringResource(R.string.register_watch_step_select_employee)
-                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -135,30 +136,44 @@ fun RegisterWatchScreen(
                         .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
                 )
             } else {
-                RegistrationContent(
+                SelectEmployeeContent(
                     state = state,
-                    viewModel = viewModel,
-                    onClearFocus = { focusManager.clearFocus() },
+                    onSearchChange = { viewModel.updateSearchQuery(it) },
+                    onEmployeeClick = { employee ->
+                        focusManager.clearFocus()
+                        pendingEmployee = employee
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
                 )
             }
         }
+
+        // Confirmation dialog
+        pendingEmployee?.let { emp ->
+            ConfirmBindingDialog(
+                deviceId = state.deviceId,
+                employee = emp,
+                isRegistering = state.isRegistering,
+                onConfirm = {
+                    viewModel.registerWithEmployee(emp)
+                    pendingEmployee = null
+                },
+                onDismiss = { pendingEmployee = null },
+            )
+        }
     }
 }
 
 @Composable
-private fun RegistrationContent(
+private fun SelectEmployeeContent(
     state: RegisterWatchState,
-    viewModel: RegisterWatchViewModel,
-    onClearFocus: () -> Unit,
+    onSearchChange: (String) -> Unit,
+    onEmployeeClick: (Employee) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier,
-    ) {
-        // Fixed header area — device info + search
+    Column(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -166,85 +181,63 @@ private fun RegistrationContent(
                 .padding(top = AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            // Device info card
             DeviceInfoCard(state = state)
 
-            if (state.selectedEmployee != null) {
-                // Confirmation step — full scrollable
-                ConfirmRegistrationContent(
-                    state = state,
-                    onClearEmployee = { viewModel.clearSelectedEmployee() },
-                    onRegister = {
-                        onClearFocus()
-                        viewModel.registerAndBind()
-                    },
-                )
-            } else {
-                // Search bar
-                OutlinedTextField(
-                    value = state.searchQuery,
-                    onValueChange = { viewModel.updateSearchQuery(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = {
-                        Text(text = stringResource(R.string.register_watch_search_label))
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    shape = RoundedCornerShape(AppRadius.lg),
-                )
-            }
+            OutlinedTextField(
+                value = state.searchQuery,
+                onValueChange = onSearchChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = {
+                    Text(text = stringResource(R.string.register_watch_search_label))
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                shape = RoundedCornerShape(AppRadius.lg),
+            )
         }
 
-        if (state.selectedEmployee == null) {
-            // Employee list
-            if (state.isLoadingEmployees) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = AppSpacing.lg),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.tertiary,
+        if (state.isLoadingEmployees) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = AppSpacing.lg),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.tertiary)
+            }
+        } else if (state.filteredEmployees.isEmpty()) {
+            StateCard(
+                message = if (state.searchQuery.isNotBlank()) {
+                    "По запросу «${state.searchQuery}» ничего не найдено"
+                } else {
+                    "Список сотрудников пуст"
+                },
+                isError = false,
+                modifier = Modifier.padding(
+                    horizontal = AppLayout.screenPadding,
+                    vertical = AppSpacing.sm,
+                ),
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(top = AppSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            ) {
+                items(state.filteredEmployees, key = { it.id }) { employee ->
+                    EmployeeResultCard(
+                        employee = employee,
+                        onClick = { onEmployeeClick(employee) },
+                        modifier = Modifier.padding(horizontal = AppLayout.screenPadding),
                     )
-                }
-            } else if (state.filteredEmployees.isEmpty()) {
-                StateCard(
-                    message = if (state.searchQuery.isNotBlank()) {
-                        "По запросу «${state.searchQuery}» ничего не найдено"
-                    } else {
-                        "Список сотрудников пуст"
-                    },
-                    isError = false,
-                    modifier = Modifier.padding(
-                        horizontal = AppLayout.screenPadding,
-                        vertical = AppSpacing.sm,
-                    ),
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(top = AppSpacing.xs),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                ) {
-                    items(state.filteredEmployees, key = { it.id }) { employee ->
-                        EmployeeResultCard(
-                            employee = employee,
-                            onClick = {
-                                onClearFocus()
-                                viewModel.selectEmployee(employee)
-                            },
-                            modifier = Modifier.padding(horizontal = AppLayout.screenPadding),
-                        )
-                    }
                 }
             }
         }
@@ -256,56 +249,53 @@ private fun DeviceInfoCard(state: RegisterWatchState) {
     MTCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f),
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Watch,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp),
+                Icon(
+                    imageVector = Icons.Default.Watch,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.register_watch_device_title),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = state.deviceId.ifBlank { stringResource(R.string.register_watch_no_device) },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                state.model?.let {
+                    Text(
+                        text = stringResource(R.string.register_watch_model) + ": $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
+                state.firmware?.let {
                     Text(
-                        text = state.deviceId.ifBlank {
-                            stringResource(R.string.register_watch_no_device)
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
+                        text = stringResource(R.string.register_watch_firmware) + ": $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    val details = listOfNotNull(state.model, state.firmware)
-                        .joinToString(" · ")
-                    if (details.isNotBlank()) {
-                        Text(
-                            text = details,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
             }
-            MTStatusBadge(
-                label = stringResource(R.string.register_watch_badge_new),
-                tone = MTStatusTone.Warning,
-            )
         }
     }
 }
@@ -340,9 +330,7 @@ private fun EmployeeResultCard(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(
-                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
-                    ),
+                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -362,10 +350,8 @@ private fun EmployeeResultCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Medium,
                 )
-                val secondaryLine = listOfNotNull(
-                    employee.position,
-                    employee.brigadeName,
-                ).joinToString(" · ")
+                val secondaryLine = listOfNotNull(employee.position, employee.brigadeName)
+                    .joinToString(" · ")
                 if (secondaryLine.isNotBlank()) {
                     Text(
                         text = secondaryLine,
@@ -384,159 +370,197 @@ private fun EmployeeResultCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ConfirmRegistrationContent(
-    state: RegisterWatchState,
-    onClearEmployee: () -> Unit,
-    onRegister: () -> Unit,
+private fun ConfirmBindingDialog(
+    deviceId: String,
+    employee: Employee,
+    isRegistering: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+    BasicAlertDialog(
+        onDismissRequest = { if (!isRegistering) onDismiss() },
     ) {
-        MTCard {
-            Text(
-                text = stringResource(R.string.register_watch_confirm_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(R.string.register_watch_confirm_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        // Selected employee card
-        state.selectedEmployee?.let { emp ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(AppRadius.lg),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                ),
+        Card(
+            shape = RoundedCornerShape(AppRadius.xl),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = AppSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
+                // Title
+                Text(
+                    text = stringResource(R.string.register_watch_confirm_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = AppSpacing.lg),
+                )
+
+                // Binding summary card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = AppSpacing.md),
+                    shape = RoundedCornerShape(AppRadius.lg),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // Device row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Watch,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(17.dp),
+                                )
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(1.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.register_watch_device_title),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = deviceId,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = AppSpacing.md),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        )
+
+                        // Employee row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(17.dp),
+                                )
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(1.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.register_watch_summary_employee),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = employee.fullName,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                employee.position?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Equal-width Yes / No buttons
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(AppLayout.cardPadding),
+                        .padding(horizontal = AppSpacing.md)
+                        .padding(top = AppSpacing.xs),
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                            .background(
-                                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                        )
-                    }
-                    Column(
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        enabled = !isRegistering,
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        shape = RoundedCornerShape(AppRadius.lg),
                     ) {
                         Text(
-                            text = emp.fullName,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            text = "Нет",
+                            fontWeight = FontWeight.Medium,
                         )
-                        emp.position?.let {
+                    }
+                    Button(
+                        onClick = onConfirm,
+                        enabled = !isRegistering,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(AppRadius.lg),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        if (isRegistering) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        } else {
                             Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = "Да",
+                                fontWeight = FontWeight.Medium,
                             )
                         }
                     }
                 }
             }
-
-            TextButton(
-                onClick = onClearEmployee,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(text = stringResource(R.string.register_watch_change_employee))
-            }
         }
-
-        // Summary card
-        MTCard {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.register_watch_summary_device),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = state.deviceId,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = stringResource(R.string.register_watch_summary_employee),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = state.selectedEmployee?.fullName.orEmpty(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-            onClick = onRegister,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            enabled = !state.isRegistering,
-            shape = RoundedCornerShape(AppRadius.xl),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-        ) {
-            if (state.isRegistering) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Watch,
-                    contentDescription = null,
-                )
-                Spacer(modifier = Modifier.width(AppSpacing.xs))
-                Text(
-                    text = stringResource(R.string.register_watch_button),
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(AppSpacing.sm))
     }
 }
 
@@ -583,42 +607,8 @@ private fun SuccessContent(
             textAlign = TextAlign.Center,
         )
 
-        MTCard {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.register_watch_summary_device),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = deviceId,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = stringResource(R.string.register_watch_summary_employee),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = employeeName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
-        }
 
-        StateCard(
-            message = stringResource(R.string.register_watch_success_hint),
-            isError = false,
-        )
+
 
         Spacer(modifier = Modifier.weight(1f))
 

@@ -1,7 +1,7 @@
 package com.example.mobile_tracker.presentation.login
 
 data class LoginState(
-    val email: String = "operator@company.com",
+    val email: String = "operator.kazan@company.com",
     val password: String = "operator123",
     val isLoading: Boolean = false,
     val isPasswordVisible: Boolean = false,
