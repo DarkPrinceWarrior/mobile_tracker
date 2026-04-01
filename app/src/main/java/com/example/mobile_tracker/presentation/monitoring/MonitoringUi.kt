@@ -107,6 +107,8 @@ fun MonitoringSiteMap(
     modifier: Modifier = Modifier,
     highlightedWorkerId: String? = null,
     route: List<WorkerRouteVisit> = emptyList(),
+    showFallbackHeatmapMarker: Boolean = true,
+    showFallbackRoute: Boolean = true,
     onWorkerClick: ((String) -> Unit)? = null,
 ) {
     Surface(
@@ -222,7 +224,7 @@ fun MonitoringSiteMap(
                 }
             }
 
-            if (mode == MonitoringMapMode.Heatmap) {
+            if (mode == MonitoringMapMode.Heatmap && showFallbackHeatmapMarker) {
                 Box(
                     modifier = Modifier
                         .offset(x = maxWidth * 0.40f, y = maxHeight * 0.50f)
@@ -295,8 +297,6 @@ fun MonitoringSiteMap(
                     }
             }
 
-            // ─── Route overlay ───
-            // Fixed mock route used when no real route data is available yet
             val mockRouteAnchors = listOf(
                 Pair(0.13f, 0.62f),
                 Pair(0.13f, 0.28f),
@@ -305,61 +305,62 @@ fun MonitoringSiteMap(
                 Pair(0.76f, 0.72f),
             )
 
-            val routeAnchors: List<Pair<Float, Float>> = if (route.isNotEmpty()) {
-                route.mapIndexed { index, visit ->
-                    val match = monitoringZones.firstOrNull { it.id == visit.zoneId }
-                    if (match != null) {
-                        Pair(
-                            match.xRatio + match.widthRatio / 2f,
-                            match.yRatio + match.heightRatio / 2f,
-                        )
-                    } else {
-                        mockRouteAnchors[index % mockRouteAnchors.size]
+            val routeAnchors: List<Pair<Float, Float>> = when {
+                route.isNotEmpty() -> {
+                    route.mapIndexed { index, visit ->
+                        val match = monitoringZones.firstOrNull { it.id == visit.zoneId }
+                        if (match != null) {
+                            Pair(
+                                match.xRatio + match.widthRatio / 2f,
+                                match.yRatio + match.heightRatio / 2f,
+                            )
+                        } else {
+                            mockRouteAnchors[index % mockRouteAnchors.size]
+                        }
                     }
                 }
-            } else {
-                // No real route yet — draw a mock path across the map
-                mockRouteAnchors
+                showFallbackRoute -> mockRouteAnchors
+                else -> emptyList()
             }
 
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                val path = Path()
-                routeAnchors.forEachIndexed { idx, (xR, yR) ->
-                    val x = w * xR
-                    val y = h * yR
-                    if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                }
-                // Dashed line
-                drawPath(
-                    path = path,
-                    color = Color(0xBB93FFDA),
-                    style = Stroke(
-                        width = 3.dp.toPx(),
-                        cap = StrokeCap.Round,
-                        pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
-                            floatArrayOf(12f, 8f),
-                            phase = 0f,
+            if (routeAnchors.isNotEmpty()) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val w = size.width
+                    val h = size.height
+                    val path = Path()
+                    routeAnchors.forEachIndexed { idx, (xR, yR) ->
+                        val x = w * xR
+                        val y = h * yR
+                        if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                    }
+                    drawPath(
+                        path = path,
+                        color = Color(0xBB93FFDA),
+                        style = Stroke(
+                            width = 3.dp.toPx(),
+                            cap = StrokeCap.Round,
+                            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                                floatArrayOf(12f, 8f),
+                                phase = 0f,
+                            ),
                         ),
-                    ),
-                )
-                // Stop dots
-                routeAnchors.forEachIndexed { idx, (xR, yR) ->
-                    val x = w * xR
-                    val y = h * yR
-                    val isCurrent = idx == routeAnchors.lastIndex
-                    drawCircle(
-                        color = if (isCurrent) Color(0xFF93FFDA) else Color(0x99FFFFFF),
-                        radius = if (isCurrent) 8.dp.toPx() else 5.dp.toPx(),
-                        center = Offset(x, y),
                     )
-                    if (!isCurrent) {
+                    routeAnchors.forEachIndexed { idx, (xR, yR) ->
+                        val x = w * xR
+                        val y = h * yR
+                        val isCurrent = idx == routeAnchors.lastIndex
                         drawCircle(
-                            color = Color(0xFF092114),
-                            radius = 3.dp.toPx(),
+                            color = if (isCurrent) Color(0xFF93FFDA) else Color(0x99FFFFFF),
+                            radius = if (isCurrent) 8.dp.toPx() else 5.dp.toPx(),
                             center = Offset(x, y),
                         )
+                        if (!isCurrent) {
+                            drawCircle(
+                                color = Color(0xFF092114),
+                                radius = 3.dp.toPx(),
+                                center = Offset(x, y),
+                            )
+                        }
                     }
                 }
             }

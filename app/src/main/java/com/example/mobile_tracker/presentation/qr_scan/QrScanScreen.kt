@@ -28,13 +28,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -59,7 +62,6 @@ import com.example.mobile_tracker.presentation.common.AppScreenScaffold
 import com.example.mobile_tracker.presentation.common.MTCompactTopBar
 import com.example.mobile_tracker.presentation.common.MTStatusBadge
 import com.example.mobile_tracker.presentation.common.MTStatusTone
-import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.navigation.QrScanMode
 import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
@@ -99,7 +101,6 @@ fun QrScanScreen(
         topBar = {
             MTCompactTopBar(
                 title = stringResource(R.string.qr_scan_title),
-                subtitle = modeSubtitle(mode),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -178,12 +179,11 @@ fun QrScanScreen(
             }
 
             if (permissionDenied) {
-                StateCard(
+                PermissionInfoCard(
+                    title = stringResource(R.string.qr_scan_badge_permission),
                     message = stringResource(R.string.qr_scan_permission_hint),
-                    isError = false,
-                )
-                Button(
-                    onClick = {
+                    actionLabel = stringResource(R.string.permissions_open_app_settings),
+                    onActionClick = {
                         context.startActivity(
                             Intent(
                                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -191,26 +191,58 @@ fun QrScanScreen(
                             ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(AppRadius.xl),
-                ) {
-                    Text(text = stringResource(R.string.permissions_open_app_settings))
-                }
-            }
-
-            // Demo button for testing only
-            FilledTonalButton(
-                onClick = {
-                    val value = demoValue(mode)
-                    onConfirmResult(value)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(AppRadius.xl),
-            ) {
-                Text(
-                    text = stringResource(R.string.qr_scan_fill_demo),
-                    fontWeight = FontWeight.Medium,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermissionInfoCard(
+    title: String,
+    message: String,
+    actionLabel: String,
+    onActionClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AppRadius.xl),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppLayout.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(AppRadius.lg))
+                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(
+                onClick = onActionClick,
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text(actionLabel)
             }
         }
     }
@@ -383,24 +415,9 @@ private fun ScannerCorner(
 }
 
 @Composable
-private fun modeSubtitle(mode: QrScanMode): String = when (mode) {
-    QrScanMode.IssueDevice -> stringResource(R.string.qr_scan_subtitle_issue)
-    QrScanMode.ReturnDevice -> stringResource(R.string.qr_scan_subtitle_return)
-    QrScanMode.UploadDevice -> stringResource(R.string.qr_scan_subtitle_upload)
-    QrScanMode.RegisterWatch -> stringResource(R.string.qr_scan_subtitle_register_watch)
-}
-
-@Composable
 private fun modeInstruction(mode: QrScanMode): String = when (mode) {
     QrScanMode.IssueDevice -> stringResource(R.string.qr_scan_instruction_issue)
     QrScanMode.ReturnDevice -> stringResource(R.string.qr_scan_instruction_return)
     QrScanMode.UploadDevice -> stringResource(R.string.qr_scan_instruction_upload)
     QrScanMode.RegisterWatch -> stringResource(R.string.qr_scan_instruction_register_watch)
-}
-
-private fun demoValue(mode: QrScanMode): String = when (mode) {
-    QrScanMode.IssueDevice -> "WT-0007"
-    QrScanMode.ReturnDevice -> "WT-0003"
-    QrScanMode.UploadDevice -> "WT-0005"
-    QrScanMode.RegisterWatch -> "{\"device_id\":\"WT-0EC22895\",\"model\":\"sdk_gwear_x86_64\",\"firmware\":\"Wear OS 36\",\"app_version\":\"1.0.0\"}"
 }

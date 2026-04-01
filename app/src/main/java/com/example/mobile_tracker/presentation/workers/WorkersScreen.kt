@@ -56,7 +56,6 @@ import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringSnapshot
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringStatus
 import com.example.mobile_tracker.presentation.monitoring.formatZoneLabel
-import com.example.mobile_tracker.presentation.monitoring.monitoringZones
 import com.example.mobile_tracker.presentation.monitoring.workerStatusColor
 import org.koin.androidx.compose.koinViewModel
 
@@ -76,7 +75,6 @@ fun WorkersScreen(
         topBar = {
             MTCompactTopBar(
                 title = stringResource(R.string.monitoring_nav_workers),
-                subtitle = if (state.siteName.isNotBlank()) state.siteName else null,
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -116,6 +114,11 @@ private fun WorkersContent(
     onOpenWorkerDetail: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val availableZones = state.workers
+        .mapNotNull { it.zoneId }
+        .distinct()
+        .sorted()
+
     Column(
         modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -137,10 +140,10 @@ private fun WorkersContent(
         )
 
         // Zone filter chips (only when zones are available)
-        if (monitoringZones.isNotEmpty()) {
+        if (availableZones.isNotEmpty()) {
             ZoneFilterRow(
                 selectedZone = state.zoneFilter,
-                availableZones = monitoringZones.map { it.id },
+                availableZones = availableZones,
                 onSelect = { onIntent(WorkersIntent.SetZoneFilter(it)) },
             )
         }
@@ -380,12 +383,11 @@ private fun WorkerListCard(
                 }
             }
 
-            // Row 1: Status dot + SMR badge
+            // Row 1: Status dot
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Status dot + label
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -400,18 +402,6 @@ private fun WorkerListCard(
                         text = workerStatusLabel(worker.status),
                         style = MaterialTheme.typography.bodySmall,
                         color = workerStatusColor(worker.status),
-                    )
-                }
-                // SMR badge
-                Surface(
-                    shape = RoundedCornerShape(48.dp),
-                    color = Color(0x2B60D188),
-                ) {
-                    Text(
-                        text = stringResource(R.string.worker_detail_smr, worker.smrPercent),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = workerStatusColor(WorkerMonitoringStatus.Active),
                     )
                 }
             }

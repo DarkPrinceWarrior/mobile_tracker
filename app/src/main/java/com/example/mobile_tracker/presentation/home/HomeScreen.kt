@@ -692,10 +692,6 @@ private fun MoreTabContent(
     onNavigateToSettings: () -> Unit,
     onNavigateToRegisterWatch: () -> Unit,
 ) {
-    MTSectionHeader(
-        title = stringResource(R.string.more_title),
-    )
-
     MoreMenuItem(
         icon = Icons.Default.Bolt,
         title = stringResource(R.string.more_monitoring),

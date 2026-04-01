@@ -177,7 +177,7 @@ class MapsViewModel(
                 val zoneSummaries = if (zones.isNotEmpty()) {
                     buildZoneSummariesFromBackend(workers, zones)
                 } else {
-                    buildZoneSummaries(workers)
+                    emptyList()
                 }
 
                 workers to zoneSummaries

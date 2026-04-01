@@ -73,11 +73,6 @@ fun MapsScreen(
         topBar = {
             MTCompactTopBar(
                 title = stringResource(R.string.maps_title),
-                subtitle = stringResource(
-                    R.string.maps_subtitle,
-                    state.siteName,
-                    state.shiftDate,
-                ),
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -143,6 +138,8 @@ fun MapsScreen(
                         workers = state.workersOnMap,
                         zoneSummaries = state.zoneSummaries,
                         mode = state.mode,
+                        showFallbackHeatmapMarker = false,
+                        showFallbackRoute = false,
                         onWorkerClick = onOpenWorkerDetail,
                     )
                 }
@@ -164,8 +161,18 @@ fun MapsScreen(
                         )
                     }
                 } else if (state.mode == MonitoringMapMode.Heatmap) {
-                    items(state.zoneSummaries, key = { it.zone.id }) { summary ->
-                        MapsZoneRow(summary = summary)
+                    if (state.zoneSummaries.isEmpty()) {
+                        item {
+                            EmptyState(
+                                title = stringResource(R.string.maps_empty),
+                                icon = Icons.Default.Map,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    } else {
+                        items(state.zoneSummaries, key = { it.zone.id }) { summary ->
+                            MapsZoneRow(summary = summary)
+                        }
                     }
                 } else {
                     item {
@@ -293,7 +300,7 @@ private fun MapsZoneRow(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = formatZoneLabel(summary.zone.id),
+                    text = summary.zone.id,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
