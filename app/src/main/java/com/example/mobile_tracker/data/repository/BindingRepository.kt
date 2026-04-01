@@ -67,7 +67,7 @@ class BindingRepository(
                 }
             } else {
                 // Новая привязка с бэкенда — вставляем
-                val empName = b.employeeName ?: "Сотрудник"
+                val empName = b.employeeName.orEmpty()
                 val boundAt = b.boundAt?.let { parseIsoTimestamp(it) }
                     ?: System.currentTimeMillis()
                 bindingDao.insert(

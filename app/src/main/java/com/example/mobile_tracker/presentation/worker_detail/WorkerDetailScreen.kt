@@ -52,7 +52,6 @@ import com.example.mobile_tracker.presentation.common.MTSectionHeader
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringSnapshot
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringStatus
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringStatus.Active
-import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringStatusBadge
 import com.example.mobile_tracker.presentation.monitoring.formatMonitoringDuration
 import com.example.mobile_tracker.presentation.monitoring.formatMonitoringTime
 import com.example.mobile_tracker.presentation.monitoring.workerStatusColor
@@ -158,21 +157,14 @@ private fun WorkerHeaderCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    if (worker.roleLabel.isNotBlank()) {
-                        Text(
-                            text = worker.roleLabel,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                    }
-                    WorkerMonitoringStatusBadge(status = worker.status)
+                if (worker.roleLabel.isNotBlank()) {
+                    Text(
+                        text = worker.roleLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -509,4 +501,3 @@ private fun WorkerRouteSection(
         )
     }
 }
-

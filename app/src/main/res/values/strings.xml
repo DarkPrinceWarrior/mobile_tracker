@@ -24,8 +24,6 @@
     <string name="context_site_hint">Выберите площадку</string>
     <string name="context_date_label">Дата смены</string>
     <string name="context_date_hint">Дата смены</string>
-    <string name="context_shift_day">Дневная</string>
-    <string name="context_shift_night">Ночная</string>
     <string name="context_ready">Готово</string>
     <string name="context_start_button">Начать работу</string>
     <string name="context_error_no_site">Выберите площадку</string>
@@ -56,7 +54,6 @@
     <string name="home_metric_active">Активные выдачи</string>
     <string name="home_metric_active_subtitle">Требуют выгрузки: %1$d</string>
     <string name="home_metric_alerts">Инциденты</string>
-    <string name="home_network_online">Онлайн</string>
     <string name="home_network_offline">Оффлайн</string>
     <string name="home_queue_ready">Без очереди</string>
     <string name="home_queue_pending">Ожидает отправки</string>
@@ -184,19 +181,15 @@
 
     <!-- M3: Return -->
     <string name="return_title">Возврат часов</string>
-    <string name="return_issued_count">Выданных: %d</string>
     <string name="return_empty">Нет выданных часов</string>
     <string name="return_button">Принять часы</string>
     <string name="return_mark_lost">Потеряны</string>
     <string name="return_success">Часы возвращены</string>
     <string name="return_navigate">Перейти к возврату</string>
     <string name="return_summary_title">Активные выдачи</string>
-    <string name="return_summary_status">Нужна проверка</string>
-    <string name="return_selected_binding">%1$s · %2$s</string>
     <string name="return_detail_empty">Выберите выдачу из списка</string>
     <string name="return_detail_employee">Сотрудник</string>
     <string name="return_detail_issued_at">Выдано</string>
-    <string name="return_detail_shift">Смена</string>
     <string name="return_data_not_uploaded_title">Данные не выгружены</string>
     <string name="return_data_not_uploaded_message">Данные с часов ещё не выгружены. Продолжить возврат без выгрузки?</string>
     <string name="return_continue">Продолжить</string>
@@ -204,21 +197,6 @@
     <string name="return_issued_at">Выдано: %s</string>
     <string name="return_data_uploaded">Данные выгружены</string>
     <string name="return_data_pending">Данные не выгружены</string>
-    <string name="return_mark_problem">Проблема</string>
-    <string name="return_problem_title">Проблема при возврате</string>
-    <string name="return_problem_subtitle">Зафиксируйте причину, чтобы часы не вернулись в оборот до проверки.</string>
-    <string name="return_problem_comment_label">Комментарий</string>
-    <string name="return_problem_comment_placeholder">Например, экран разбит, часы не выходят на связь, нет зарядки…</string>
-    <string name="return_problem_confirm">Сохранить причину</string>
-    <string name="return_problem_lost">Потеря</string>
-    <string name="return_problem_faulty">Поломка</string>
-    <string name="return_problem_no_connection">Нет связи</string>
-    <string name="return_problem_other">Другое</string>
-    <string name="return_problem_lost_desc">Часы у сотрудника отсутствуют, возврат невозможен.</string>
-    <string name="return_problem_faulty_desc">Устройство физически повреждено и требует проверки.</string>
-    <string name="return_problem_no_connection_desc">Часы на руках, но не отвечают или не подключаются.</string>
-    <string name="return_problem_other_desc">Нестандартная ситуация, которую нужно описать вручную.</string>
-    <string name="return_scan_qr">Сканировать QR для возврата</string>
 
     <!-- M3: Binding sync -->
     <string name="binding_pending_sync">Ожидает синхронизации</string>

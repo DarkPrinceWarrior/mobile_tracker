@@ -125,11 +125,6 @@ fun HomeScreen(
         mutableStateOf(HomeDestination.ISSUE)
     }
     val isTablet = rememberIsTablet()
-    val shiftTypeLabel = if (state.shiftType == "day") {
-        stringResource(R.string.context_shift_day)
-    } else {
-        stringResource(R.string.context_shift_night)
-    }
     val statusText = when {
         !state.isOnline -> stringResource(R.string.shell_offline)
         state.pendingPacketsCount > 0 -> stringResource(
@@ -203,7 +198,6 @@ fun HomeScreen(
                         if (destination == HomeDestination.ISSUE) {
                             HomeOverviewSection(
                                 state = state,
-                                shiftTypeLabel = shiftTypeLabel,
                             )
                         }
                         when (destination) {
@@ -235,7 +229,6 @@ fun HomeScreen(
 @Composable
 private fun HomeOverviewSection(
     state: HomeState,
-    shiftTypeLabel: String,
 ) {
     MTSectionHeader(
         title = stringResource(R.string.home_overview_title),
@@ -254,28 +247,16 @@ private fun HomeOverviewSection(
                 overflow = TextOverflow.Clip,
             )
             Text(
-                text = buildString {
-                    if (state.shiftDate.isNotBlank()) {
-                        append(state.shiftDate)
-                        append(" · ")
-                    }
-                    append(shiftTypeLabel)
-                },
+                text = state.shiftDate,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            MTStatusBadge(
-                label = if (state.isOnline) {
-                    stringResource(R.string.home_network_online)
-                } else {
-                    stringResource(R.string.home_network_offline)
-                },
-                tone = if (state.isOnline) {
-                    MTStatusTone.Success
-                } else {
-                    MTStatusTone.Danger
-                },
-            )
+            if (!state.isOnline) {
+                MTStatusBadge(
+                    label = stringResource(R.string.home_network_offline),
+                    tone = MTStatusTone.Danger,
+                )
+            }
         }
     }
 

@@ -19,14 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Construction
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Replay
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -37,8 +30,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,8 +43,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
@@ -64,8 +53,6 @@ import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
 import com.example.mobile_tracker.presentation.common.MTCard
 import com.example.mobile_tracker.presentation.common.MTCompactTopBar
-import com.example.mobile_tracker.presentation.common.MTStatusBadge
-import com.example.mobile_tracker.presentation.common.MTStatusTone
 import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.common.rememberIsTablet
 import com.example.mobile_tracker.ui.theme.AppLayout
@@ -80,9 +67,7 @@ import java.util.Locale
 @Composable
 fun ReturnScreen(
     onBack: (() -> Unit)? = null,
-    onCompleted: () -> Unit = {},
     scannedDeviceId: String? = null,
-    onOpenQrScan: () -> Unit = {},
     viewModel: ReturnViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -92,7 +77,7 @@ fun ReturnScreen(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is ReturnEffect.ShowSuccess -> onCompleted()
+                is ReturnEffect.ShowSuccess -> Unit
                 is ReturnEffect.ShowError -> Unit
             }
         }
@@ -122,31 +107,11 @@ fun ReturnScreen(
         )
     }
 
-    if (state.showProblemDialog) {
-        ReturnProblemDialog(
-            selectedReason = state.selectedProblemReason,
-            comment = state.problemComment,
-            onReasonSelected = {
-                viewModel.onIntent(ReturnIntent.SelectProblemReason(it))
-            },
-            onCommentChanged = {
-                viewModel.onIntent(ReturnIntent.UpdateProblemComment(it))
-            },
-            onDismiss = {
-                viewModel.onIntent(ReturnIntent.DismissProblemDialog)
-            },
-            onConfirm = {
-                viewModel.onIntent(ReturnIntent.ConfirmProblemReturn)
-            },
-        )
-    }
-
     AppScreenScaffold(
         snackbarMessage = state.error,
         topBar = {
             MTCompactTopBar(
                 title = stringResource(R.string.return_title),
-                subtitle = stringResource(R.string.return_issued_count, state.activeBindings.size),
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -170,8 +135,6 @@ fun ReturnScreen(
         ) {
             ReturnSummaryCard(
                 totalCount = state.activeBindings.size,
-                selectedBinding = selectedBinding,
-                onOpenQrScan = onOpenQrScan,
             )
 
             if (state.error != null) {
@@ -204,9 +167,6 @@ fun ReturnScreen(
                                             viewModel.onIntent(ReturnIntent.SelectBinding(binding))
                                         },
                                         onReturn = { viewModel.onIntent(ReturnIntent.ConfirmReturn) },
-                                        onOpenProblemFlow = {
-                                            viewModel.onIntent(ReturnIntent.OpenProblemFlow(binding))
-                                        },
                                     )
                                 }
                                 item { Spacer(modifier = Modifier.height(AppSpacing.lg)) }
@@ -219,11 +179,6 @@ fun ReturnScreen(
                             binding = selectedBinding,
                             isReturning = state.isReturning,
                             onReturn = { viewModel.onIntent(ReturnIntent.ConfirmReturn) },
-                            onOpenProblemFlow = {
-                                selectedBinding?.let {
-                                    viewModel.onIntent(ReturnIntent.OpenProblemFlow(it))
-                                }
-                            },
                         )
                     },
                 )
@@ -235,14 +190,12 @@ fun ReturnScreen(
 @Composable
 private fun ReturnSummaryCard(
     totalCount: Int,
-    selectedBinding: DeviceBinding?,
-    onOpenQrScan: () -> Unit,
 ) {
     MTCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 modifier = Modifier.weight(1f),
@@ -254,60 +207,34 @@ private fun ReturnSummaryCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = totalCount.toString(),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
                     text = stringResource(R.string.home_return_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            MTStatusBadge(
-                label = stringResource(R.string.return_summary_status),
-                tone = MTStatusTone.Warning,
-            )
-        }
-
-        if (selectedBinding != null) {
-            Spacer(modifier = Modifier.height(AppSpacing.xs))
             Surface(
-                shape = RoundedCornerShape(AppRadius.pill),
-                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f),
+                shape = RoundedCornerShape(AppRadius.xl),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
             ) {
-                Text(
-                    text = stringResource(
-                        R.string.return_selected_binding,
-                        selectedBinding.deviceId,
-                        selectedBinding.employeeName,
-                    ),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = totalCount.toString(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = "выдач",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(AppSpacing.xs))
-        Button(
-            onClick = onOpenQrScan,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(AppRadius.xl),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ),
-        ) {
-            Icon(
-                imageVector = Icons.Default.QrCodeScanner,
-                contentDescription = null,
-            )
-            Spacer(modifier = Modifier.size(AppSpacing.xs))
-            Text(text = stringResource(R.string.return_scan_qr))
-        }
     }
 }
 
@@ -319,7 +246,6 @@ private fun BindingCard(
     showInlineActions: Boolean,
     onSelect: () -> Unit,
     onReturn: () -> Unit,
-    onOpenProblemFlow: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -375,23 +301,18 @@ private fun BindingCard(
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Text(
-                        text = binding.employeeName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
+                    if (binding.employeeName.isRealEmployeeName()) {
+                        Text(
+                            text = "${stringResource(R.string.return_detail_employee)}: ${binding.employeeName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     Text(
                         text = stringResource(R.string.return_issued_at, formatTime(binding.boundAt)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    SyncBadge(isSynced = binding.isSynced)
-                    UploadBadge(dataUploaded = binding.dataUploaded)
                 }
             }
 
@@ -399,7 +320,6 @@ private fun BindingCard(
                 ReturnActionRow(
                     isReturning = isReturning,
                     onReturn = onReturn,
-                    onOpenProblemFlow = onOpenProblemFlow,
                 )
             }
         }
@@ -412,7 +332,6 @@ private fun ReturnDetailPane(
     binding: DeviceBinding?,
     isReturning: Boolean,
     onReturn: () -> Unit,
-    onOpenProblemFlow: () -> Unit,
 ) {
     if (binding == null) {
         EmptyState(
@@ -461,40 +380,35 @@ private fun ReturnDetailPane(
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Text(
-                        text = binding.employeeName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (binding.employeeName.isRealEmployeeName()) {
+                        Text(
+                            text = "${stringResource(R.string.return_detail_employee)}: ${binding.employeeName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 
-            ReturnDetailRow(
-                label = stringResource(R.string.return_detail_employee),
-                value = binding.employeeName,
-            )
+            if (binding.employeeName.isRealEmployeeName()) {
+                ReturnDetailRow(
+                    label = stringResource(R.string.return_detail_employee),
+                    value = binding.employeeName,
+                )
+            }
             ReturnDetailRow(
                 label = stringResource(R.string.return_detail_issued_at),
                 value = formatTime(binding.boundAt),
             )
             ReturnDetailRow(
-                label = stringResource(R.string.return_detail_shift),
-                value = "${binding.shiftDate} · ${binding.shiftType}",
+                label = stringResource(R.string.context_date_label),
+                value = binding.shiftDate,
             )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                SyncBadge(isSynced = binding.isSynced)
-                UploadBadge(dataUploaded = binding.dataUploaded)
-            }
-
             Spacer(modifier = Modifier.weight(1f))
 
             ReturnActionRow(
                 isReturning = isReturning,
                 onReturn = onReturn,
-                onOpenProblemFlow = onOpenProblemFlow,
             )
         }
     }
@@ -504,172 +418,29 @@ private fun ReturnDetailPane(
 private fun ReturnActionRow(
     isReturning: Boolean,
     onReturn: () -> Unit,
-    onOpenProblemFlow: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    Button(
+        onClick = onReturn,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        enabled = !isReturning,
+        shape = RoundedCornerShape(AppRadius.xl),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+        ),
     ) {
-        Button(
-            onClick = onReturn,
-            modifier = Modifier
-                .weight(1f)
-                .height(52.dp),
-            enabled = !isReturning,
-            shape = RoundedCornerShape(AppRadius.xl),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-        ) {
-            if (isReturning) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Text(stringResource(R.string.return_button))
-            }
-        }
-        OutlinedButton(
-            onClick = onOpenProblemFlow,
-            modifier = Modifier.height(52.dp),
-            enabled = !isReturning,
-            shape = RoundedCornerShape(AppRadius.xl),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Construction,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
+        if (isReturning) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onPrimary,
             )
-            Spacer(modifier = Modifier.size(AppSpacing.xs))
-            Text(stringResource(R.string.return_mark_problem))
+        } else {
+            Text(stringResource(R.string.return_button))
         }
     }
-}
-
-@Composable
-private fun ReturnProblemDialog(
-    selectedReason: ReturnProblemReason,
-    comment: String,
-    onReasonSelected: (ReturnProblemReason) -> Unit,
-    onCommentChanged: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.return_problem_title)) },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            ) {
-                Text(
-                    text = stringResource(R.string.return_problem_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    ReturnProblemReason.entries.forEach { reason ->
-                        ProblemReasonRow(
-                            reason = reason,
-                            selected = reason == selectedReason,
-                            onClick = { onReasonSelected(reason) },
-                        )
-                    }
-                }
-                OutlinedTextField(
-                    value = comment,
-                    onValueChange = onCommentChanged,
-                    minLines = 3,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = {
-                        Text(stringResource(R.string.return_problem_comment_label))
-                    },
-                    placeholder = {
-                        Text(stringResource(R.string.return_problem_comment_placeholder))
-                    },
-                    shape = RoundedCornerShape(AppRadius.lg),
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = onConfirm) {
-                Text(stringResource(R.string.return_problem_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.return_cancel))
-            }
-        },
-    )
-}
-
-@Composable
-private fun ProblemReasonRow(
-    reason: ReturnProblemReason,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick,
-        shape = RoundedCornerShape(AppRadius.lg),
-        color = if (selected) {
-            MaterialTheme.colorScheme.surfaceContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerLowest
-        },
-        border = if (selected) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f))
-        } else {
-            null
-        },
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = problemReasonLabel(reason),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = problemReasonDescription(reason),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SyncBadge(isSynced: Boolean) {
-    MTStatusBadge(
-        label = if (isSynced) {
-            stringResource(R.string.binding_synced)
-        } else {
-            stringResource(R.string.binding_pending_sync)
-        },
-        tone = if (isSynced) MTStatusTone.Neutral else MTStatusTone.Warning,
-    )
-}
-
-@Composable
-private fun UploadBadge(dataUploaded: Boolean) {
-    MTStatusBadge(
-        label = if (dataUploaded) {
-            stringResource(R.string.return_data_uploaded)
-        } else {
-            stringResource(R.string.return_data_pending)
-        },
-        tone = if (dataUploaded) MTStatusTone.Success else MTStatusTone.Danger,
-    )
 }
 
 @Composable
@@ -701,23 +472,10 @@ private fun ReturnDetailRow(
     }
 }
 
-@Composable
-private fun problemReasonLabel(reason: ReturnProblemReason): String = when (reason) {
-    ReturnProblemReason.Lost -> stringResource(R.string.return_problem_lost)
-    ReturnProblemReason.Faulty -> stringResource(R.string.return_problem_faulty)
-    ReturnProblemReason.NoConnection -> stringResource(R.string.return_problem_no_connection)
-    ReturnProblemReason.Other -> stringResource(R.string.return_problem_other)
-}
-
-@Composable
-private fun problemReasonDescription(reason: ReturnProblemReason): String = when (reason) {
-    ReturnProblemReason.Lost -> stringResource(R.string.return_problem_lost_desc)
-    ReturnProblemReason.Faulty -> stringResource(R.string.return_problem_faulty_desc)
-    ReturnProblemReason.NoConnection -> stringResource(R.string.return_problem_no_connection_desc)
-    ReturnProblemReason.Other -> stringResource(R.string.return_problem_other_desc)
-}
-
 private fun formatTime(timestampMs: Long): String {
     val sdf = SimpleDateFormat("HH:mm", Locale("ru"))
     return sdf.format(Date(timestampMs))
 }
+
+private fun String?.isRealEmployeeName(): Boolean =
+    !this.isNullOrBlank() && this != "Сотрудник"

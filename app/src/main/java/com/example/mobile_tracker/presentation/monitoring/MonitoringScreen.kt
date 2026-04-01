@@ -155,7 +155,6 @@ private fun MonitoringContent(
             SectionLabel(text = "Зоны площадки")
             ZonesPanel(
                 zones = zones,
-                shiftWindow = monitoringShiftWindow(state.shiftType),
                 onZoneClick = onNavigateToMaps,
             )
         }
@@ -291,7 +290,6 @@ private fun MonitoringSummaryTile(
 @Composable
 private fun ZonesPanel(
     zones: List<MonitoringZoneSummary>,
-    shiftWindow: String,
     onZoneClick: () -> Unit,
 ) {
     Surface(
@@ -308,7 +306,6 @@ private fun ZonesPanel(
             zones.forEach { summary ->
                 ZoneRow(
                     summary = summary,
-                    shiftWindow = shiftWindow,
                     onClick = onZoneClick,
                 )
             }
@@ -320,7 +317,6 @@ private fun ZonesPanel(
 @Composable
 private fun ZoneRow(
     summary: MonitoringZoneSummary,
-    shiftWindow: String,
     onClick: () -> Unit,
 ) {
     val isActive = summary.totalWorkers > 0
@@ -360,11 +356,6 @@ private fun ZoneRow(
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = shiftWindow,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                 )
             }
             if (isActive) {
@@ -426,10 +417,4 @@ private fun WorkersButton(onClick: () -> Unit) {
             fontWeight = FontWeight.Medium,
         )
     }
-}
-
-private fun monitoringShiftWindow(shiftType: String): String = if (shiftType == "night") {
-    "смена 19:00–06:30"
-} else {
-    "смена 07:00–18:30"
 }

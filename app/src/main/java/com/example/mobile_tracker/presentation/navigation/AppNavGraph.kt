@@ -187,12 +187,6 @@ fun AppNavGraph(
             ReturnScreen(
                 scannedDeviceId = returnRoute.scannedDeviceId,
                 onBack = { navController.popBackStack() },
-                onCompleted = { navController.popBackStack() },
-                onOpenQrScan = {
-                    navController.navigate(
-                        Route.QrScan(mode = QrScanMode.ReturnDevice),
-                    )
-                },
             )
         }
 

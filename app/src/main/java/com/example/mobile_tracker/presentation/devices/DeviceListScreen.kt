@@ -20,10 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Battery2Bar
-import androidx.compose.material.icons.filled.BatteryAlert
-import androidx.compose.material.icons.filled.BatteryChargingFull
-import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Card
@@ -40,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,15 +49,12 @@ import com.example.mobile_tracker.presentation.common.EmptyState
 import com.example.mobile_tracker.presentation.common.LoadingState
 import com.example.mobile_tracker.presentation.common.MTCard
 import com.example.mobile_tracker.presentation.common.MTCompactTopBar
-import com.example.mobile_tracker.presentation.common.MTStatusBadge
-import com.example.mobile_tracker.presentation.common.MTStatusTone
 import com.example.mobile_tracker.presentation.common.SearchField
 import com.example.mobile_tracker.presentation.common.StateCard
 import com.example.mobile_tracker.presentation.common.rememberIsTablet
 import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
 import com.example.mobile_tracker.ui.theme.AppSpacing
-import com.example.mobile_tracker.ui.theme.danger
 import com.example.mobile_tracker.ui.theme.success
 import com.example.mobile_tracker.ui.theme.warning
 import org.koin.androidx.compose.koinViewModel
@@ -320,8 +312,6 @@ private fun DeviceCard(
     device: Device,
     onClick: () -> Unit,
 ) {
-    val chargeMeta = deviceChargeMeta(chargeStatus = device.chargeStatus)
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -350,14 +340,14 @@ private fun DeviceCard(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(deviceStatusContainerColor(device.localStatus)),
+                        .background(MaterialTheme.colorScheme.surfaceContainer),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Default.Watch,
                         contentDescription = null,
                         modifier = Modifier.size(22.dp),
-                        tint = deviceStatusContentColor(device.localStatus),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Column(
@@ -368,37 +358,20 @@ private fun DeviceCard(
                         text = device.deviceId,
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    val secondaryLine = listOfNotNull(device.serialNumber, device.model)
-                        .joinToString(" · ")
-                    if (secondaryLine.isNotBlank()) {
-                        Text(
-                            text = secondaryLine,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                DeviceStatusBadge(status = device.localStatus)
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                DeviceChargeChip(meta = chargeMeta)
-                if (device.localStatus == "issued" && !device.employeeName.isNullOrBlank()) {
-                    Text(
-                        text = stringResource(R.string.devices_issued_to, device.employeeName),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.tertiary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
+
+            if (device.localStatus == "issued" && !device.employeeName.isNullOrBlank()) {
+                Text(
+                    text = stringResource(R.string.devices_issued_to, device.employeeName),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -417,8 +390,6 @@ private fun DeviceDetailPane(
         )
         return
     }
-
-    val chargeMeta = deviceChargeMeta(chargeStatus = device.chargeStatus)
 
     Card(
         modifier = modifier.fillMaxSize(),
@@ -440,13 +411,13 @@ private fun DeviceDetailPane(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(deviceStatusContainerColor(device.localStatus)),
+                        .background(MaterialTheme.colorScheme.surfaceContainer),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Default.Watch,
                         contentDescription = null,
-                        tint = deviceStatusContentColor(device.localStatus),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Column(
@@ -457,19 +428,20 @@ private fun DeviceDetailPane(
                         text = device.deviceId,
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     device.model?.let {
                         Text(
                             text = it,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
-                DeviceStatusBadge(status = device.localStatus)
             }
-
-            DeviceChargeChip(meta = chargeMeta)
 
             device.serialNumber?.let {
                 DeviceDetailRow(
@@ -519,106 +491,5 @@ private fun DeviceDetailRow(
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
-    }
-}
-
-@Composable
-private fun DeviceStatusBadge(status: String) {
-    val (label, tone) = when (status) {
-        "available" -> stringResource(R.string.devices_status_available) to MTStatusTone.Success
-        "issued" -> stringResource(R.string.devices_status_issued) to MTStatusTone.Warning
-        "discharged" -> stringResource(R.string.devices_status_discharged) to MTStatusTone.Danger
-        "faulty" -> stringResource(R.string.devices_status_faulty) to MTStatusTone.Neutral
-        "inspection" -> stringResource(R.string.devices_status_inspection) to MTStatusTone.Warning
-        "lost" -> stringResource(R.string.devices_status_lost) to MTStatusTone.Danger
-        else -> status to MTStatusTone.Neutral
-    }
-    MTStatusBadge(label = label, tone = tone)
-}
-
-private data class DeviceChargeMeta(
-    val icon: ImageVector,
-    val label: String,
-    val color: Color,
-)
-
-@Composable
-private fun deviceChargeMeta(chargeStatus: String): DeviceChargeMeta {
-    return when (chargeStatus) {
-        "charged" -> DeviceChargeMeta(
-            icon = Icons.Default.BatteryFull,
-            label = stringResource(R.string.devices_charge_charged),
-            color = MaterialTheme.colorScheme.success,
-        )
-        "low" -> DeviceChargeMeta(
-            icon = Icons.Default.Battery2Bar,
-            label = stringResource(R.string.devices_charge_low),
-            color = MaterialTheme.colorScheme.warning,
-        )
-        "critical" -> DeviceChargeMeta(
-            icon = Icons.Default.BatteryAlert,
-            label = stringResource(R.string.devices_charge_critical),
-            color = MaterialTheme.colorScheme.danger,
-        )
-        "charging" -> DeviceChargeMeta(
-            icon = Icons.Default.BatteryChargingFull,
-            label = stringResource(R.string.devices_charge_charging),
-            color = MaterialTheme.colorScheme.tertiary,
-        )
-        else -> DeviceChargeMeta(
-            icon = Icons.Default.Battery2Bar,
-            label = stringResource(R.string.devices_charge_low),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun DeviceChargeChip(meta: DeviceChargeMeta) {
-    Surface(
-        shape = RoundedCornerShape(AppRadius.pill),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-        ) {
-            Icon(
-                imageVector = meta.icon,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = meta.color,
-            )
-            Text(
-                text = meta.label,
-                style = MaterialTheme.typography.labelMedium,
-                color = meta.color,
-            )
-        }
-    }
-}
-
-@Composable
-private fun deviceStatusContainerColor(status: String): Color {
-    return when (status) {
-        "available" -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)
-        "issued" -> MaterialTheme.colorScheme.secondaryContainer
-        "discharged" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
-        "inspection" -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-        "lost" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
-        else -> MaterialTheme.colorScheme.surfaceContainer
-    }
-}
-
-@Composable
-private fun deviceStatusContentColor(status: String): Color {
-    return when (status) {
-        "available" -> MaterialTheme.colorScheme.tertiary
-        "issued" -> MaterialTheme.colorScheme.onSecondaryContainer
-        "discharged" -> MaterialTheme.colorScheme.danger
-        "inspection" -> MaterialTheme.colorScheme.warning
-        "lost" -> MaterialTheme.colorScheme.danger
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 }

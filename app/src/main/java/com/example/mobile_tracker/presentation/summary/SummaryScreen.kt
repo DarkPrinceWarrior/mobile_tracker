@@ -126,7 +126,6 @@ fun SummaryScreen(
 private fun SummaryHeroCard(
     issuedCount: Int,
     returnedCount: Int,
-    shiftType: String,
 ) {
     MTCard {
         Row(
@@ -147,15 +146,6 @@ private fun SummaryHeroCard(
                     text = issuedCount.toString(),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
-                )
-                androidx.compose.material3.Text(
-                    text = if (shiftType == "day") {
-                        stringResource(R.string.context_shift_day)
-                    } else {
-                        stringResource(R.string.context_shift_night)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             MTStatusBadge(
