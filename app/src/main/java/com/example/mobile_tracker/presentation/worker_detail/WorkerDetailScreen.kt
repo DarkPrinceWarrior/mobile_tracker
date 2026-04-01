@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -79,11 +78,6 @@ fun WorkerDetailScreen(
         topBar = {
             MTCompactTopBar(
                 title = stringResource(R.string.worker_detail_title),
-                subtitle = stringResource(
-                    R.string.worker_detail_subtitle,
-                    state.siteName,
-                    state.shiftDate,
-                ),
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -151,21 +145,8 @@ private fun WorkerHeaderCard(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                )
-            }
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -528,7 +509,4 @@ private fun WorkerRouteSection(
         )
     }
 }
-
-
-
 

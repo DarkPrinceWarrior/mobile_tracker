@@ -25,8 +25,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Map
@@ -35,7 +33,6 @@ import androidx.compose.material.icons.filled.PhonelinkSetup
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -80,7 +77,6 @@ import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
 import com.example.mobile_tracker.ui.theme.AppSpacing
 import com.example.mobile_tracker.ui.theme.danger
-import com.example.mobile_tracker.ui.theme.success
 import com.example.mobile_tracker.ui.theme.warning
 import org.koin.androidx.compose.koinViewModel
 
@@ -118,7 +114,6 @@ fun HomeScreen(
     onNavigateToIssue: () -> Unit = {},
     onNavigateToReturn: () -> Unit = {},
     onNavigateToJournal: () -> Unit = {},
-    onNavigateToSummary: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAlerts: () -> Unit = {},
     onNavigateToRegisterWatch: () -> Unit = {},
@@ -141,27 +136,16 @@ fun HomeScreen(
             R.string.shell_pending_packets_short,
             state.pendingPacketsCount,
         )
-        else -> stringResource(R.string.shell_sync_ready)
+        else -> null
     }
     val statusColor = when {
         !state.isOnline -> MaterialTheme.colorScheme.danger
         state.pendingPacketsCount > 0 -> MaterialTheme.colorScheme.warning
-        else -> MaterialTheme.colorScheme.success
+        else -> MaterialTheme.colorScheme.outlineVariant
     }
     val operatorLabel = state.operatorName.ifBlank {
         stringResource(R.string.shell_unknown_operator)
     }
-    val headerTitle = state.siteName.ifBlank {
-        stringResource(R.string.context_site_label)
-    }
-    val headerSubtitle = buildString {
-        if (state.shiftDate.isNotBlank()) {
-            append(state.shiftDate)
-            append(" · ")
-        }
-        append(shiftTypeLabel)
-    }
-
     AppScreenScaffold(
         topBar = {
             MTTopStatusBar(
@@ -216,11 +200,10 @@ fun HomeScreen(
                         verticalArrangement =
                             Arrangement.spacedBy(16.dp),
                     ) {
-                        if (destination == HomeDestination.ISSUE || destination == HomeDestination.MORE) {
+                        if (destination == HomeDestination.ISSUE) {
                             HomeOverviewSection(
                                 state = state,
                                 shiftTypeLabel = shiftTypeLabel,
-                                onNavigateToSummary = onNavigateToSummary,
                             )
                         }
                         when (destination) {
@@ -253,41 +236,34 @@ fun HomeScreen(
 private fun HomeOverviewSection(
     state: HomeState,
     shiftTypeLabel: String,
-    onNavigateToSummary: () -> Unit,
 ) {
     MTSectionHeader(
         title = stringResource(R.string.home_overview_title),
-        actionLabel = stringResource(R.string.more_summary),
-        onActionClick = onNavigateToSummary,
     )
 
     MTCard {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-            ) {
-                Text(
-                    text = state.siteName.ifBlank { stringResource(R.string.context_site_label) },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = buildString {
-                        if (state.shiftDate.isNotBlank()) {
-                            append(state.shiftDate)
-                            append(" · ")
-                        }
-                        append(shiftTypeLabel)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = state.siteName.ifBlank { stringResource(R.string.context_site_label) },
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+            )
+            Text(
+                text = buildString {
+                    if (state.shiftDate.isNotBlank()) {
+                        append(state.shiftDate)
+                        append(" · ")
+                    }
+                    append(shiftTypeLabel)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             MTStatusBadge(
                 label = if (state.isOnline) {
                     stringResource(R.string.home_network_online)
@@ -303,6 +279,31 @@ private fun HomeOverviewSection(
         }
     }
 
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        MTMetricCard(
+            title = stringResource(R.string.summary_issued),
+            value = state.issuedCount.toString(),
+            subtitle = stringResource(
+                R.string.home_metric_active_subtitle,
+                state.uploadRequiredCount,
+            ),
+            tone = MTStatusTone.Info,
+            modifier = Modifier.weight(1f),
+        )
+        MTMetricCard(
+            title = stringResource(R.string.summary_returned),
+            value = state.returnedCount.toString(),
+            subtitle = stringResource(
+                R.string.home_summary_returned_subtitle,
+                state.activeBindingsCount,
+            ),
+            tone = MTStatusTone.Success,
+            modifier = Modifier.weight(1f),
+        )
+    }
 }
 
 
@@ -463,9 +464,9 @@ private fun HomeNavItem(
 
 @Composable
 private fun HomePrimaryActionCard(
-    icon: ImageVector,
-    statusLabel: String,
-    statusTone: MTStatusTone,
+    icon: ImageVector?,
+    statusLabel: String?,
+    statusTone: MTStatusTone = MTStatusTone.Neutral,
     title: String,
     subtitle: String,
     buttonText: String,
@@ -482,28 +483,36 @@ private fun HomePrimaryActionCard(
             modifier = Modifier.padding(horizontal = AppSpacing.lg, vertical = AppSpacing.md),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                MTStatusBadge(
-                    label = statusLabel,
-                    tone = statusTone,
-                )
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center,
+            if (statusLabel != null || icon != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
+                    if (statusLabel != null) {
+                        MTStatusBadge(
+                            label = statusLabel,
+                            tone = statusTone,
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                    if (icon != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -596,11 +605,13 @@ private fun HomeQuickActionCard(
 
 @Composable
 private fun HomeQuickActionsRow(
-    title: String,
+    title: String? = null,
     first: @Composable () -> Unit,
     second: @Composable () -> Unit,
 ) {
-    MTSectionHeader(title = title)
+    if (title != null) {
+        MTSectionHeader(title = title)
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -617,9 +628,8 @@ private fun IssueTabContent(
     onNavigateToDevices: () -> Unit,
 ) {
     HomePrimaryActionCard(
-        icon = Icons.Default.Watch,
-        statusLabel = stringResource(R.string.home_primary_issue_status),
-        statusTone = MTStatusTone.Success,
+        icon = null,
+        statusLabel = null,
         title = stringResource(R.string.issue_title),
         subtitle = stringResource(R.string.home_issue_subtitle),
         buttonText = stringResource(R.string.issue_navigate),
@@ -627,7 +637,6 @@ private fun IssueTabContent(
     )
 
     HomeQuickActionsRow(
-        title = stringResource(R.string.home_quick_actions),
         first = {
             HomeQuickActionCard(
                 icon = Icons.Default.People,
@@ -645,11 +654,6 @@ private fun IssueTabContent(
             )
         },
     )
-
-    StateCard(
-        message = stringResource(R.string.home_issue_hint),
-        isError = false,
-    )
 }
 
 @Composable
@@ -657,18 +661,12 @@ private fun ReturnTabContent(
     onNavigateToReturn: () -> Unit,
 ) {
     HomePrimaryActionCard(
-        icon = Icons.Default.Replay,
-        statusLabel = stringResource(R.string.home_primary_return_status),
-        statusTone = MTStatusTone.Warning,
+        icon = null,
+        statusLabel = null,
         title = stringResource(R.string.return_title),
         subtitle = stringResource(R.string.home_return_subtitle),
         buttonText = stringResource(R.string.return_navigate),
         onClick = onNavigateToReturn,
-    )
-
-    StateCard(
-        message = stringResource(R.string.home_return_hint),
-        isError = false,
     )
 }
 
@@ -678,18 +676,12 @@ private fun JournalTabContent(
     onNavigateToJournal: () -> Unit,
 ) {
     HomePrimaryActionCard(
-        icon = Icons.AutoMirrored.Filled.List,
-        statusLabel = stringResource(R.string.home_primary_journal_status),
-        statusTone = MTStatusTone.Neutral,
+        icon = null,
+        statusLabel = null,
         title = stringResource(R.string.journal_title),
         subtitle = stringResource(R.string.home_journal_subtitle),
         buttonText = stringResource(R.string.journal_navigate),
         onClick = onNavigateToJournal,
-    )
-
-    StateCard(
-        message = stringResource(R.string.home_journal_hint),
-        isError = false,
     )
 }
 

@@ -1,6 +1,5 @@
 package com.example.mobile_tracker.presentation.devices
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -44,8 +43,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -84,7 +81,6 @@ fun DeviceListScreen(
         topBar = {
             MTCompactTopBar(
                 title = stringResource(R.string.devices_title),
-                subtitle = stringResource(R.string.devices_search_hint),
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -166,7 +162,6 @@ fun DeviceListScreen(
                                 items(state.devices, key = { it.deviceId }) { device ->
                                     DeviceCard(
                                         device = device,
-                                        isSelected = state.selectedDeviceId == device.deviceId,
                                         onClick = {
                                             viewModel.onIntent(
                                                 DeviceListIntent.SelectDevice(device.deviceId),
@@ -323,7 +318,6 @@ private fun DeviceFilterChip(
 @Composable
 private fun DeviceCard(
     device: Device,
-    isSelected: Boolean,
     onClick: () -> Unit,
 ) {
     val chargeMeta = deviceChargeMeta(chargeStatus = device.chargeStatus)
@@ -331,24 +325,14 @@ private fun DeviceCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .semantics { selected = isSelected }
             .clickable(
                 onClickLabel = stringResource(R.string.action_open_device_details),
                 role = Role.Button,
                 onClick = onClick,
             ),
         shape = RoundedCornerShape(AppRadius.lg),
-        border = if (isSelected) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.32f))
-        } else {
-            null
-        },
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.surfaceContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerLowest
-            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         ),
     ) {
         Column(

@@ -27,7 +27,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.Surface
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,7 +57,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_tracker.R
 import com.example.mobile_tracker.domain.model.Site
@@ -124,7 +125,6 @@ fun ContextSelectionScreen(
                 .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            ContextSummaryCard(state = state)
 
             // Site selection — native bottom sheet, no grey ripple
             ContextFieldCard(
@@ -239,38 +239,47 @@ fun ContextSelectionScreen(
 
     // — Date picker dialog с отступами от краёв экрана
     if (showDatePicker) {
-        DatePickerDialog(
+        Dialog(
             onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val date = Instant.ofEpochMilli(millis)
-                                .atZone(ZoneId.of("UTC"))
-                                .toLocalDate()
-                                .format(DateTimeFormatter.ISO_LOCAL_DATE)
-                            viewModel.onIntent(ContextSelectionIntent.DateChanged(date))
-                        }
-                        showDatePicker = false
-                    },
-                    enabled = confirmEnabled,
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
         ) {
-            DatePicker(state = datePickerState)
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                tonalElevation = 6.dp,
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Column {
+                    DatePicker(state = datePickerState)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp, end = 8.dp),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        TextButton(onClick = { showDatePicker = false }) {
+                            Text(stringResource(android.R.string.cancel))
+                        }
+                        TextButton(
+                            onClick = {
+                                datePickerState.selectedDateMillis?.let { millis ->
+                                    val date = Instant.ofEpochMilli(millis)
+                                        .atZone(ZoneId.of("UTC"))
+                                        .toLocalDate()
+                                        .format(DateTimeFormatter.ISO_LOCAL_DATE)
+                                    viewModel.onIntent(ContextSelectionIntent.DateChanged(date))
+                                }
+                                showDatePicker = false
+                            },
+                            enabled = confirmEnabled,
+                        ) {
+                            Text("OK")
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -20,11 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -90,7 +88,6 @@ fun EmployeeSearchScreen(
         topBar = {
             MTCompactTopBar(
                 title = stringResource(R.string.employees_title),
-                subtitle = stringResource(R.string.employees_search_hint),
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -112,7 +109,7 @@ fun EmployeeSearchScreen(
                     } else {
                         IconButton(onClick = { viewModel.onIntent(EmployeeSearchIntent.SyncEmployees) }) {
                             Icon(
-                                Icons.Default.Refresh,
+                                imageVector = Icons.Default.Refresh,
                                 contentDescription = stringResource(R.string.sync_action),
                                 tint = MaterialTheme.colorScheme.onSurface,
                             )
@@ -125,87 +122,89 @@ fun EmployeeSearchScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            EmployeeSearchSummaryCard(
-                totalCount = state.totalCount,
-                query = state.query,
-                selectedEmployee = selectedEmployee,
-                selectedBinding = selectedBinding,
-            )
-
-            SearchField(
-                query = state.query,
-                onQueryChange = { viewModel.onIntent(EmployeeSearchIntent.UpdateQuery(it)) },
-                placeholder = stringResource(R.string.employees_search_hint),
-            )
-
-            Text(
-                text = stringResource(R.string.employees_found, state.totalCount),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Box(modifier = Modifier.weight(1f)) {
-                AdaptiveListDetail(
-                    isTablet = isTablet,
-                    listPane = { paneModifier ->
-                        when {
-                            state.isLoading -> LoadingState(modifier = paneModifier)
-                            state.error != null -> Box(modifier = paneModifier) {
-                                StateCard(message = state.error.orEmpty())
-                            }
-                            state.results.isEmpty() -> EmptyState(
-                                title = stringResource(R.string.employees_empty),
-                                icon = Icons.Default.People,
-                                modifier = paneModifier,
-                            )
-                            else -> LazyColumn(
-                                modifier = paneModifier,
-                                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                            ) {
-                                items(state.results, key = { it.id }) { employee ->
-                                    val activeBinding = state.activeBindings.firstOrNull {
-                                        it.employeeId == employee.id
-                                    }
-                                    val recentLog = state.recentLogs.firstOrNull {
-                                        it.employeeId == employee.id
-                                    }
-                                    EmployeeCard(
-                                        employee = employee,
-                                        activeBinding = activeBinding,
-                                        recentLog = recentLog,
-                                        isSelected = state.selectedEmployeeId == employee.id,
-                                        onClick = {
-                                            viewModel.onIntent(
-                                                EmployeeSearchIntent.SelectEmployee(employee.id),
-                                            )
-                                            if (!isTablet) {
-                                                onOpenWorkerDetail?.invoke(employee.id)
-                                            }
-                                        },
-                                    )
-                                }
-                                item { Spacer(modifier = Modifier.height(AppSpacing.lg)) }
-                            }
-                        }
-                    },
-                    detailPane = { paneModifier ->
-                        EmployeeDetailPane(
-                            modifier = paneModifier.padding(start = AppSpacing.sm),
-                            employee = selectedEmployee,
-                            activeBinding = selectedBinding,
-                            recentLogs = selectedLogs,
-                            onOpenFullCard = selectedEmployee?.let { employee ->
-                                onOpenWorkerDetail?.let { callback ->
-                                    { callback(employee.id) }
-                                }
-                            },
-                        )
-                    },
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+            ) {
+                EmployeeSearchSummaryCard(
+                    totalCount = state.totalCount,
                 )
+
+                SearchField(
+                    query = state.query,
+                    onQueryChange = { viewModel.onIntent(EmployeeSearchIntent.UpdateQuery(it)) },
+                    placeholder = stringResource(R.string.employees_search_hint),
+                )
+
+                Text(
+                    text = stringResource(R.string.employees_found, state.totalCount),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Box(modifier = Modifier.weight(1f)) {
+                    AdaptiveListDetail(
+                        isTablet = isTablet,
+                        listPane = { paneModifier ->
+                            when {
+                                state.isLoading -> LoadingState(modifier = paneModifier)
+                                state.error != null -> Box(modifier = paneModifier) {
+                                    StateCard(message = state.error.orEmpty())
+                                }
+                                state.results.isEmpty() -> EmptyState(
+                                    title = stringResource(R.string.employees_empty),
+                                    icon = Icons.Default.People,
+                                    modifier = paneModifier,
+                                )
+                                else -> LazyColumn(
+                                    modifier = paneModifier,
+                                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                ) {
+                                    items(state.results, key = { it.id }) { employee ->
+                                        val activeBinding = state.activeBindings.firstOrNull {
+                                            it.employeeId == employee.id
+                                        }
+                                        val recentLog = state.recentLogs.firstOrNull {
+                                            it.employeeId == employee.id
+                                        }
+                                        EmployeeCard(
+                                            employee = employee,
+                                            activeBinding = activeBinding,
+                                            recentLog = recentLog,
+                                            isSelected = state.selectedEmployeeId == employee.id,
+                                            onClick = {
+                                                viewModel.onIntent(
+                                                    EmployeeSearchIntent.SelectEmployee(employee.id),
+                                                )
+                                                if (!isTablet) {
+                                                    onOpenWorkerDetail?.invoke(employee.id)
+                                                }
+                                            },
+                                        )
+                                    }
+                                    item { Spacer(modifier = Modifier.height(AppSpacing.lg)) }
+                                }
+                            }
+                        },
+                        detailPane = { paneModifier ->
+                            EmployeeDetailPane(
+                                modifier = paneModifier.padding(start = AppSpacing.sm),
+                                employee = selectedEmployee,
+                                activeBinding = selectedBinding,
+                                recentLogs = selectedLogs,
+                                onOpenFullCard = selectedEmployee?.let { employee ->
+                                    onOpenWorkerDetail?.let { callback ->
+                                        { callback(employee.id) }
+                                    }
+                                },
+                            )
+                        },
+                    )
+                }
             }
         }
     }
@@ -214,9 +213,6 @@ fun EmployeeSearchScreen(
 @Composable
 private fun EmployeeSearchSummaryCard(
     totalCount: Int,
-    query: String,
-    selectedEmployee: Employee?,
-    selectedBinding: BindingEntity?,
 ) {
     MTCard {
         Row(

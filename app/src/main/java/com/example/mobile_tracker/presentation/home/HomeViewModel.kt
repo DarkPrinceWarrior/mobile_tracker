@@ -19,6 +19,8 @@ data class HomeState(
     val shiftDate: String = "",
     val shiftType: String = "day",
     val operatorName: String = "",
+    val issuedCount: Int = 0,
+    val returnedCount: Int = 0,
     val isOnline: Boolean = true,
     val pendingPacketsCount: Int = 0,
     val errorPacketsCount: Int = 0,
@@ -77,6 +79,8 @@ class HomeViewModel(
                 bindingDao.observeByShift(siteId, shiftDate),
                 operationLogDao.observeByShift(siteId, shiftDate),
             ) { isOnline, unsentPackets, bindings, logs ->
+                val issued = bindings.size
+                val returned = bindings.count { it.status == "closed" }
                 val activeBindings = bindings.count { it.status == "active" }
                 val uploadRequired = bindings.count {
                     it.status == "active" && !it.dataUploaded
@@ -89,6 +93,8 @@ class HomeViewModel(
 
                 _state.update {
                     it.copy(
+                        issuedCount = issued,
+                        returnedCount = returned,
                         isOnline = isOnline,
                         pendingPacketsCount = pendingPackets,
                         errorPacketsCount = errorPackets,

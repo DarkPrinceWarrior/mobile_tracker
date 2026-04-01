@@ -26,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.mobile_tracker.ui.theme.AppLayout
 import com.example.mobile_tracker.ui.theme.AppRadius
@@ -33,7 +35,7 @@ import com.example.mobile_tracker.ui.theme.AppSpacing
 
 @Composable
 fun MTTopStatusBar(
-    leadingText: String,
+    leadingText: String?,
     trailingText: String,
     statusColor: Color,
     modifier: Modifier = Modifier,
@@ -55,27 +57,43 @@ fun MTTopStatusBar(
                 .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(statusColor, CircleShape),
-                )
+            if (!leadingText.isNullOrBlank()) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(statusColor, CircleShape),
+                    )
+                    Text(
+                        text = leadingText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
-                    text = leadingText,
+                    text = trailingText,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                 )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = trailingText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-            Text(
-                text = trailingText,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-            )
         }
     }
 }
@@ -103,7 +121,7 @@ fun MTCompactTopBar(
                         Modifier
                     },
                 )
-                .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.sm),
+                .padding(horizontal = AppLayout.screenPadding, vertical = AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (navigationIcon != null) {

@@ -86,9 +86,6 @@ fun AppNavGraph(
                 onNavigateToJournal = {
                     navController.navigate(Route.Journal)
                 },
-                onNavigateToSummary = {
-                    navController.navigate(Route.Summary)
-                },
                 onNavigateToSettings = {
                     navController.navigate(Route.Settings)
                 },

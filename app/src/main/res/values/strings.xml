@@ -17,7 +17,7 @@
     <string name="login_hide_password">Скрыть пароль</string>
 
     <!-- Context Selection -->
-    <string name="context_title">Выбор контекста работы</string>
+    <string name="context_title">Выбор рабочей площадки</string>
     <string name="context_screen_subtitle">Площадка и дата смены</string>
     <string name="context_summary_title">Рабочий контекст</string>
     <string name="context_site_label">Площадка</string>
@@ -65,23 +65,16 @@
     <string name="home_alerts_title">Требуют внимания</string>
     <string name="home_alerts_subtitle">Критических: %1$d · предупреждений: %2$d · ошибок выгрузки: %3$d · несинхр.: %4$d</string>
     <string name="home_alerts_open">Открыть</string>
-    <string name="home_quick_actions">Быстрые действия</string>
     <string name="home_shortcut_employees_desc">Проверить сотрудника перед выдачей</string>
     <string name="home_shortcut_devices_desc">Открыть список часов на площадке</string>
     <string name="home_shortcut_journal_desc">Посмотреть последние операции смены</string>
     <string name="home_shortcut_summary_desc">Открыть сводку по текущей смене</string>
     <string name="home_shortcut_alerts_desc">Открыть ошибки, конфликты и очередь синхронизации</string>
     <string name="home_shortcut_settings_desc">Профиль, контекст и служебные действия</string>
-    <string name="home_issue_hint">Сценарий выдачи остаётся пошаговым: сначала сотрудник, затем устройство, затем подтверждение.</string>
-    <string name="home_return_hint">Возврат проверяет, были ли выгружены данные с часов, прежде чем завершить операцию.</string>
     <string name="home_upload_hint_ready">Данные можно выгружать сразу из списка устройств. Если сеть недоступна, пакет сохранится локально.</string>
     <string name="home_upload_hint_pending">%1$d пакетов уже находятся в очереди. Выгрузка продолжит работать без потери данных.</string>
-    <string name="home_journal_hint">Журнал остаётся основным местом для поиска операций, фильтрации ошибок и контроля синхронизации.</string>
-    <string name="home_primary_issue_status">Основное действие</string>
-    <string name="home_primary_return_status">Требует проверки</string>
     <string name="home_primary_upload_status_ready">Готово к выгрузке</string>
     <string name="home_primary_upload_status_pending">%1$d в очереди</string>
-    <string name="home_primary_journal_status">Контроль операций</string>
 
     <!-- M2: Devices -->
     <string name="devices_title">Часы на площадке</string>
@@ -262,6 +255,7 @@
     <string name="summary_hero_status">Возвращено: %1$d</string>
     <string name="summary_issued">Выдано часов</string>
     <string name="summary_returned">Возвращено</string>
+    <string name="home_summary_returned_subtitle">Активных выдач: %1$d</string>
     <string name="summary_not_returned">Не возвращено</string>
     <string name="summary_data_uploaded">Данные выгружены</string>
     <string name="summary_pending_packets">В очереди на отправку</string>
@@ -271,7 +265,6 @@
     <!-- M5: Offline -->
     <string name="offline_banner">Нет подключения к интернету</string>
     <string name="offline_pending_count">Пакетов в очереди: %d</string>
-    <string name="shell_sync_ready">Синхронизация активна</string>
     <string name="shell_pending_packets_short">%d в очереди</string>
     <string name="shell_offline">Оффлайн</string>
     <string name="shell_unknown_operator">Оператор</string>
