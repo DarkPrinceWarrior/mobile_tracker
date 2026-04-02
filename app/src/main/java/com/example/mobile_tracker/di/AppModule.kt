@@ -75,9 +75,9 @@ val appModule = module {
     viewModel {
         EmployeeSearchViewModel(get(), get(), get(), get(), get())
     }
-    viewModel { MonitoringViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { WorkersViewModel(get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { MapsViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { MonitoringViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { WorkersViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { MapsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { WorkerDetailViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel {
         IssueViewModel(get(), get(), get(), get())
