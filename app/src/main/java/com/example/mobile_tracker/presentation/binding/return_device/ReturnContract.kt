@@ -16,7 +16,6 @@ data class ReturnState(
     val isLoading: Boolean = false,
     val isReturning: Boolean = false,
     val error: String? = null,
-    val showConfirmWithoutUpload: Boolean = false,
     val showProblemDialog: Boolean = false,
     val selectedProblemReason: ReturnProblemReason = ReturnProblemReason.Lost,
     val problemComment: String = "",
@@ -33,9 +32,6 @@ sealed interface ReturnIntent {
 
     data object ConfirmReturn : ReturnIntent
     data object CancelReturn : ReturnIntent
-
-    data object ConfirmReturnWithoutUpload : ReturnIntent
-    data object DismissConfirmDialog : ReturnIntent
 
     data class OpenProblemFlow(
         val binding: DeviceBinding,

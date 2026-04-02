@@ -52,14 +52,6 @@ class ReturnViewModel(
                 confirmReturn()
             ReturnIntent.CancelReturn ->
                 cancelReturn()
-            ReturnIntent.ConfirmReturnWithoutUpload ->
-                doReturn()
-            ReturnIntent.DismissConfirmDialog ->
-                _state.update {
-                    it.copy(
-                        showConfirmWithoutUpload = false,
-                    )
-                }
             is ReturnIntent.OpenProblemFlow ->
                 openProblemFlow(intent.binding)
             is ReturnIntent.SelectProblemReason ->
@@ -147,14 +139,7 @@ class ReturnViewModel(
     }
 
     private fun confirmReturn() {
-        val binding = _state.value.selectedBinding ?: return
-        if (!binding.dataUploaded) {
-            _state.update {
-                it.copy(showConfirmWithoutUpload = true)
-            }
-        } else {
-            doReturn()
-        }
+        doReturn()
     }
 
     private fun doReturn() {
@@ -163,7 +148,6 @@ class ReturnViewModel(
             _state.update {
                 it.copy(
                     isReturning = true,
-                    showConfirmWithoutUpload = false,
                     error = null,
                 )
             }

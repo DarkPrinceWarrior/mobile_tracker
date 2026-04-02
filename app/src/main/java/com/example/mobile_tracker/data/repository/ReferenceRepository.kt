@@ -1,9 +1,11 @@
 package com.example.mobile_tracker.data.repository
 
+import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.DeviceDao
 import com.example.mobile_tracker.data.local.db.dao.DowntimeReasonDao
 import com.example.mobile_tracker.data.local.db.dao.EmployeeDao
 import com.example.mobile_tracker.data.local.db.dao.SiteDao
+import com.example.mobile_tracker.data.local.db.entity.DeviceEntity
 import com.example.mobile_tracker.data.remote.api.ReferenceApi
 import com.example.mobile_tracker.data.remote.dto.toEntity
 import timber.log.Timber
@@ -12,6 +14,7 @@ class ReferenceRepository(
     private val referenceApi: ReferenceApi,
     private val employeeDao: EmployeeDao,
     private val deviceDao: DeviceDao,
+    private val bindingDao: BindingDao,
     private val siteDao: SiteDao,
     private val downtimeReasonDao: DowntimeReasonDao,
 ) {
@@ -46,6 +49,8 @@ class ReferenceRepository(
     suspend fun syncDevices(siteId: String): Result<Int> =
         runCatching {
             val now = System.currentTimeMillis()
+            val activeBindingsByDevice = bindingDao.getActiveBySite(siteId)
+                .associateBy { it.deviceId }
             var page = 1
             var total = 0
             do {
@@ -54,7 +59,11 @@ class ReferenceRepository(
                     page = page,
                 )
                 val entities = response.elements.map {
-                    it.toEntity(now)
+                    val baseEntity = it.toEntity(now)
+                    mergeDeviceWithActiveBinding(
+                        device = baseEntity,
+                        activeBindingsByDevice = activeBindingsByDevice,
+                    )
                 }
                 deviceDao.upsertAll(entities)
                 total += entities.size
@@ -119,5 +128,17 @@ class ReferenceRepository(
     companion object {
         private const val STALE_THRESHOLD_MS =
             7L * 24 * 60 * 60 * 1000
+    }
+
+    private fun mergeDeviceWithActiveBinding(
+        device: DeviceEntity,
+        activeBindingsByDevice: Map<String, com.example.mobile_tracker.data.local.db.entity.BindingEntity>,
+    ): DeviceEntity {
+        val activeBinding = activeBindingsByDevice[device.deviceId] ?: return device
+        return device.copy(
+            employeeId = activeBinding.employeeId,
+            employeeName = activeBinding.employeeName.ifBlank { device.employeeName },
+            localStatus = "issued",
+        )
     }
 }

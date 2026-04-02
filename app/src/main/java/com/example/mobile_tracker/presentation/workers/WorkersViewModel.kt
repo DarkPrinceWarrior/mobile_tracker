@@ -247,6 +247,9 @@ class WorkersViewModel(
                 // Обогащаем реальными метриками с бэкенда
                 val metricsEnrichedWorkers = if (metrics.isNotEmpty()) {
                     workers.map { worker ->
+                        if (worker.activeBinding == null || worker.deviceId == null) {
+                            return@map worker
+                        }
                         val m = metrics[worker.employeeId] ?: return@map worker
                         worker.copy(
                             heartRate = if (m.avgHrBpm > 0) m.avgHrBpm else worker.heartRate,
@@ -260,6 +263,9 @@ class WorkersViewModel(
                 }
                 val sensorEnrichedWorkers = if (sensors.isNotEmpty()) {
                     metricsEnrichedWorkers.map { worker ->
+                        if (worker.activeBinding == null || worker.deviceId == null) {
+                            return@map worker
+                        }
                         val sensor = sensors[worker.employeeId] ?: return@map worker
                         worker.copy(
                             batteryPercent = sensor.batteryPercent ?: worker.batteryPercent,

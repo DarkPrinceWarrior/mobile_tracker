@@ -38,7 +38,7 @@ val appModule = module {
     single { OperatorNotificationManager(androidContext(), get()) }
     single {
         ReferenceRepository(
-            get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(),
         )
     }
     single {

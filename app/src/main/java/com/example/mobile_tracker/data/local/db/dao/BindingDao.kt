@@ -30,6 +30,14 @@ interface BindingDao {
 
     @Query(
         "SELECT * FROM bindings " +
+            "WHERE status = 'active' AND site_id = :siteId",
+    )
+    suspend fun getActiveBySite(
+        siteId: String,
+    ): List<BindingEntity>
+
+    @Query(
+        "SELECT * FROM bindings " +
             "WHERE device_id = :deviceId " +
             "AND status = 'active' LIMIT 1",
     )

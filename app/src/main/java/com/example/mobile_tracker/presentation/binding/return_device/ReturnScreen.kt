@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Watch
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -32,7 +31,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,24 +85,6 @@ fun ReturnScreen(
         if (!scannedDeviceId.isNullOrBlank()) {
             viewModel.onIntent(ReturnIntent.ApplyScannedDevice(scannedDeviceId))
         }
-    }
-
-    if (state.showConfirmWithoutUpload) {
-        AlertDialog(
-            onDismissRequest = { viewModel.onIntent(ReturnIntent.DismissConfirmDialog) },
-            title = { Text(stringResource(R.string.return_data_not_uploaded_title)) },
-            text = { Text(stringResource(R.string.return_data_not_uploaded_message)) },
-            confirmButton = {
-                Button(onClick = { viewModel.onIntent(ReturnIntent.ConfirmReturnWithoutUpload) }) {
-                    Text(stringResource(R.string.return_continue))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onIntent(ReturnIntent.DismissConfirmDialog) }) {
-                    Text(stringResource(R.string.return_cancel))
-                }
-            },
-        )
     }
 
     AppScreenScaffold(

@@ -86,12 +86,18 @@ class HomeViewModel(
                 bindingDao.observeActive(siteId),
                 operationLogDao.observeByShift(siteId, shiftDate),
             ) { isOnline, unsentPackets, shiftBindings, activeBindings, logs ->
-                val issued = shiftBindings.size
-                val returned = shiftBindings.count { it.status == "closed" }
+                val relevantBindings = (shiftBindings + activeBindings).distinctBy { it.id }
+                val issued = relevantBindings.size
+                val returned = logs.count { log ->
+                    log.status == "success" && (
+                        log.type == "return" ||
+                            (log.type == "status_change" &&
+                                log.details?.startsWith("Возврат с проблемой") == true)
+                        )
+                }
                 val uploadRequired = activeBindings.count {
                     it.status == "active" && !it.dataUploaded
                 }
-                val relevantBindings = (shiftBindings + activeBindings).distinctBy { it.id }
                 val unsyncedBindings = relevantBindings.count { !it.isSynced }
                 val pendingPackets = unsentPackets.count { it.status == "pending" }
                 val errorPackets = unsentPackets.count { it.status == "error" }
