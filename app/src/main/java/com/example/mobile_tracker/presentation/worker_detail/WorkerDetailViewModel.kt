@@ -20,6 +20,8 @@ import com.example.mobile_tracker.presentation.monitoring.WorkerIncident
 import com.example.mobile_tracker.presentation.monitoring.WorkerMonitoringSnapshot
 import com.example.mobile_tracker.presentation.monitoring.WorkerRouteVisit
 import com.example.mobile_tracker.presentation.monitoring.buildWorkerMonitoringSnapshots
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,6 +80,7 @@ class WorkerDetailViewModel(
     private var shiftType: String = "day"
     private var currentEmployeeId: String? = null
     private var observeJob: Job? = null
+    private var refreshJob: Job? = null
     /** device_id для которого уже загружены сенсорные данные — не перегружаем повторно */
     private var lastFetchedDeviceId: String? = null
     /** shift_id текущего сотрудника — передаётся в sensor-samples запросы */
@@ -112,7 +115,7 @@ class WorkerDetailViewModel(
             )
         }
         observeWorker()
-        fetchRealData(employeeId)
+        startRealtimeRefresh(employeeId)
     }
 
     fun onIntent(intent: WorkerDetailIntent) {
@@ -155,60 +158,65 @@ class WorkerDetailViewModel(
         }
     }
 
-    private fun fetchRealData(employeeId: String) {
-        val currentShiftDate = shiftDate ?: return
-        viewModelScope.launch {
+    private suspend fun fetchRealData(employeeId: String) {
+        try {
+            val shiftsResponse = shiftsApi.getShifts(
+                employeeId = employeeId,
+                pageSize = 5,
+            )
+            val shift = shiftsResponse.items.firstOrNull() ?: return
+
+            // Метрики (avg hr, productivity, etc.)
             try {
-                val shiftsResponse = shiftsApi.getShifts(
-                    employeeId = employeeId,
-                    dateFrom = currentShiftDate,
-                    dateTo = currentShiftDate,
-                    pageSize = 1,
-                )
-                val shift = shiftsResponse.items.firstOrNull() ?: return@launch
-
-                // Метрики (avg hr, productivity, etc.)
-                try {
-                    val metrics = shiftsApi.getShiftMetrics(shift.id)
-                    realMetrics.value = metrics
-                    _state.update { it.copy(shiftMetrics = metrics) }
-                    Timber.d("Loaded metrics for shift ${shift.id}")
-                } catch (e: Exception) {
-                    Timber.w(e, "Failed to load shift metrics")
-                }
-
-                // Активность
-                try {
-                    val activity = shiftsApi.getShiftActivity(shift.id)
-                    _state.update { it.copy(shiftActivity = activity) }
-                    Timber.d("Loaded activity: ${activity.totalIntervals} intervals")
-                } catch (e: Exception) {
-                    Timber.w(e, "Failed to load shift activity")
-                }
-
-                // Маршрут по зонам
-                try {
-                    val route = zonesApi.getShiftRoute(shift.id)
-                    val routeVisits = route.route.mapIndexed { index, point ->
-                        WorkerRouteVisit(
-                            zoneId = point.zoneName ?: point.zoneId,
-                            startAt = point.enterTsMs,
-                            endAt = point.exitTsMs,
-                            current = index == route.route.lastIndex && point.exitTsMs == null,
-                        )
-                    }
-                    realRoute.value = routeVisits
-                    Timber.d("Loaded route: ${routeVisits.size} visits")
-                } catch (e: Exception) {
-                    Timber.w(e, "Failed to load shift route")
-                }
-
-                // ── Сенсорные данные грузим по shift_id ──
-                currentShiftId = shift.id
-                fetchSensorData(shift.id)
-
+                val metrics = shiftsApi.getShiftMetrics(shift.id)
+                realMetrics.value = metrics
+                _state.update { it.copy(shiftMetrics = metrics) }
+                Timber.d("Loaded metrics for shift ${shift.id}")
             } catch (e: Exception) {
-                Timber.w(e, "Failed to load shifts for employee $employeeId")
+                Timber.w(e, "Failed to load shift metrics")
+            }
+
+            // Активность
+            try {
+                val activity = shiftsApi.getShiftActivity(shift.id)
+                _state.update { it.copy(shiftActivity = activity) }
+                Timber.d("Loaded activity: ${activity.totalIntervals} intervals")
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load shift activity")
+            }
+
+            // Маршрут по зонам
+            try {
+                val route = zonesApi.getShiftRoute(shift.id)
+                val routeVisits = route.route.mapIndexed { index, point ->
+                    WorkerRouteVisit(
+                        zoneId = point.zoneName ?: point.zoneId,
+                        startAt = point.enterTsMs,
+                        endAt = point.exitTsMs,
+                        current = index == route.route.lastIndex && point.exitTsMs == null,
+                    )
+                }
+                realRoute.value = routeVisits
+                Timber.d("Loaded route: ${routeVisits.size} visits")
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load shift route")
+            }
+
+            // ── Сенсорные данные грузим по shift_id ──
+            currentShiftId = shift.id
+            fetchSensorData(shift.id)
+
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to load shifts for employee $employeeId")
+        }
+    }
+
+    private fun startRealtimeRefresh(employeeId: String) {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
+            while (isActive && currentEmployeeId == employeeId) {
+                fetchRealData(employeeId)
+                delay(SENSOR_REFRESH_INTERVAL_MS)
             }
         }
     }
@@ -270,6 +278,7 @@ class WorkerDetailViewModel(
                 employeeDao.observeBySite(currentSiteId),
                 deviceDao.observeBySite(currentSiteId),
                 bindingDao.observeByShift(currentSiteId, currentShiftDate),
+                bindingDao.observeActive(currentSiteId),
                 operationLogDao.observeByShift(currentSiteId, currentShiftDate),
                 packetQueueDao.observeUnsent(currentSiteId),
                 realMetrics,
@@ -283,18 +292,25 @@ class WorkerDetailViewModel(
                 @Suppress("UNCHECKED_CAST")
                 val bindings = values[2] as List<com.example.mobile_tracker.data.local.db.entity.BindingEntity>
                 @Suppress("UNCHECKED_CAST")
-                val logs = values[3] as List<com.example.mobile_tracker.data.local.db.entity.OperationLogEntity>
+                val activeBindings = values[3] as List<com.example.mobile_tracker.data.local.db.entity.BindingEntity>
                 @Suppress("UNCHECKED_CAST")
-                val packets = values[4] as List<com.example.mobile_tracker.data.local.db.entity.PacketQueueEntity>
-                val metrics = values[5] as ShiftMetricsResponse?
+                val logs = values[4] as List<com.example.mobile_tracker.data.local.db.entity.OperationLogEntity>
                 @Suppress("UNCHECKED_CAST")
-                val routeVisits = values[6] as List<WorkerRouteVisit>
-                val sensorData = values[7] as RealSensorData
+                val packets = values[5] as List<com.example.mobile_tracker.data.local.db.entity.PacketQueueEntity>
+                val metrics = values[6] as ShiftMetricsResponse?
+                @Suppress("UNCHECKED_CAST")
+                val routeVisits = values[7] as List<WorkerRouteVisit>
+                val sensorData = values[8] as RealSensorData
+
+                val mergedBindings = (bindings + activeBindings)
+                    .associateBy { it.id }
+                    .values
+                    .toList()
 
                 val workers = buildWorkerMonitoringSnapshots(
                     employees = employees,
                     devices = devices,
-                    bindings = bindings,
+                    bindings = mergedBindings,
                     logs = logs,
                     packets = packets,
                     shiftDate = currentShiftDate,
@@ -350,5 +366,14 @@ class WorkerDetailViewModel(
             }
         }
     }
-}
 
+    override fun onCleared() {
+        observeJob?.cancel()
+        refreshJob?.cancel()
+        super.onCleared()
+    }
+
+    private companion object {
+        private const val SENSOR_REFRESH_INTERVAL_MS = 30_000L
+    }
+}

@@ -11,6 +11,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 data class MonitoringZoneDefinition(
     val id: String,
@@ -200,7 +201,7 @@ private fun buildWorkerMonitoringSnapshot(
 ): WorkerMonitoringSnapshot {
     val hasIssuedWatch = binding != null && device != null
     val batteryPercent = device?.let {
-        when (it.chargeStatus?.lowercase()) {
+        it.batteryLevel?.roundToInt()?.coerceIn(0, 100) ?: when (it.chargeStatus?.lowercase()) {
             "full", "charged", "charging" -> 95
             "high" -> 75
             "medium" -> 50
@@ -553,4 +554,3 @@ fun formatZoneLabel(zoneId: String): String = "Зона $zoneId"
 fun formatMonitoringTime(timestamp: Long?): String = timestamp?.let {
     formatTimestamp(it, pattern = "HH:mm")
 }.orEmpty()
-
