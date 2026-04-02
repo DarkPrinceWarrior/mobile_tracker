@@ -60,7 +60,7 @@ class SummaryViewModel(
                     )
                 }
                 // Сразу загружаем привязки с бэкенда
-                bindingRepository.fetchBindingsFromBackend(
+                bindingRepository.refreshBindings(
                     siteId = siteId,
                     shiftDate = shiftDate,
                 ).onFailure { e ->
@@ -131,6 +131,14 @@ class SummaryViewModel(
 
     private fun refresh() {
         _state.update { it.copy(isLoading = true) }
+        viewModelScope.launch {
+            bindingRepository.refreshBindings(
+                siteId = siteId,
+                shiftDate = shiftDate,
+            ).onFailure { e ->
+                Timber.w(e, "Failed to refresh bindings for summary")
+            }
+        }
         observeMetrics()
     }
 }

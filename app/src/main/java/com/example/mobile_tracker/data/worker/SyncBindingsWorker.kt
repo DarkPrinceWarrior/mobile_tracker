@@ -43,7 +43,7 @@ class SyncBindingsWorker(
         // 2. Pull: загружаем привязки с бэкенда в Room
         val context = shiftContextDao.get()
         if (context != null) {
-            bindingRepository.fetchBindingsFromBackend(
+            bindingRepository.refreshBindings(
                 siteId = context.siteId,
                 shiftDate = context.shiftDate,
             ).onSuccess { count ->

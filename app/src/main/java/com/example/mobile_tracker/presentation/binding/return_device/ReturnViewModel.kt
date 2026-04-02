@@ -88,6 +88,12 @@ class ReturnViewModel(
                 siteId = ctx.siteId
                 shiftDate = ctx.shiftDate
                 operatorId = ctx.operatorId
+                bindingRepository.refreshBindings(
+                    siteId = siteId,
+                    shiftDate = shiftDate,
+                ).onFailure { error ->
+                    Timber.w(error, "Bindings refresh failed before return flow")
+                }
                 observeBindings()
             } else {
                 _state.update {

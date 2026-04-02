@@ -6,6 +6,7 @@ import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.dao.PacketQueueDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
+import com.example.mobile_tracker.data.repository.BindingRepository
 import com.example.mobile_tracker.util.NetworkMonitor
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,6 +42,7 @@ class HomeViewModel(
     private val packetQueueDao: PacketQueueDao,
     private val bindingDao: BindingDao,
     private val operationLogDao: OperationLogDao,
+    private val bindingRepository: BindingRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -61,6 +63,10 @@ class HomeViewModel(
                     operatorName = ctx.operatorName,
                 )
             }
+            bindingRepository.refreshBindings(
+                siteId = ctx.siteId,
+                shiftDate = ctx.shiftDate,
+            )
             observeOperationalSignals(
                 siteId = ctx.siteId,
                 shiftDate = ctx.shiftDate,
@@ -77,15 +83,16 @@ class HomeViewModel(
                 networkMonitor.isOnline,
                 packetQueueDao.observeUnsent(siteId),
                 bindingDao.observeByShift(siteId, shiftDate),
+                bindingDao.observeActive(siteId),
                 operationLogDao.observeByShift(siteId, shiftDate),
-            ) { isOnline, unsentPackets, bindings, logs ->
-                val issued = bindings.size
-                val returned = bindings.count { it.status == "closed" }
-                val activeBindings = bindings.count { it.status == "active" }
-                val uploadRequired = bindings.count {
+            ) { isOnline, unsentPackets, shiftBindings, activeBindings, logs ->
+                val issued = shiftBindings.size
+                val returned = shiftBindings.count { it.status == "closed" }
+                val uploadRequired = activeBindings.count {
                     it.status == "active" && !it.dataUploaded
                 }
-                val unsyncedBindings = bindings.count { !it.isSynced }
+                val relevantBindings = (shiftBindings + activeBindings).distinctBy { it.id }
+                val unsyncedBindings = relevantBindings.count { !it.isSynced }
                 val pendingPackets = unsentPackets.count { it.status == "pending" }
                 val errorPackets = unsentPackets.count { it.status == "error" }
                 val pendingLogs = logs.count { it.status == "pending" }
@@ -98,7 +105,7 @@ class HomeViewModel(
                         isOnline = isOnline,
                         pendingPacketsCount = pendingPackets,
                         errorPacketsCount = errorPackets,
-                        activeBindingsCount = activeBindings,
+                        activeBindingsCount = activeBindings.size,
                         uploadRequiredCount = uploadRequired,
                         unsyncedBindingsCount = unsyncedBindings,
                         criticalAlertsCount = errorPackets + errorLogs,

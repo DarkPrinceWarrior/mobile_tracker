@@ -68,7 +68,7 @@ val appModule = module {
     }
     single { NetworkMonitor(androidContext()) }
 
-    viewModel { HomeViewModel(get(), get(), get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel {
         DeviceListViewModel(get(), get(), get())
     }

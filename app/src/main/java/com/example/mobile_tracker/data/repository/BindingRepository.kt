@@ -35,61 +35,36 @@ class BindingRepository(
 ) {
 
     /**
-     * Pull-sync: загрузка привязок с бэкенда в Room.
-     * Для каждой привязки с бэкенда:
-     * - Если уже есть в Room (по serverId) → обновляем статус
-     * - Если нет → вставляем
+     * Pull-sync: загружаем привязки за выбранную смену и все активные выдачи
+     * на площадке. Второй запрос нужен для кейса, когда выдача создана
+     * до полуночи, а возврат оператор делает уже на следующий день.
      */
-    suspend fun fetchBindingsFromBackend(
+    suspend fun refreshBindings(
         siteId: String,
         shiftDate: String,
     ): Result<Int> = runCatching {
-        val response = bindingApi.getBindings(
+        val shiftResponse = bindingApi.getBindings(
             siteId = siteId,
             shiftDate = shiftDate,
             pageSize = 100,
         )
-        var count = 0
-        for (b in response.items) {
-            val existing = bindingDao.findByServerId(b.id)
-            if (existing != null) {
-                // Обновляем статус если изменился
-                if (existing.status != b.status) {
-                    val unboundAt = b.unboundAt?.let { parseIsoTimestamp(it) }
-                    bindingDao.update(
-                        existing.copy(
-                            status = b.status,
-                            unboundAt = unboundAt,
-                            isSynced = true,
-                        ),
-                    )
-                    count++
-                }
-            } else {
-                // Новая привязка с бэкенда — вставляем
-                val empName = b.employeeName.orEmpty()
-                val boundAt = b.boundAt?.let { parseIsoTimestamp(it) }
-                    ?: System.currentTimeMillis()
-                bindingDao.insert(
-                    BindingEntity(
-                        serverId = b.id,
-                        deviceId = b.deviceId,
-                        employeeId = b.employeeId,
-                        employeeName = empName,
-                        siteId = b.siteId,
-                        shiftDate = b.shiftDate,
-                        shiftType = b.shiftType,
-                        boundAt = boundAt,
-                        unboundAt = b.unboundAt?.let { parseIsoTimestamp(it) },
-                        status = b.status,
-                        isSynced = true,
-                        createdAt = boundAt,
-                    ),
-                )
-                count++
-            }
+        val activeResponse = bindingApi.getBindings(
+            siteId = siteId,
+            status = "active",
+            pageSize = 100,
+        )
+        val merged = linkedMapOf<String, BindingResponse>()
+        (activeResponse.items + shiftResponse.items).forEach { binding ->
+            merged[binding.id] = binding
         }
-        Timber.d("Fetched $count bindings from backend for $siteId / $shiftDate")
+        var count = 0
+        for (binding in merged.values) {
+            count += upsertBindingFromBackend(binding)
+        }
+        Timber.d(
+            "Refreshed $count bindings from backend for $siteId / $shiftDate " +
+                "(active=${activeResponse.items.size}, shift=${shiftResponse.items.size})",
+        )
         count
     }
 
@@ -98,6 +73,61 @@ class BindingRepository(
             java.time.Instant.parse(iso).toEpochMilli()
         } catch (e: Exception) {
             System.currentTimeMillis()
+        }
+    }
+
+    private suspend fun upsertBindingFromBackend(
+        binding: BindingResponse,
+    ): Int {
+        val existing = bindingDao.findByServerId(binding.id)
+        val boundAt = binding.boundAt?.let { parseIsoTimestamp(it) }
+            ?: System.currentTimeMillis()
+        val createdAt = binding.createdAt?.let { parseIsoTimestamp(it) }
+            ?: boundAt
+        val unboundAt = binding.unboundAt?.let { parseIsoTimestamp(it) }
+        val employeeName = binding.employeeName ?: existing?.employeeName.orEmpty()
+
+        return if (existing != null) {
+            val updated = existing.copy(
+                serverId = binding.id,
+                deviceId = binding.deviceId,
+                employeeId = binding.employeeId,
+                employeeName = employeeName,
+                siteId = binding.siteId,
+                shiftDate = binding.shiftDate,
+                shiftType = binding.shiftType,
+                boundAt = boundAt,
+                unboundAt = unboundAt,
+                status = binding.status,
+                operatorId = binding.boundBy ?: existing.operatorId,
+                isSynced = true,
+                createdAt = createdAt,
+            )
+            if (updated != existing) {
+                bindingDao.update(updated)
+                1
+            } else {
+                0
+            }
+        } else {
+            bindingDao.insert(
+                BindingEntity(
+                    serverId = binding.id,
+                    deviceId = binding.deviceId,
+                    employeeId = binding.employeeId,
+                    employeeName = employeeName,
+                    siteId = binding.siteId,
+                    shiftDate = binding.shiftDate,
+                    shiftType = binding.shiftType,
+                    boundAt = boundAt,
+                    unboundAt = unboundAt,
+                    status = binding.status,
+                    operatorId = binding.boundBy,
+                    isSynced = true,
+                    createdAt = createdAt,
+                ),
+            )
+            1
         }
     }
 
