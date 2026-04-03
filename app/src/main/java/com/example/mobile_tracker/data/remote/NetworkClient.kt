@@ -1,7 +1,6 @@
 package com.example.mobile_tracker.data.remote
 
 import android.content.Context
-import android.os.Build
 import android.provider.Settings
 import com.example.mobile_tracker.data.local.secure.SecureStorage
 import com.example.mobile_tracker.data.remote.dto.RefreshTokenRequest
@@ -85,26 +84,7 @@ class NetworkClient(
     }
 
     private fun resolveBaseUrl(): String {
-        val baseUrl = NetworkConfig.BASE_URL
-        if (!isProbablyEmulator()) {
-            return baseUrl
-        }
-
-        return baseUrl
-            .replace("://localhost", "://10.0.2.2")
-            .replace("://127.0.0.1", "://10.0.2.2")
-    }
-
-    private fun isProbablyEmulator(): Boolean {
-        return Build.FINGERPRINT.contains("generic", ignoreCase = true) ||
-            Build.FINGERPRINT.contains("emulator", ignoreCase = true) ||
-            Build.MODEL.contains("Emulator", ignoreCase = true) ||
-            Build.MODEL.contains("Android SDK built for", ignoreCase = true) ||
-            Build.MANUFACTURER.contains("Genymotion", ignoreCase = true) ||
-            Build.PRODUCT.contains("sdk", ignoreCase = true) ||
-            Build.PRODUCT.contains("emulator", ignoreCase = true) ||
-            Build.HARDWARE.contains("ranchu", ignoreCase = true) ||
-            Build.HARDWARE.contains("goldfish", ignoreCase = true)
+        return NetworkConfig.BASE_URL
     }
 
     suspend fun refreshToken(): Boolean {
