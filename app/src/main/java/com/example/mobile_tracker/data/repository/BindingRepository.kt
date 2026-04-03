@@ -2,6 +2,7 @@ package com.example.mobile_tracker.data.repository
 
 import com.example.mobile_tracker.data.local.db.dao.BindingDao
 import com.example.mobile_tracker.data.local.db.dao.DeviceDao
+import com.example.mobile_tracker.data.local.db.dao.EmployeeDao
 import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.entity.BindingEntity
 import com.example.mobile_tracker.data.local.db.entity.OperationLogEntity
@@ -30,6 +31,7 @@ class BindingRepository(
     private val bindingApi: BindingApi,
     private val bindingDao: BindingDao,
     private val deviceDao: DeviceDao,
+    private val employeeDao: EmployeeDao,
     private val operationLogDao: OperationLogDao,
     private val notificationManager: OperatorNotificationManager,
 ) {
@@ -85,7 +87,16 @@ class BindingRepository(
         val createdAt = binding.createdAt?.let { parseIsoTimestamp(it) }
             ?: boundAt
         val unboundAt = binding.unboundAt?.let { parseIsoTimestamp(it) }
-        val employeeName = binding.employeeName ?: existing?.employeeName.orEmpty()
+        val employeeName = resolveEmployeeName(
+            employeeId = binding.employeeId,
+            backendEmployeeName = binding.employeeName,
+            existingEmployeeName = existing?.employeeName,
+        )
+        ensureIssueLogForActiveBinding(
+            binding = binding,
+            employeeName = employeeName,
+            boundAt = boundAt,
+        )
 
         return if (existing != null) {
             val updated = existing.copy(
@@ -129,6 +140,52 @@ class BindingRepository(
             )
             1
         }
+    }
+
+    private suspend fun resolveEmployeeName(
+        employeeId: String,
+        backendEmployeeName: String?,
+        existingEmployeeName: String?,
+    ): String {
+        if (!backendEmployeeName.isNullOrBlank()) {
+            return backendEmployeeName
+        }
+        if (!existingEmployeeName.isNullOrBlank()) {
+            return existingEmployeeName
+        }
+        return employeeDao.findById(employeeId)?.fullName.orEmpty()
+    }
+
+    private suspend fun ensureIssueLogForActiveBinding(
+        binding: BindingResponse,
+        employeeName: String,
+        boundAt: Long,
+    ) {
+        if (binding.status != "active") return
+
+        val existingLogs = operationLogDao.countIssueLogsNear(
+            siteId = binding.siteId,
+            shiftDate = binding.shiftDate,
+            deviceId = binding.deviceId,
+            employeeId = binding.employeeId,
+            fromTs = boundAt - ISSUE_LOG_MATCH_WINDOW_MS,
+            toTs = boundAt + ISSUE_LOG_MATCH_WINDOW_MS,
+        )
+        if (existingLogs > 0) return
+
+        operationLogDao.insert(
+            OperationLogEntity(
+                type = "issue",
+                deviceId = binding.deviceId,
+                employeeId = binding.employeeId,
+                employeeName = employeeName.ifBlank { null },
+                siteId = binding.siteId,
+                shiftDate = binding.shiftDate,
+                status = "success",
+                details = "Выдача часов подтверждена с backend",
+                createdAt = boundAt,
+            ),
+        )
     }
 
     fun observeActiveBindings(
@@ -495,5 +552,9 @@ class BindingRepository(
         }
         Timber.d("Synced $count bindings")
         count
+    }
+
+    private companion object {
+        private const val ISSUE_LOG_MATCH_WINDOW_MS = 10L * 60 * 1000
     }
 }

@@ -29,6 +29,24 @@ interface OperationLogDao {
         limit: Int = 100,
     ): Flow<List<OperationLogEntity>>
 
+    @Query(
+        "SELECT COUNT(*) FROM operation_log " +
+            "WHERE type = 'issue' " +
+            "AND site_id = :siteId " +
+            "AND shift_date = :shiftDate " +
+            "AND device_id = :deviceId " +
+            "AND employee_id = :employeeId " +
+            "AND created_at BETWEEN :fromTs AND :toTs",
+    )
+    suspend fun countIssueLogsNear(
+        siteId: String,
+        shiftDate: String,
+        deviceId: String,
+        employeeId: String,
+        fromTs: Long,
+        toTs: Long,
+    ): Int
+
     @Insert
     suspend fun insert(log: OperationLogEntity): Long
 

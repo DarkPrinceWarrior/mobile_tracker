@@ -3,7 +3,9 @@ package com.example.mobile_tracker.presentation.register_watch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mobile_tracker.data.local.db.dao.EmployeeDao
+import com.example.mobile_tracker.data.local.db.dao.OperationLogDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
+import com.example.mobile_tracker.data.local.db.entity.OperationLogEntity
 import com.example.mobile_tracker.data.remote.api.DeviceRegistrationApi
 import com.example.mobile_tracker.data.remote.dto.MobileRegisterRequest
 import com.example.mobile_tracker.data.remote.dto.MobileRegisterResponse
@@ -52,6 +54,7 @@ class RegisterWatchViewModel(
     private val deviceRegistrationApi: DeviceRegistrationApi,
     private val bindingRepository: BindingRepository,
     private val referenceRepository: ReferenceRepository,
+    private val operationLogDao: OperationLogDao,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RegisterWatchState())
@@ -166,6 +169,19 @@ class RegisterWatchViewModel(
                     code in 200..201 -> {
                         val body = response.body<MobileRegisterResponse>()
                         Timber.d("Watch registered: device_id=${body.deviceId}, status=${body.status}")
+                        operationLogDao.insert(
+                            OperationLogEntity(
+                                type = "issue",
+                                deviceId = body.deviceId,
+                                employeeId = employee.id,
+                                employeeName = employee.fullName,
+                                siteId = siteId,
+                                shiftDate = shiftDate,
+                                status = "success",
+                                details = "Регистрация часов через мобильное приложение",
+                                createdAt = System.currentTimeMillis(),
+                            ),
+                        )
                         bindingRepository.refreshBindings(
                             siteId = siteId,
                             shiftDate = shiftDate,

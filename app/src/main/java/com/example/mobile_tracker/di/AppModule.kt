@@ -43,7 +43,7 @@ val appModule = module {
     }
     single {
         BindingRepository(
-            get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(),
         )
     }
 
@@ -97,5 +97,5 @@ val appModule = module {
             androidContext(),
         )
     }
-    viewModel { RegisterWatchViewModel(get(), get(), get(), get(), get()) }
+    viewModel { RegisterWatchViewModel(get(), get(), get(), get(), get(), get()) }
 }

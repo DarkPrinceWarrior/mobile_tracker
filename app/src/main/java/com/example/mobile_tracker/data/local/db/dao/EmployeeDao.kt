@@ -11,6 +11,12 @@ interface EmployeeDao {
 
     @Query(
         "SELECT * FROM employees " +
+            "WHERE id = :id LIMIT 1",
+    )
+    suspend fun findById(id: String): EmployeeEntity?
+
+    @Query(
+        "SELECT * FROM employees " +
             "WHERE site_id = :siteId AND status = 'active' " +
             "ORDER BY full_name",
     )

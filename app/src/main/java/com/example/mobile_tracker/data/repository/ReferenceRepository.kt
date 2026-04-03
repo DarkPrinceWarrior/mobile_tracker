@@ -130,14 +130,20 @@ class ReferenceRepository(
             7L * 24 * 60 * 60 * 1000
     }
 
-    private fun mergeDeviceWithActiveBinding(
+    private suspend fun mergeDeviceWithActiveBinding(
         device: DeviceEntity,
         activeBindingsByDevice: Map<String, com.example.mobile_tracker.data.local.db.entity.BindingEntity>,
     ): DeviceEntity {
         val activeBinding = activeBindingsByDevice[device.deviceId] ?: return device
+        val employeeName = when {
+            !activeBinding.employeeName.isNullOrBlank() -> activeBinding.employeeName
+            !device.employeeName.isNullOrBlank() -> device.employeeName
+            activeBinding.employeeId.isNotBlank() -> employeeDao.findById(activeBinding.employeeId)?.fullName
+            else -> null
+        }
         return device.copy(
             employeeId = activeBinding.employeeId,
-            employeeName = activeBinding.employeeName.ifBlank { device.employeeName },
+            employeeName = employeeName,
             localStatus = "issued",
         )
     }

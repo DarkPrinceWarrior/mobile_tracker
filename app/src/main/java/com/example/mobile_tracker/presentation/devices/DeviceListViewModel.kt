@@ -114,14 +114,20 @@ class DeviceListViewModel(
                     }
                 }
             }
+
+            syncFromServer(silent = true)
         }
     }
 
-    private fun syncFromServer() {
+    private fun syncFromServer(
+        silent: Boolean = false,
+    ) {
         val siteId = currentSiteId ?: return
         val shiftDate = currentShiftDate ?: return
         viewModelScope.launch {
-            _state.update { it.copy(isSyncing = true) }
+            if (!silent) {
+                _state.update { it.copy(isSyncing = true) }
+            }
             bindingRepository.refreshBindings(siteId, shiftDate)
                 .fold(
                     onSuccess = { },
@@ -134,23 +140,27 @@ class DeviceListViewModel(
                     _state.update {
                         it.copy(isSyncing = false)
                     }
-                    _effect.emit(
-                        DeviceListEffect.SyncCompleted,
-                    )
+                    if (!silent) {
+                        _effect.emit(
+                            DeviceListEffect.SyncCompleted,
+                        )
+                    }
                 },
                 onFailure = { e ->
                     Timber.e(e, "Device sync failed")
                     _state.update {
                         it.copy(
                             isSyncing = false,
-                            error = e.message ?: "Не удалось обновить список часов",
+                            error = if (silent) it.error else e.message ?: "Не удалось обновить список часов",
                         )
                     }
-                    _effect.emit(
-                        DeviceListEffect.ShowError(
-                            e.message ?: "Не удалось обновить список часов",
-                        ),
-                    )
+                    if (!silent) {
+                        _effect.emit(
+                            DeviceListEffect.ShowError(
+                                e.message ?: "Не удалось обновить список часов",
+                            ),
+                        )
+                    }
                 },
             )
         }
