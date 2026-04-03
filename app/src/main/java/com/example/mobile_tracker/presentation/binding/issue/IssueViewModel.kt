@@ -9,6 +9,7 @@ import com.example.mobile_tracker.data.remote.dto.toDomain
 import com.example.mobile_tracker.data.repository.BindingRepository
 import com.example.mobile_tracker.domain.model.Device
 import com.example.mobile_tracker.domain.model.Employee
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -80,6 +81,10 @@ class IssueViewModel(
                 shiftDate = ctx.shiftDate
                 shiftType = ctx.shiftType
                 operatorId = ctx.operatorId
+                bindingRepository.refreshBindings(siteId, shiftDate)
+                    .onFailure { error ->
+                        Timber.w(error, "Bindings refresh failed before loading employees for issue flow")
+                    }
                 loadEmployees()
             } else {
                 _state.update {
@@ -94,14 +99,27 @@ class IssueViewModel(
     private fun loadEmployees() {
         viewModelScope.launch {
             _state.update { it.copy(isLoadingEmployees = true) }
-            employeeDao.observeBySite(siteId).collect { entities ->
-                val employees = entities.map { it.toDomain() }
+            combine(
+                employeeDao.observeBySite(siteId),
+                bindingRepository.observeActiveBindings(siteId),
+            ) { entities, activeBindings ->
+                val assignedEmployeeIds = activeBindings
+                    .map { it.employeeId }
+                    .toSet()
+                entities.map { it.toDomain() }
+                    .filter { employee -> employee.id !in assignedEmployeeIds }
+            }.collect { employees ->
+                val selectedEmployee = _state.value.selectedEmployee
+                val selectedStillAvailable = selectedEmployee == null ||
+                    employees.any { it.id == selectedEmployee.id }
                 _state.update {
                     it.copy(
                         allEmployees = employees,
                         filteredEmployees = filterEmployees(employees, it.searchQuery),
                         isLoadingEmployees = false,
-                    )
+                        selectedEmployee = if (selectedStillAvailable) it.selectedEmployee else null,
+                        step = if (selectedStillAvailable) it.step else IssueStep.IDENTIFY_EMPLOYEE,
+                        )
                 }
             }
         }
