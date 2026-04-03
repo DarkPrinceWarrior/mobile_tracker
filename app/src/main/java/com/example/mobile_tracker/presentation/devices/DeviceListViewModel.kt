@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobile_tracker.data.local.db.dao.DeviceDao
 import com.example.mobile_tracker.data.local.db.dao.ShiftContextDao
 import com.example.mobile_tracker.data.remote.dto.toDomain
+import com.example.mobile_tracker.data.repository.BindingRepository
 import com.example.mobile_tracker.data.repository.ReferenceRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
@@ -21,6 +22,7 @@ import timber.log.Timber
 class DeviceListViewModel(
     private val deviceDao: DeviceDao,
     private val shiftContextDao: ShiftContextDao,
+    private val bindingRepository: BindingRepository,
     private val repository: ReferenceRepository,
 ) : ViewModel() {
 
@@ -35,6 +37,7 @@ class DeviceListViewModel(
         _effect.asSharedFlow()
 
     private var currentSiteId: String? = null
+    private var currentShiftDate: String? = null
     private var devicesJob: Job? = null
 
     init {
@@ -76,6 +79,7 @@ class DeviceListViewModel(
             }
 
             currentSiteId = ctx.siteId
+            currentShiftDate = ctx.shiftDate
 
             devicesJob?.cancel()
             devicesJob = viewModelScope.launch {
@@ -115,8 +119,16 @@ class DeviceListViewModel(
 
     private fun syncFromServer() {
         val siteId = currentSiteId ?: return
+        val shiftDate = currentShiftDate ?: return
         viewModelScope.launch {
             _state.update { it.copy(isSyncing = true) }
+            bindingRepository.refreshBindings(siteId, shiftDate)
+                .fold(
+                    onSuccess = { },
+                    onFailure = { error ->
+                        Timber.w(error, "Binding refresh failed before device sync")
+                    },
+                )
             repository.syncDevices(siteId).fold(
                 onSuccess = {
                     _state.update {

@@ -8,6 +8,8 @@ import com.example.mobile_tracker.data.remote.api.DeviceRegistrationApi
 import com.example.mobile_tracker.data.remote.dto.MobileRegisterRequest
 import com.example.mobile_tracker.data.remote.dto.MobileRegisterResponse
 import com.example.mobile_tracker.data.remote.dto.toDomain
+import com.example.mobile_tracker.data.repository.BindingRepository
+import com.example.mobile_tracker.data.repository.ReferenceRepository
 import com.example.mobile_tracker.domain.model.Employee
 import io.ktor.client.call.body
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -48,6 +50,8 @@ class RegisterWatchViewModel(
     private val employeeDao: EmployeeDao,
     private val shiftContextDao: ShiftContextDao,
     private val deviceRegistrationApi: DeviceRegistrationApi,
+    private val bindingRepository: BindingRepository,
+    private val referenceRepository: ReferenceRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RegisterWatchState())
@@ -57,6 +61,7 @@ class RegisterWatchViewModel(
     val effect: SharedFlow<RegisterWatchEffect> = _effect.asSharedFlow()
 
     private var siteId: String = ""
+    private var shiftDate: String = ""
 
     init {
         loadContext()
@@ -67,6 +72,7 @@ class RegisterWatchViewModel(
             val ctx = shiftContextDao.get()
             if (ctx != null) {
                 siteId = ctx.siteId
+                shiftDate = ctx.shiftDate
                 loadEmployees()
             } else {
                 _state.update { it.copy(error = "Контекст смены не выбран") }
@@ -160,6 +166,16 @@ class RegisterWatchViewModel(
                     code in 200..201 -> {
                         val body = response.body<MobileRegisterResponse>()
                         Timber.d("Watch registered: device_id=${body.deviceId}, status=${body.status}")
+                        bindingRepository.refreshBindings(
+                            siteId = siteId,
+                            shiftDate = shiftDate,
+                        ).onFailure { error ->
+                            Timber.w(error, "Bindings refresh failed after watch registration")
+                        }
+                        referenceRepository.syncDevices(siteId)
+                            .onFailure { error ->
+                                Timber.w(error, "Device sync failed after watch registration")
+                            }
                         _state.update {
                             it.copy(
                                 isRegistering = false,

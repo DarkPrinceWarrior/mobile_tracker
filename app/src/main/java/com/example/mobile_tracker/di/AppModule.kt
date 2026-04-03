@@ -70,7 +70,7 @@ val appModule = module {
 
     viewModel { HomeViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel {
-        DeviceListViewModel(get(), get(), get())
+        DeviceListViewModel(get(), get(), get(), get())
     }
     viewModel {
         EmployeeSearchViewModel(get(), get(), get(), get(), get())
@@ -97,5 +97,5 @@ val appModule = module {
             androidContext(),
         )
     }
-    viewModel { RegisterWatchViewModel(get(), get(), get()) }
+    viewModel { RegisterWatchViewModel(get(), get(), get(), get(), get()) }
 }
