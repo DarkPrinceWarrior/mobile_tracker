@@ -33,6 +33,7 @@ android {
         }
         release {
             isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("debug")
             buildConfigField(
                 "boolean", "USE_DEMO", "false",
             )
